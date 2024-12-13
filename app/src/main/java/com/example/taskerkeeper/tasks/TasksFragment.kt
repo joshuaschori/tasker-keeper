@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,42 +11,32 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFloatingActionButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.taskerkeeper.MainActivity
+import com.example.taskerkeeper.Subtask
 import com.example.taskerkeeper.Task
 import com.example.taskerkeeper.ui.theme.TaskerKeeperTheme
 
@@ -71,9 +60,19 @@ class TasksFragment: Fragment() {
                             is TaskState.Content -> TasksContent(
                                 taskList = (state as TaskState.Content).taskList,
                                 onAddNewTask = { viewModel.addNewTask() },
-                                onCheck = { viewModel.markTaskComplete(it) },
-                                onUncheck = { viewModel.markTaskIncomplete(it) },
-                                onEditTask = { taskIndex: Int, textChange: String -> viewModel.editTask(taskIndex, textChange) },
+                                onCheckTask = { viewModel.markTaskComplete(it) },
+                                onUncheckTask = { viewModel.markTaskIncomplete(it) },
+                                onEditTask = { taskIndex: Int, textChange: String ->
+                                    viewModel.editTask(taskIndex, textChange) },
+                                onExpandTask = { viewModel.expandTask(it) },
+                                onMinimizeTask = { viewModel.minimizeTask(it) },
+                                onAddNewSubtask = { viewModel.addNewSubtask(it) },
+                                onCheckSubtask = { taskIndex: Int, subtaskIndex: Int ->
+                                    viewModel.markSubtaskComplete(taskIndex, subtaskIndex) },
+                                onUncheckSubtask = { subtaskIndex: Int, taskIndex: Int ->
+                                    viewModel.markSubtaskIncomplete(taskIndex, subtaskIndex) },
+                                onEditSubtask = { taskIndex: Int, subtaskIndex: Int, textChange: String ->
+                                    viewModel.editSubtask(taskIndex, subtaskIndex, textChange)},
                             )
                             is TaskState.Error -> TasksError()
                             is TaskState.Loading -> TasksLoading()
@@ -88,71 +87,66 @@ class TasksFragment: Fragment() {
     fun TasksContent(
         taskList: List<Task>,
         onAddNewTask: () -> Unit,
-        onCheck: (Int) -> Unit,
-        onUncheck: (Int) -> Unit,
+        onCheckTask: (Int) -> Unit,
+        onUncheckTask: (Int) -> Unit,
         onEditTask: (Int, String) -> Unit,
+        onExpandTask: (Int) -> Unit,
+        onMinimizeTask: (Int) -> Unit,
+        onAddNewSubtask: (Int) -> Unit,
+        onCheckSubtask: (Int, Int) -> Unit,
+        onUncheckSubtask: (Int, Int) -> Unit,
+        onEditSubtask: (Int, Int, String) -> Unit,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth()
         ) {
-            LazyColumn(
-                contentPadding = PaddingValues(start = 16.dp, top = 72.dp, end = 16.dp, bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier,
-            ) {
-                if (taskList.isNotEmpty()) {
-                    items(count = taskList.size) {listIndex ->
-                        ListItem(
-                            headlineContent = {
-                                BasicTextField(
-                                    value = taskList[listIndex].taskString,
-                                    onValueChange = { onEditTask(listIndex, it) },
+            if (taskList.isNotEmpty()) {
+                LazyColumn(
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        top = 72.dp,
+                        end = 16.dp,
+                        bottom = 16.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    items(count = taskList.size) { taskIndex ->
+                        Column {
+                            Surface(
+                                tonalElevation = 5.dp,
+                                shadowElevation = 5.dp
+                            ) {
+                                TaskRow(
+                                    task = taskList[taskIndex],
+                                    taskIndex = taskIndex,
+                                    onAddNewTask = onAddNewTask,
+                                    onCheckTask = onCheckTask,
+                                    onUncheckTask = onUncheckTask,
+                                    onEditTask = onEditTask,
+                                    onExpandTask = onExpandTask,
+                                    onMinimizeTask = onMinimizeTask
+                                )
+                            }
+                            if (taskList[taskIndex].isExpanded) {
+                                Surface(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .wrapContentHeight()
-                                )
-                            },
-                            leadingContent = {
-                                Checkbox(
-                                    checked = taskList[listIndex].checkedState,
-                                    onCheckedChange = { onCheck(listIndex) },
-                                )
-                            },
-                            trailingContent = {
-                                Row {
-                                    IconButton(
-                                        onClick = {}
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.ExpandMore,
-                                            contentDescription = "Subtasks"
-                                        )
-                                    }
+                                        .padding(start = 48.dp, top = 1.dp),
+                                    shadowElevation = 5.dp,
+                                ) {
+                                    SubtaskColumn(
+                                        taskIndex = taskIndex,
+                                        subtaskList = taskList[taskIndex].subtaskList,
+                                        onAddNewSubtask = onAddNewSubtask,
+                                        onCheckSubtask = onCheckSubtask,
+                                        onUncheckSubtask = onUncheckSubtask,
+                                        onEditSubtask = onEditSubtask
+                                    )
                                 }
-                            },
-                            tonalElevation = 5.dp,
-                            shadowElevation = 5.dp,
-                            modifier = Modifier
-                                .weight(10f)
-                        )
-                        
-                        /*IconButton(
-                            onClick = {},
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight()
-                                .weight(1f),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.DragHandle,
-                                contentDescription = "Subtasks",
-                            )
-                        }*/
-
-                        // TODO options for moving, trashing
-
+                            }
+                        }
                     }
                 }
             }
@@ -192,6 +186,118 @@ class TasksFragment: Fragment() {
             contentAlignment = Alignment.Center
         ) {
             CircularProgressIndicator()
+        }
+    }
+}
+
+@Composable
+fun TaskRow(
+    task: Task,
+    taskIndex: Int,
+    onAddNewTask: () -> Unit,
+    onCheckTask: (Int) -> Unit,
+    onUncheckTask: (Int) -> Unit,
+    onEditTask: (Int, String) -> Unit,
+    onExpandTask: (Int) -> Unit,
+    onMinimizeTask: (Int) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth(),
+    ) {
+        Row {
+            Checkbox(
+                checked = task.isChecked,
+                onCheckedChange = { onCheckTask(taskIndex) },
+            )
+            BasicTextField(
+                value = task.taskString,
+                onValueChange = { onEditTask(taskIndex, it) },
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .fillMaxWidth(0.9f),
+            )
+        }
+        IconButton(
+            onClick = {
+                if (task.isExpanded) {
+                    onMinimizeTask(taskIndex)
+                } else {
+                    onExpandTask(taskIndex)
+                }
+            },
+        ) {
+            Icon(
+                imageVector = if (task.isExpanded) {
+                    Icons.Filled.ExpandLess
+                } else {
+                    Icons.Filled.ExpandMore
+                },
+                contentDescription = if (task.isExpanded) {
+                    "Minimize Subtasks"
+                } else {
+                    "Expand Subtasks"
+                },
+            )
+        }
+    }
+}
+
+@Composable
+fun SubtaskColumn(
+    taskIndex: Int,
+    subtaskList: List<Subtask>,
+    onAddNewSubtask: (Int) -> Unit,
+    onCheckSubtask: (Int, Int) -> Unit,
+    onUncheckSubtask: (Int, Int) -> Unit,
+    onEditSubtask: (Int, Int, String) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        if (subtaskList.isNotEmpty()) {
+            Column {
+                for ((subtaskIndex, subtask) in subtaskList.withIndex()) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row {
+                            Checkbox(
+                                checked = subtask.isChecked,
+                                onCheckedChange = {
+                                    onCheckSubtask(taskIndex, subtaskIndex)
+                                },
+                            )
+                            BasicTextField(
+                                value = subtask.subtaskString,
+                                onValueChange = {
+                                    onEditSubtask(taskIndex, subtaskIndex, it)
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.CenterVertically),
+                            )
+                        }
+                        IconButton(
+                            onClick = {},
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.DragHandle,
+                                contentDescription = "Move Subtask"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        IconButton(
+            onClick = { onAddNewSubtask(taskIndex) },
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = "Add Subtask"
+            )
         }
     }
 }
