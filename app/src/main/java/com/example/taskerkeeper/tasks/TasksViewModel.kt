@@ -1,8 +1,6 @@
 package com.example.taskerkeeper.tasks
 
 import androidx.lifecycle.ViewModel
-import com.example.taskerkeeper.Subtask
-import com.example.taskerkeeper.Task
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,17 +10,17 @@ class TasksViewModel: ViewModel() {
     private val _uiState = MutableStateFlow(TaskState.Content())
     val uiState: StateFlow<TaskState> = _uiState.asStateFlow()
 
-    fun addNewSubtask(taskIndex: Int) {
+    fun addNewSubtask(taskIndex: Int, subtaskIndex: Int?) {
         _uiState.update { currentState ->
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
                 if (it == taskIndex) {
                     val subtaskList: List<Subtask> = List(
-                        currentState.taskList[taskIndex].subtaskList.size + 1
-                    ) {subtaskIndex ->
-                        if (subtaskIndex < currentState.taskList[taskIndex].subtaskList.size) {
-                            currentState.taskList[taskIndex].subtaskList[subtaskIndex]
+                        currentState.taskList[it].subtaskList.size + 1
+                    ) { it2 ->
+                        if (it2 < currentState.taskList[it].subtaskList.size) {
+                            currentState.taskList[it].subtaskList[it2]
                         } else {
                             Subtask()
                         }
@@ -36,7 +34,7 @@ class TasksViewModel: ViewModel() {
         }
     }
 
-    fun addNewTask() {
+    fun addNewTask(taskIndex: Int?) {
         _uiState.update { currentState ->
             val taskList: List<Task> = List(
                 currentState.taskList.size + 1
@@ -51,7 +49,71 @@ class TasksViewModel: ViewModel() {
         }
     }
 
-    fun editSubtask(taskIndex: Int, subtaskIndex: Int, textChange: String) {}
+    fun deleteSubtask(taskIndex: Int, subtaskIndex: Int) {
+        _uiState.update { currentState ->
+            val taskList: List<Task> = List(
+                currentState.taskList.size
+            ) {
+                if (it == taskIndex) {
+                    val subtaskList: List<Subtask> = List(
+                        currentState.taskList[it].subtaskList.size - 1
+                    ) { it2 ->
+                        if (it2 >= subtaskIndex) {
+                            currentState.taskList[it].subtaskList[it2 + 1]
+                        } else {
+                            currentState.taskList[it].subtaskList[it2]
+                        }
+                    }
+                    currentState.taskList[it].copy(subtaskList = subtaskList)
+                } else {
+                    currentState.taskList[it]
+                }
+            }
+            currentState.copy(taskList = taskList)
+        }
+    }
+
+    fun deleteTask(taskIndex: Int) {
+        _uiState.update {currentState ->
+            val taskList: List<Task> = List(
+                currentState.taskList.size - 1
+            ) {
+                if (it >= taskIndex) {
+                    currentState.taskList[it + 1]
+                } else {
+                    currentState.taskList[it]
+                }
+            }
+            currentState.copy(taskList = taskList)
+        }
+    }
+
+    fun editSubtask(taskIndex: Int, subtaskIndex: Int, textChange: String) {
+        _uiState.update {currentState ->
+            val taskList: List<Task> = List(
+                currentState.taskList.size
+            ) {
+                if (it == taskIndex) {
+                    val subtaskList: List<Subtask> = List(
+                        currentState.taskList[it].subtaskList.size
+                    ) { it2 ->
+                        if (it2 == subtaskIndex) {
+                            currentState.taskList[it].subtaskList[it2]
+                                .copy(subtaskString = textChange)
+                        } else {
+                            currentState.taskList[it].subtaskList[it2]
+                        }
+                    }
+                    currentState.taskList[it].copy(
+                        subtaskList = subtaskList
+                    )
+                } else {
+                    currentState.taskList[it]
+                }
+            }
+            currentState.copy(taskList = taskList)
+        }
+    }
 
     fun editTask(taskIndex: Int, textChange: String) {
         _uiState.update {currentState ->
@@ -71,7 +133,7 @@ class TasksViewModel: ViewModel() {
     }
 
     fun expandTask(taskIndex: Int) {
-        _uiState.update {currentState ->
+        _uiState.update { currentState ->
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
@@ -87,18 +149,23 @@ class TasksViewModel: ViewModel() {
         }
     }
 
-    fun markSubtaskComplete(taskIndex: Int, subtaskIndex: Int) {}
-
-    fun markSubtaskIncomplete(taskIndex: Int, subtaskIndex: Int) {}
-
-    fun markTaskComplete(taskIndex: Int) {
-        _uiState.update {currentState ->
+    fun markSubtaskComplete(taskIndex: Int, subtaskIndex: Int) {
+        _uiState.update { currentState ->
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
                 if (it == taskIndex) {
+                    val subtaskList: List<Subtask> = List(
+                        currentState.taskList[it].subtaskList.size
+                    ) { it2 ->
+                        if (it2 == subtaskIndex) {
+                            currentState.taskList[it].subtaskList[it2].copy(isChecked = true)
+                        } else {
+                            currentState.taskList[it].subtaskList[it2]
+                        }
+                    }
                     currentState.taskList[it].copy(
-                        isChecked = !currentState.taskList[it].isChecked
+                        subtaskList = subtaskList
                     )
                 } else {
                     currentState.taskList[it]
@@ -108,10 +175,68 @@ class TasksViewModel: ViewModel() {
         }
     }
 
-    fun markTaskIncomplete(taskIndex: Int) {}
+    fun markSubtaskIncomplete(taskIndex: Int, subtaskIndex: Int) {
+        _uiState.update { currentState ->
+            val taskList: List<Task> = List(
+                currentState.taskList.size
+            ) {
+                if (it == taskIndex) {
+                    val subtaskList: List<Subtask> = List(
+                        currentState.taskList[it].subtaskList.size
+                    ) { it2 ->
+                        if (it2 == subtaskIndex) {
+                            currentState.taskList[it].subtaskList[it2].copy(isChecked = false)
+                        } else {
+                            currentState.taskList[it].subtaskList[it2]
+                        }
+                    }
+                    currentState.taskList[it].copy(
+                        subtaskList = subtaskList
+                    )
+                } else {
+                    currentState.taskList[it]
+                }
+            }
+            currentState.copy(taskList = taskList)
+        }
+    }
+
+    fun markTaskComplete(taskIndex: Int) {
+        _uiState.update { currentState ->
+            val taskList: List<Task> = List(
+                currentState.taskList.size
+            ) {
+                if (it == taskIndex) {
+                    currentState.taskList[it].copy(
+                        isChecked = true
+                    )
+                } else {
+                    currentState.taskList[it]
+                }
+            }
+            currentState.copy(taskList = taskList)
+        }
+    }
+
+    fun markTaskIncomplete(taskIndex: Int) {
+        _uiState.update { currentState ->
+            val taskList: List<Task> = List(
+                currentState.taskList.size
+            ) {
+                if (it == taskIndex) {
+                    currentState.taskList[it].copy(
+                        isChecked = false
+                    )
+                } else {
+                    currentState.taskList[it]
+                }
+            }
+            currentState.copy(taskList = taskList)
+        }
+    }
 
     fun minimizeTask(taskIndex: Int) {
-        _uiState.update {currentState ->
+        _uiState.update { currentState ->
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
@@ -126,10 +251,6 @@ class TasksViewModel: ViewModel() {
             currentState.copy(taskList = taskList)
         }
     }
-
-    fun removeTask(taskIndex: Int) {}
-
-    fun removeSubtask(taskIndex: Int, subtaskIndex: Int) {}
 
 }
 

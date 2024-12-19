@@ -1,6 +1,6 @@
-package com.example.taskerkeeper
+package com.example.taskerkeeper.tasks
 
-class Subtask(
+data class Subtask(
     val subtaskString: String = "",
     val isChecked: Boolean = false,
 ) {

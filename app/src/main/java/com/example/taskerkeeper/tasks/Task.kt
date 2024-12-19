@@ -1,4 +1,4 @@
-package com.example.taskerkeeper
+package com.example.taskerkeeper.tasks
 
 data class Task(
     val taskString: String = "",

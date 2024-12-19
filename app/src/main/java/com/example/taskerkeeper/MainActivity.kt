@@ -23,8 +23,10 @@ class MainActivity : FragmentActivity() {
                 Surface {
                     BottomNav {
                         when (it) {
-                            0 -> { showTaskFragment() }
-                            1 -> { showDiaryFragment() }
+                            0 -> { showDiaryFragment() }
+                            1 -> { showTaskFragment() }
+                            2 -> { showDiaryFragment() }
+                            3 -> { showDiaryFragment() }
                             else -> { throw IllegalStateException("Unknown Fragment Int") }
                         }
                     }

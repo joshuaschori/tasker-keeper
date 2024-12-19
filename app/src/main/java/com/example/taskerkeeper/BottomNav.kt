@@ -1,10 +1,18 @@
 package com.example.taskerkeeper
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.Loop
+import androidx.compose.material.icons.twotone.AutoStories
+import androidx.compose.material.icons.twotone.CalendarMonth
+import androidx.compose.material.icons.twotone.Favorite
+import androidx.compose.material.icons.twotone.ListAlt
+import androidx.compose.material.icons.twotone.Loop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -17,18 +25,17 @@ import androidx.compose.runtime.setValue
 
 @Composable
 fun BottomNav(onClick: (Int) -> Unit) {
-    var selectedItem by remember { mutableIntStateOf(0) }
-    val items = listOf("Home", "Favorites")
-    val selectedIcons = listOf(Icons.Filled.Home, Icons.Filled.Favorite)
-    val unselectedIcons =
-        listOf(Icons.Outlined.Home, Icons.Outlined.FavoriteBorder)
+    //TODO selectedItem lift out of BottomNav?
+    var selectedItem by remember { mutableIntStateOf(1) }
+    val items = listOf("Habits", "Tasks", "Diary", "Calendar")
+    val icons = listOf(Icons.Filled.Loop, Icons.Filled.Checklist, Icons.Filled.AutoStories, Icons.Filled.CalendarMonth)
 
     NavigationBar {
         items.forEachIndexed { index, item ->
             NavigationBarItem(
                 icon = {
                     Icon(
-                        if (selectedItem == index) selectedIcons[index] else unselectedIcons[index],
+                        imageVector = icons[index],
                         contentDescription = item
                     )
                 },
