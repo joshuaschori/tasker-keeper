@@ -81,6 +81,8 @@ class TasksFragment: Fragment() {
                         when (state) {
                             is TaskState.Content -> TasksContent(
                                 taskList = (state as TaskState.Content).taskList,
+                                isAutoSortCheckedSubtasks = (state as TaskState.Content).isAutoSortCheckedSubtasks,
+                                isAutoSortCheckedTasks = (state as TaskState.Content).isAutoSortCheckedTasks,
                                 onAddNewTask = { viewModel.addNewTask(it) },
                                 onCheckTask = { viewModel.markTaskComplete(it) },
                                 onUncheckTask = { viewModel.markTaskIncomplete(it) },
@@ -112,6 +114,8 @@ class TasksFragment: Fragment() {
     @Composable
     fun TasksContent(
         taskList: List<Task>,
+        isAutoSortCheckedSubtasks: Boolean,
+        isAutoSortCheckedTasks: Boolean,
         onAddNewTask: (Int?) -> Unit,
         onCheckTask: (Int) -> Unit,
         onUncheckTask: (Int) -> Unit,
@@ -204,6 +208,7 @@ class TasksFragment: Fragment() {
                                     addModeEnabled = addModeEnabled,
                                     rearrangeModeEnabled = rearrangeModeEnabled,
                                     deleteModeEnabled = deleteModeEnabled,
+                                    isAddModeHidden = (isAutoSortCheckedTasks && taskList[taskIndex].isChecked),
                                     onDeleteTask = onDeleteTask,
                                     onDeleteSubtask = onDeleteSubtask,
                                     onAddNewTask = onAddNewTask,
@@ -245,13 +250,14 @@ class TasksFragment: Fragment() {
                                                 onClickHideKeyboard = { hideKeyboard = true }
                                             )
                                         }
-                                        for ((subtaskIndex) in taskList[taskIndex].subtaskList.withIndex()) {
+                                        for ((subtaskIndex, subtask) in taskList[taskIndex].subtaskList.withIndex()) {
                                             TaskAndSubtaskExtensions(
                                                 taskIndex = taskIndex,
                                                 subtaskIndex = subtaskIndex,
                                                 addModeEnabled = addModeEnabled,
                                                 rearrangeModeEnabled = rearrangeModeEnabled,
                                                 deleteModeEnabled = deleteModeEnabled,
+                                                isAddModeHidden = (isAutoSortCheckedSubtasks && subtask.isChecked),
                                                 onDeleteTask = onDeleteTask,
                                                 onDeleteSubtask = onDeleteSubtask,
                                                 onAddNewTask = onAddNewTask,
@@ -542,6 +548,7 @@ fun TaskAndSubtaskExtensions(
     rearrangeModeEnabled: Boolean,
     deleteModeEnabled: Boolean,
     isHidden: Boolean = false,
+    isAddModeHidden: Boolean = false,
     onAddNewSubtask: (Int, Int) -> Unit,
     onAddNewTask: (Int) -> Unit,
     onClickHideKeyboard: () -> Unit,
@@ -559,8 +566,8 @@ fun TaskAndSubtaskExtensions(
                     }
                     onClickHideKeyboard()
                 },
-                enabled = !isHidden,
-                modifier = Modifier.alpha(if (isHidden) 0f else 1f)
+                enabled = (!isHidden || !isAddModeHidden),
+                modifier = Modifier.alpha(if (isHidden || isAddModeHidden) 0f else 1f)
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,

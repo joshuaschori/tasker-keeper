@@ -12,22 +12,83 @@ class TasksViewModel: ViewModel() {
 
     fun addNewSubtask(taskIndex: Int, subtaskIndex: Int?) {
         _uiState.update { currentState ->
-            val taskList: List<Task> = List(
-                currentState.taskList.size
-            ) {
-                if (it == taskIndex) {
-                    val subtaskList: List<Subtask> = List(
-                        currentState.taskList[it].subtaskList.size + 1
-                    ) { it2 ->
-                        if (it2 < currentState.taskList[it].subtaskList.size) {
-                            currentState.taskList[it].subtaskList[it2]
-                        } else {
-                            Subtask()
+            val taskList: List<Task> =  if (currentState.isAutoSortCheckedSubtasks && subtaskIndex == null) {
+                // add new subtask at the end of the unchecked subtasks, before checked subtasks
+                List(
+                    currentState.taskList.size
+                ) {
+                    if (it == taskIndex) {
+                        var indexForNewSubtask: Int = 0
+                        for ((index, subtask) in currentState.taskList[it].subtaskList.withIndex()) {
+                            if (index == 0 && subtask.isChecked) {
+                                indexForNewSubtask = 0
+                                break
+                            } else if (index != 0 && subtask.isChecked && !currentState.taskList[it].subtaskList[index - 1].isChecked) {
+                                indexForNewSubtask = index
+                                break
+                            } else {
+                                indexForNewSubtask = currentState.taskList[it].subtaskList.size
+                            }
                         }
+                        val subtaskList: List<Subtask> = List(
+                            currentState.taskList[it].subtaskList.size + 1
+                        ) { it2 ->
+                            if (it2 < indexForNewSubtask) {
+                                currentState.taskList[it].subtaskList[it2]
+                            } else if (it2 == indexForNewSubtask) {
+                                Subtask()
+                            } else {
+                                currentState.taskList[it].subtaskList[it2 - 1]
+                            }
+                        }
+                        currentState.taskList[it].copy(subtaskList = subtaskList)
+                    } else {
+                        currentState.taskList[it]
                     }
-                    currentState.taskList[it].copy(subtaskList = subtaskList)
-                } else {
-                    currentState.taskList[it]
+                }
+            } else if (
+                subtaskIndex == null
+            ) {
+                // add new subtask at bottom of list
+                List(
+                    currentState.taskList.size
+                ) {
+                    if (it == taskIndex) {
+                        val subtaskList: List<Subtask> = List(
+                            currentState.taskList[it].subtaskList.size + 1
+                        ) { it2 ->
+                            if (it2 < currentState.taskList[it].subtaskList.size) {
+                                currentState.taskList[it].subtaskList[it2]
+                            } else {
+                                Subtask()
+                            }
+                        }
+                        currentState.taskList[it].copy(subtaskList = subtaskList)
+                    } else {
+                        currentState.taskList[it]
+                    }
+                }
+            } else {
+                // add new subtask below the one selected
+                List(
+                    currentState.taskList.size
+                ) {
+                    if (it == taskIndex) {
+                        val subtaskList: List<Subtask> = List(
+                            currentState.taskList[it].subtaskList.size + 1
+                        ) { it2 ->
+                            if (it2 == subtaskIndex + 1) {
+                                Subtask()
+                            } else if (it2 > subtaskIndex + 1) {
+                                currentState.taskList[it].subtaskList[it2 - 1]
+                            } else {
+                                currentState.taskList[it].subtaskList[it2]
+                            }
+                        }
+                        currentState.taskList[it].copy(subtaskList = subtaskList)
+                    } else {
+                        currentState.taskList[it]
+                    }
                 }
             }
             currentState.copy(taskList = taskList)
@@ -36,13 +97,57 @@ class TasksViewModel: ViewModel() {
 
     fun addNewTask(taskIndex: Int?) {
         _uiState.update { currentState ->
-            val taskList: List<Task> = List(
-                currentState.taskList.size + 1
+            val taskList: List<Task> =  if (currentState.isAutoSortCheckedTasks && taskIndex == null) {
+                // add new task at the end of the unchecked tasks, before checked subtasks
+                List(
+                    currentState.taskList.size + 1
+                ) {
+                    var indexForNewTask: Int = 0
+                    for ((index, task) in currentState.taskList.withIndex()) {
+                        if (index == 0 && task.isChecked) {
+                            indexForNewTask = 0
+                            break
+                        } else if (index != 0 && task.isChecked && !currentState.taskList[index - 1].isChecked) {
+                            indexForNewTask = index
+                            break
+                        } else {
+                            indexForNewTask = currentState.taskList.size
+                        }
+                    }
+                    println(indexForNewTask)
+                    if (it < indexForNewTask) {
+                        currentState.taskList[it]
+                    } else if (it == indexForNewTask) {
+                        Task()
+                    } else {
+                        currentState.taskList[it - 1]
+                    }
+                }
+            } else if (
+                taskIndex == null
             ) {
-                if (it < currentState.taskList.size) {
-                    currentState.taskList[it]
-                } else {
-                    Task()
+                // add new task at bottom of list
+                List(
+                    currentState.taskList.size + 1
+                ) {
+                    if (it == currentState.taskList.size) {
+                        Task()
+                    } else {
+                        currentState.taskList[it]
+                    }
+                }
+            } else {
+                // add new task below the one selected
+                List(
+                    currentState.taskList.size + 1
+                ) {
+                    if (it == taskIndex + 1) {
+                        Task()
+                    } else if (it <= taskIndex) {
+                        currentState.taskList[it]
+                    } else {
+                        currentState.taskList[it - 1]
+                    }
                 }
             }
             currentState.copy(taskList = taskList)
@@ -259,6 +364,8 @@ sealed interface TaskState {
         val taskList: List<Task> = List(4) {
             Task()
         },
+        val isAutoSortCheckedSubtasks: Boolean = true,
+        val isAutoSortCheckedTasks: Boolean = true,
     ) : TaskState
     data object Error : TaskState
     data object Loading : TaskState
