@@ -1,17 +1,31 @@
 package com.example.taskerkeeper.tasks
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.taskerkeeper.data.TaskEntity
+import com.example.taskerkeeper.data.TaskerKeeperDatabase
+import com.example.taskerkeeper.data.TasksRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class TasksViewModel: ViewModel() {
-    private val _uiState = MutableStateFlow(TaskState.Content())
+@HiltViewModel
+class TasksViewModel @Inject constructor(
+    val db: TaskerKeeperDatabase,
+    val tasksRepository: TasksRepository
+): ViewModel() {
+    private val _uiState: MutableStateFlow<TaskState> = MutableStateFlow(TaskState.Loading)
     val uiState: StateFlow<TaskState> = _uiState.asStateFlow()
 
     fun addNewSubtask(taskIndex: Int, subtaskIndex: Int?) {
         _uiState.update { currentState ->
+            require(currentState is TaskState.Content)
             val taskList: List<Task> =  if (currentState.isAutoSortCheckedSubtasks && subtaskIndex == null) {
                 // add new subtask at the end of the unchecked subtasks, before checked subtasks
                 List(
@@ -96,66 +110,20 @@ class TasksViewModel: ViewModel() {
     }
 
     fun addNewTask(taskIndex: Int?) {
-        _uiState.update { currentState ->
-            val taskList: List<Task> =  if (currentState.isAutoSortCheckedTasks && taskIndex == null) {
-                // add new task at the end of the unchecked tasks, before checked subtasks
-                List(
-                    currentState.taskList.size + 1
-                ) {
-                    var indexForNewTask: Int = 0
-                    for ((index, task) in currentState.taskList.withIndex()) {
-                        if (index == 0 && task.isChecked) {
-                            indexForNewTask = 0
-                            break
-                        } else if (index != 0 && task.isChecked && !currentState.taskList[index - 1].isChecked) {
-                            indexForNewTask = index
-                            break
-                        } else {
-                            indexForNewTask = currentState.taskList.size
-                        }
-                    }
-                    println(indexForNewTask)
-                    if (it < indexForNewTask) {
-                        currentState.taskList[it]
-                    } else if (it == indexForNewTask) {
-                        Task()
-                    } else {
-                        currentState.taskList[it - 1]
-                    }
-                }
-            } else if (
-                taskIndex == null
-            ) {
-                // add new task at bottom of list
-                List(
-                    currentState.taskList.size + 1
-                ) {
-                    if (it == currentState.taskList.size) {
-                        Task()
-                    } else {
-                        currentState.taskList[it]
-                    }
-                }
-            } else {
-                // add new task below the one selected
-                List(
-                    currentState.taskList.size + 1
-                ) {
-                    if (it == taskIndex + 1) {
-                        Task()
-                    } else if (it <= taskIndex) {
-                        currentState.taskList[it]
-                    } else {
-                        currentState.taskList[it - 1]
-                    }
-                }
-            }
-            currentState.copy(taskList = taskList)
+        viewModelScope.launch {
+            db.taskDao().insertAll(
+                TaskEntity(
+                    taskString = "",
+                    isChecked = false,
+                    taskOrder = 0
+                )
+            )
         }
     }
 
     fun deleteSubtask(taskIndex: Int, subtaskIndex: Int) {
         _uiState.update { currentState ->
+            require(currentState is TaskState.Content)
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
@@ -180,6 +148,7 @@ class TasksViewModel: ViewModel() {
 
     fun deleteTask(taskIndex: Int) {
         _uiState.update {currentState ->
+            require(currentState is TaskState.Content)
             val taskList: List<Task> = List(
                 currentState.taskList.size - 1
             ) {
@@ -195,6 +164,7 @@ class TasksViewModel: ViewModel() {
 
     fun editSubtask(taskIndex: Int, subtaskIndex: Int, textChange: String) {
         _uiState.update {currentState ->
+            require(currentState is TaskState.Content)
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
@@ -222,6 +192,7 @@ class TasksViewModel: ViewModel() {
 
     fun editTask(taskIndex: Int, textChange: String) {
         _uiState.update {currentState ->
+            require(currentState is TaskState.Content)
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
@@ -239,6 +210,7 @@ class TasksViewModel: ViewModel() {
 
     fun expandTask(taskIndex: Int) {
         _uiState.update { currentState ->
+            require(currentState is TaskState.Content)
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
@@ -256,6 +228,7 @@ class TasksViewModel: ViewModel() {
 
     fun markSubtaskComplete(taskIndex: Int, subtaskIndex: Int) {
         _uiState.update { currentState ->
+            require(currentState is TaskState.Content)
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
@@ -282,6 +255,7 @@ class TasksViewModel: ViewModel() {
 
     fun markSubtaskIncomplete(taskIndex: Int, subtaskIndex: Int) {
         _uiState.update { currentState ->
+            require(currentState is TaskState.Content)
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
@@ -308,6 +282,7 @@ class TasksViewModel: ViewModel() {
 
     fun markTaskComplete(taskIndex: Int) {
         _uiState.update { currentState ->
+            require(currentState is TaskState.Content)
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
@@ -325,6 +300,7 @@ class TasksViewModel: ViewModel() {
 
     fun markTaskIncomplete(taskIndex: Int) {
         _uiState.update { currentState ->
+            require(currentState is TaskState.Content)
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
@@ -342,6 +318,7 @@ class TasksViewModel: ViewModel() {
 
     fun minimizeTask(taskIndex: Int) {
         _uiState.update { currentState ->
+            require(currentState is TaskState.Content)
             val taskList: List<Task> = List(
                 currentState.taskList.size
             ) {
@@ -357,13 +334,28 @@ class TasksViewModel: ViewModel() {
         }
     }
 
+    fun listenForDatabaseUpdates() {
+        viewModelScope.launch {
+            db.taskDao().getAll().collect { taskEntityList ->
+                _uiState.update {
+                    TaskState.Content(
+                        taskList = taskEntityList.sortedBy { it.taskOrder } .map { taskEntity ->
+                            Task(
+                                taskString = taskEntity.taskString,
+                                isChecked = taskEntity.isChecked
+                            )
+                        }
+                    )
+                }
+            }
+        }
+    }
+
 }
 
 sealed interface TaskState {
     data class Content(
-        val taskList: List<Task> = List(4) {
-            Task()
-        },
+        val taskList: List<Task> = emptyList(),
         val isAutoSortCheckedSubtasks: Boolean = true,
         val isAutoSortCheckedTasks: Boolean = true,
     ) : TaskState

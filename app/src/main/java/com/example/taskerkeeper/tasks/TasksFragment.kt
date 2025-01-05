@@ -61,21 +61,27 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.taskerkeeper.ui.theme.TaskerKeeperTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class TasksFragment: Fragment() {
+    val viewModel: TasksViewModel by viewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        viewModel.listenForDatabaseUpdates()
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val viewModel: TasksViewModel by viewModels()
         return ComposeView(requireContext()).apply {
             // Dispose of the Composition when the view's LifecycleOwner is destroyed
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                val state by viewModel.uiState.collectAsStateWithLifecycle(
-                    initialValue = TaskState.Content()
-                )
+                val state by viewModel.uiState.collectAsStateWithLifecycle()
                 TaskerKeeperTheme {
                     Surface {
                         when (state) {

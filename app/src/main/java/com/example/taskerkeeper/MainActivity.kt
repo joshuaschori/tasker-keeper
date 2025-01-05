@@ -9,7 +9,9 @@ import com.example.taskerkeeper.databinding.ActivityMainBinding
 import com.example.taskerkeeper.diary.DiaryFragment
 import com.example.taskerkeeper.tasks.TasksFragment
 import com.example.taskerkeeper.ui.theme.TaskerKeeperTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : FragmentActivity() {
     // Contains all the views
     private lateinit var binding: ActivityMainBinding
