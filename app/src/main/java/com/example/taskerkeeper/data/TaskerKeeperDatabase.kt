@@ -6,7 +6,7 @@ import com.example.taskerkeeper.tasks.Task
 
 @Database(
     entities = [TaskEntity::class, SubtaskEntity::class],
-    version = 2
+    version = 3
 )
 abstract class TaskerKeeperDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
