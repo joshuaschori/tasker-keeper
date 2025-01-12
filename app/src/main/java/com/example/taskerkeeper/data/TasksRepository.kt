@@ -1,6 +1,5 @@
 package com.example.taskerkeeper.data
 
-import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -9,6 +8,18 @@ class TasksRepository @Inject constructor(
     val db: TaskerKeeperDatabase,
     subtasksRepository: SubtasksRepository
 ) {
+    suspend fun addSubtaskAfterUnchecked(taskOrder: Int) {
+
+    }
+
+    suspend fun addSubtaskAtEnd(taskOrder: Int) {
+
+    }
+
+    suspend fun addSubtaskAtOrder(taskOrder: Int, subtaskOrder: Int) {
+        
+    }
+
     suspend fun addTaskAfterUnchecked() {
         db.taskDao().addTaskAfterUnchecked()
     }
@@ -29,7 +40,7 @@ class TasksRepository @Inject constructor(
         db.taskDao().updateTaskAsExpanded(taskOrder)
     }
 
-    fun getAll() = db.taskDao().getAll()
+    fun getAll() = db.taskDao().getAllTasks()
 
     suspend fun markTaskComplete(taskOrder: Int, autoSort: Boolean) {
         db.taskDao().markTaskComplete(taskOrder, autoSort)

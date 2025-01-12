@@ -1,11 +1,8 @@
 package com.example.taskerkeeper.data
 
 import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
-import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
@@ -28,8 +25,7 @@ interface TaskDao {
     @Transaction
     suspend fun addTaskAtOrder(taskOrder: Int) {
         incrementTasksAfterOrder(taskOrder)
-        val taskList = getAll().first()
-        println(taskList)
+        val taskList = getAllTasks().first()
         insertTaskAtOrder(taskOrder)
     }
 
@@ -79,7 +75,7 @@ interface TaskDao {
     suspend fun deleteTaskAtOrder(taskOrder: Int)
 
     @Query("SELECT * FROM tasks ORDER BY task_order ASC")
-    fun getAll(): Flow<List<TaskEntity>>
+    fun getAllTasks(): Flow<List<TaskEntity>>
 
     @Query("SELECT task_order FROM tasks WHERE is_checked = 1 ORDER BY task_order ASC LIMIT 1")
     suspend fun getFirstCheckedTaskOrder(): Int

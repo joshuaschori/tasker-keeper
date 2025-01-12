@@ -21,7 +21,19 @@ class TasksViewModel @Inject constructor(
     val uiState: StateFlow<TaskState> = _uiState.asStateFlow()
 
     fun addNewSubtask(selectedTaskIndex: Int, selectedSubtaskIndex: Int?) {
-
+        val currentState = _uiState.value
+        require(currentState is TaskState.Content)
+        viewModelScope.launch {
+            if (selectedSubtaskIndex == null && currentState.isAutoSortCheckedSubtasks) {
+                tasksRepository.addSubtaskAfterUnchecked(selectedTaskIndex)
+            } else if (selectedSubtaskIndex == null) {
+                tasksRepository.addSubtaskAtEnd(selectedTaskIndex)
+            } else {
+                val taskList = tasksRepository.getAll().first()
+                println(taskList)
+                tasksRepository.addSubtaskAtOrder(selectedTaskIndex, selectedSubtaskIndex + 1)
+            }
+        }
     }
 
     fun addNewTask(selectedTaskIndex: Int?) {
