@@ -5,10 +5,9 @@ import androidx.room.RoomDatabase
 import com.example.taskerkeeper.tasks.Task
 
 @Database(
-    entities = [TaskEntity::class, SubtaskEntity::class],
+    entities = [TaskEntity::class],
     version = 3
 )
 abstract class TaskerKeeperDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
-    abstract fun subtaskDao(): SubtaskDao
 }

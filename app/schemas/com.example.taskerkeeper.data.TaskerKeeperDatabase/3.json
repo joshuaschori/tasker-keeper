@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "e2f87a3711c8d6a02201f8c273ee8fd3",
+    "identityHash": "e6884297951e1a2b6b0dadd3b684e6f4",
     "entities": [
       {
         "tableName": "tasks",
@@ -63,68 +63,12 @@
           }
         ],
         "foreignKeys": []
-      },
-      {
-        "tableName": "subtasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`subtaskId` INTEGER NOT NULL, `subtask_string` TEXT NOT NULL, `is_checked` INTEGER NOT NULL, `task_id` INTEGER NOT NULL, `subtask_order` INTEGER NOT NULL, PRIMARY KEY(`subtaskId`), FOREIGN KEY(`task_id`) REFERENCES `tasks`(`task_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
-        "fields": [
-          {
-            "fieldPath": "subtaskId",
-            "columnName": "subtaskId",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "subtaskString",
-            "columnName": "subtask_string",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "isChecked",
-            "columnName": "is_checked",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "taskId",
-            "columnName": "task_id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "subtaskOrder",
-            "columnName": "subtask_order",
-            "affinity": "INTEGER",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "subtaskId"
-          ]
-        },
-        "indices": [],
-        "foreignKeys": [
-          {
-            "table": "tasks",
-            "onDelete": "CASCADE",
-            "onUpdate": "CASCADE",
-            "columns": [
-              "task_id"
-            ],
-            "referencedColumns": [
-              "task_id"
-            ]
-          }
-        ]
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e2f87a3711c8d6a02201f8c273ee8fd3')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e6884297951e1a2b6b0dadd3b684e6f4')"
     ]
   }
 }
