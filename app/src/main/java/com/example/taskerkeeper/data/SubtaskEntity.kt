@@ -11,8 +11,8 @@ import androidx.room.PrimaryKey
     foreignKeys = [
         ForeignKey(
             entity = TaskEntity::class,
-            parentColumns = arrayOf("taskId"),
-            childColumns = arrayOf("taskId"),
+            parentColumns = arrayOf("task_id"),
+            childColumns = arrayOf("task_id"),
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         )
@@ -22,6 +22,6 @@ data class SubtaskEntity(
     @PrimaryKey val subtaskId: Int,
     @ColumnInfo(name = "subtask_string") val subtaskString: String,
     @ColumnInfo(name = "is_checked") val isChecked: Boolean,
-    @ColumnInfo(name = "taskId") val taskId: Int,
+    @ColumnInfo(name = "task_id") val taskId: Int,
     @ColumnInfo(name = "subtask_order") val subtaskOrder: Int,
 )

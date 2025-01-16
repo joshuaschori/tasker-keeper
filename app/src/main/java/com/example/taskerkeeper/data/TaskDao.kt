@@ -4,109 +4,128 @@ import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 
 @Dao
 interface TaskDao {
 
     @Transaction
-    suspend fun addTaskAfterUnchecked() {
-        val firstCheckedTaskOrder = getFirstCheckedTaskOrder()
-        incrementTasksAfterOrder(firstCheckedTaskOrder)
-        insertTaskAtOrder(firstCheckedTaskOrder)
+    suspend fun addTaskAfter(taskId: Int) {
+        val parentId = getParentId(taskId)
+        val taskOrder = getTaskOrder(taskId)
+        incrementTasks(parentId, taskOrder + 1)
+        insertTask(parentId, taskOrder + 1)
     }
 
     @Transaction
-    suspend fun addTaskAtEnd() {
-        val taskCount = getTaskCount()
-        insertTaskAtOrder(taskCount)
+    suspend fun addTaskAfterUnchecked(parentId: Int?) {
+        val firstCheckedTaskOrder = getFirstCheckedTaskOrder(parentId)
+        if (firstCheckedTaskOrder == null) {
+            addTaskAtEnd(parentId)
+        } else {
+            incrementTasks(parentId, firstCheckedTaskOrder)
+            insertTask(parentId, firstCheckedTaskOrder)
+        }
     }
 
     @Transaction
-    suspend fun addTaskAtOrder(taskOrder: Int) {
-        incrementTasksAfterOrder(taskOrder)
-        val taskList = getAllTasks().first()
-        insertTaskAtOrder(taskOrder)
+    suspend fun addTaskAtEnd(parentId: Int?) {
+        val taskCount = getTaskCount(parentId)
+        insertTask(parentId, taskCount)
     }
 
     @Transaction
-    suspend fun markTaskComplete(taskOrder: Int, autoSort: Boolean) {
+    suspend fun markTaskComplete(taskId: Int, autoSort: Boolean) {
+        val parentId = getParentId(taskId)
+        val taskOrder = getTaskOrder(taskId)
         if (autoSort) {
-            val firstCheckedTaskOrder = getFirstCheckedTaskOrder()
-            if (verifyChecked(firstCheckedTaskOrder)) {
-                updateTaskAsChecked(taskOrder)
-                incrementTasksAfterOrder(firstCheckedTaskOrder)
-                moveTaskAtOrder(taskOrder, firstCheckedTaskOrder)
-                decrementTasksAfterOrder(taskOrder + 1)
+            val firstCheckedTaskOrder = getFirstCheckedTaskOrder(parentId)
+            if (firstCheckedTaskOrder == null) {
+                val taskCount = getTaskCount(parentId)
+                updateTaskAsChecked(taskId)
+                moveTask(parentId, taskOrder, taskCount)
+                decrementTasks(parentId, taskOrder + 1)
             } else {
-                val taskCount = getTaskCount()
-                updateTaskAsChecked(taskOrder)
-                moveTaskAtOrder(taskOrder, taskCount)
-                decrementTasksAfterOrder(taskOrder + 1)
+                updateTaskAsChecked(taskId)
+                incrementTasks(parentId, firstCheckedTaskOrder)
+                moveTask(parentId, taskOrder, firstCheckedTaskOrder)
+                decrementTasks(parentId, taskOrder + 1)
             }
         } else {
-            updateTaskAsChecked(taskOrder)
+            updateTaskAsChecked(taskId)
         }
     }
 
     @Transaction
-    suspend fun markTaskIncomplete(taskOrder: Int, autoSort: Boolean) {
+    suspend fun markTaskIncomplete(taskId: Int, autoSort: Boolean) {
+        val parentId = getParentId(taskId)
+        val taskOrder = getTaskOrder(taskId)
         if (autoSort) {
-            val firstCheckedTaskOrder = getFirstCheckedTaskOrder()
-            updateTaskAsUnchecked(taskOrder)
-            incrementTasksAfterOrder(firstCheckedTaskOrder)
-            moveTaskAtOrder(taskOrder + 1, firstCheckedTaskOrder)
-            decrementTasksAfterOrder(taskOrder + 1)
+            val firstCheckedTaskOrder = getFirstCheckedTaskOrder(parentId)
+            if (firstCheckedTaskOrder != null) {
+                updateTaskAsUnchecked(taskId)
+                incrementTasks(parentId, firstCheckedTaskOrder)
+                moveTask(parentId, taskOrder + 1, firstCheckedTaskOrder)
+                decrementTasks(parentId, taskOrder + 2)
+            }
         } else {
-            updateTaskAsUnchecked(taskOrder)
+            updateTaskAsUnchecked(taskId)
         }
     }
 
     @Transaction
-    suspend fun removeTaskAtOrder(taskOrder: Int) {
-        deleteTaskAtOrder(taskOrder)
-        decrementTasksAfterOrder(taskOrder)
+    suspend fun removeTask(taskId: Int) {
+        val parentId = getParentId(taskId)
+        val taskOrder = getTaskOrder(taskId)
+        deleteTask(taskId)
+        decrementTasks(parentId, taskOrder + 1)
     }
 
-    @Query("UPDATE tasks SET task_order = task_order - 1 WHERE task_order >= :taskOrder")
-    suspend fun decrementTasksAfterOrder(taskOrder: Int)
+    @Query("UPDATE tasks SET task_order = task_order - 1 WHERE parent_id is :parentId AND task_order >= :taskOrder")
+    suspend fun decrementTasks(parentId: Int?, taskOrder: Int)
 
-    @Query("DELETE FROM tasks WHERE task_order = :taskOrder")
-    suspend fun deleteTaskAtOrder(taskOrder: Int)
+    @Query("DELETE FROM tasks WHERE task_id = :taskId")
+    suspend fun deleteTask(taskId: Int)
+
+    @Query("SELECT task_order FROM tasks WHERE parent_id is :parentId AND is_checked = 1 ORDER BY task_order ASC LIMIT 1")
+    suspend fun getFirstCheckedTaskOrder(parentId: Int?): Int?
+
+    @Query("SELECT parent_id FROM tasks WHERE task_id = :taskId")
+    suspend fun getParentId(taskId: Int): Int?
 
     @Query("SELECT * FROM tasks ORDER BY task_order ASC")
     fun getAllTasks(): Flow<List<TaskEntity>>
 
-    @Query("SELECT task_order FROM tasks WHERE is_checked = 1 ORDER BY task_order ASC LIMIT 1")
-    suspend fun getFirstCheckedTaskOrder(): Int
+    @Query("SELECT COUNT(task_order) FROM tasks WHERE parent_id is :parentId")
+    suspend fun getTaskCount(parentId: Int?): Int
 
-    @Query("SELECT COUNT(task_order) FROM tasks")
-    suspend fun getTaskCount(): Int
+    @Query("SELECT task_order FROM tasks WHERE task_id = :taskId")
+    suspend fun getTaskOrder(taskId: Int): Int
 
-    @Query("UPDATE tasks SET task_order = task_order + 1 WHERE task_order >= :taskOrder")
-    suspend fun incrementTasksAfterOrder(taskOrder: Int)
+    @Query("UPDATE tasks SET task_order = task_order + 1 WHERE parent_id is :parentId AND task_order >= :taskOrder")
+    suspend fun incrementTasks(parentId: Int?, taskOrder: Int)
 
-    @Query("INSERT INTO tasks (task_string, is_checked, is_expanded, task_order) VALUES ('', 0, 0, :taskOrder)")
-    suspend fun insertTaskAtOrder(taskOrder: Int)
+    @Query("INSERT INTO tasks (task_string, is_checked, is_expanded, parent_id, task_order) VALUES ('', 0, 0, :parentId, :taskOrder)")
+    suspend fun insertTask(parentId: Int?, taskOrder: Int)
 
-    @Query("UPDATE tasks SET task_order = :taskOrderTo WHERE task_order = :taskOrderFrom")
-    suspend fun moveTaskAtOrder(taskOrderFrom: Int, taskOrderTo: Int)
+    @Query("UPDATE tasks SET task_order = :taskOrderTo WHERE task_order = :taskOrderFrom AND parent_id is :parentId")
+    suspend fun moveTask(parentId: Int?, taskOrderFrom: Int, taskOrderTo: Int)
 
-    @Query("UPDATE tasks SET is_checked = 1 WHERE task_order = :taskOrder")
-    suspend fun updateTaskAsChecked(taskOrder: Int)
+    @Query("UPDATE tasks SET is_checked = 1 WHERE task_id = :taskId")
+    suspend fun updateTaskAsChecked(taskId: Int)
 
-    @Query("UPDATE tasks SET is_expanded = 1 WHERE task_order = :taskOrder")
-    suspend fun updateTaskAsExpanded(taskOrder: Int)
+    @Query("UPDATE tasks SET is_expanded = 1 WHERE task_id = :taskId")
+    suspend fun updateTaskAsExpanded(taskId: Int)
 
-    @Query("UPDATE tasks SET is_expanded = 0 WHERE task_order = :taskOrder")
-    suspend fun updateTaskAsMinimized(taskOrder: Int)
+    @Query("UPDATE tasks SET is_expanded = 0 WHERE task_id = :taskId")
+    suspend fun updateTaskAsMinimized(taskId: Int)
 
-    @Query("UPDATE tasks SET is_checked = 0 WHERE task_order = :taskOrder")
-    suspend fun updateTaskAsUnchecked(taskOrder: Int)
+    @Query("UPDATE tasks SET is_checked = 0 WHERE task_id = :taskId")
+    suspend fun updateTaskAsUnchecked(taskId: Int)
 
-    @Query("UPDATE tasks SET task_string = :textChange WHERE task_order = :taskOrder")
-    suspend fun updateTaskString(taskOrder: Int, textChange: String)
+    @Query("UPDATE tasks SET task_string = :textChange WHERE task_id is :taskId")
+    suspend fun updateTaskString(taskId: Int, textChange: String)
 
-    @Query("SELECT is_checked FROM tasks WHERE task_order = :taskOrder LIMIT 1")
-    suspend fun verifyChecked(taskOrder: Int): Boolean
+    @Query("SELECT is_checked FROM tasks WHERE task_id = :taskId LIMIT 1")
+    suspend fun verifyChecked(taskId: Int): Boolean
+
 }

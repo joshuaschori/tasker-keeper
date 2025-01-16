@@ -1,10 +1,12 @@
 package com.example.taskerkeeper.tasks
 
 data class Task(
-    val taskString: String = "",
-    val subtaskList: List<Subtask> = emptyList(),
-    val isChecked: Boolean = false,
-    val isExpanded: Boolean = false,
+    val taskId: Int,
+    val taskString: String,
+    val isChecked: Boolean,
+    val isExpanded: Boolean,
+    val parentId: Int?,
+    val subtaskList: List<Task>
 ) {
 
 }

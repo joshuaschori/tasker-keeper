@@ -1,61 +1,51 @@
 package com.example.taskerkeeper.data
 
+import com.example.taskerkeeper.tasks.Task
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class TasksRepository @Inject constructor(
     val db: TaskerKeeperDatabase,
-    subtasksRepository: SubtasksRepository
 ) {
-    suspend fun addSubtaskAfterUnchecked(taskOrder: Int) {
-
+    suspend fun addTaskAfter(taskId: Int) {
+        db.taskDao().addTaskAfter(taskId)
     }
 
-    suspend fun addSubtaskAtEnd(taskOrder: Int) {
-
+    suspend fun addTaskAfterUnchecked(parentId: Int?) {
+        db.taskDao().addTaskAfterUnchecked(parentId)
     }
 
-    suspend fun addSubtaskAtOrder(taskOrder: Int, subtaskOrder: Int) {
-        
+    suspend fun addTaskAtEnd(parentId: Int?) {
+        db.taskDao().addTaskAtEnd(parentId)
     }
 
-    suspend fun addTaskAfterUnchecked() {
-        db.taskDao().addTaskAfterUnchecked()
+    suspend fun editTask(taskId: Int, textChange: String) {
+        db.taskDao().updateTaskString(taskId, textChange)
     }
 
-    suspend fun addTaskAtEnd() {
-        db.taskDao().addTaskAtEnd()
+    suspend fun expandTask(taskId: Int) {
+        db.taskDao().updateTaskAsExpanded(taskId)
     }
 
-    suspend fun addTaskAtOrder(taskOrder: Int) {
-        db.taskDao().addTaskAtOrder(taskOrder)
+    fun getAllTasks() = db.taskDao().getAllTasks()
+
+    suspend fun markTaskComplete(taskId: Int, autoSort: Boolean) {
+        db.taskDao().markTaskComplete(taskId, autoSort)
     }
 
-    suspend fun editTask(taskOrder: Int, textChange: String) {
-        db.taskDao().updateTaskString(taskOrder, textChange)
+    suspend fun markTaskIncomplete(taskId: Int, autoSort: Boolean) {
+        db.taskDao().markTaskIncomplete(taskId, autoSort)
     }
 
-    suspend fun expandTask(taskOrder: Int) {
-        db.taskDao().updateTaskAsExpanded(taskOrder)
+    suspend fun minimizeTask(taskId: Int) {
+        db.taskDao().updateTaskAsMinimized(taskId)
     }
 
-    fun getAll() = db.taskDao().getAllTasks()
-
-    suspend fun markTaskComplete(taskOrder: Int, autoSort: Boolean) {
-        db.taskDao().markTaskComplete(taskOrder, autoSort)
-    }
-
-    suspend fun markTaskIncomplete(taskOrder: Int, autoSort: Boolean) {
-        db.taskDao().markTaskIncomplete(taskOrder, autoSort)
-    }
-
-    suspend fun minimizeTask(taskOrder: Int) {
-        db.taskDao().updateTaskAsMinimized(taskOrder)
-    }
-
-    suspend fun removeTaskAtOrder(taskOrder: Int) {
-        db.taskDao().removeTaskAtOrder(taskOrder)
+    suspend fun removeTask(taskId: Int) {
+        db.taskDao().removeTask(taskId)
     }
 
 }

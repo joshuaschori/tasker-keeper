@@ -2,15 +2,15 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "9a9d3108304b6879fa1c28478ee26f3e",
+    "identityHash": "e2f87a3711c8d6a02201f8c273ee8fd3",
     "entities": [
       {
         "tableName": "tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`taskId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `task_string` TEXT NOT NULL, `is_checked` INTEGER NOT NULL, `is_expanded` INTEGER NOT NULL, `task_order` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`task_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `task_string` TEXT NOT NULL, `is_checked` INTEGER NOT NULL, `is_expanded` INTEGER NOT NULL, `parent_id` INTEGER, `task_order` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "taskId",
-            "columnName": "taskId",
+            "columnName": "task_id",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -33,6 +33,12 @@
             "notNull": true
           },
           {
+            "fieldPath": "parentId",
+            "columnName": "parent_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
             "fieldPath": "taskOrder",
             "columnName": "task_order",
             "affinity": "INTEGER",
@@ -42,7 +48,7 @@
         "primaryKey": {
           "autoGenerate": true,
           "columnNames": [
-            "taskId"
+            "task_id"
           ]
         },
         "indices": [
@@ -60,7 +66,7 @@
       },
       {
         "tableName": "subtasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`subtaskId` INTEGER NOT NULL, `subtask_string` TEXT NOT NULL, `is_checked` INTEGER NOT NULL, `taskId` INTEGER NOT NULL, `subtask_order` INTEGER NOT NULL, PRIMARY KEY(`subtaskId`), FOREIGN KEY(`taskId`) REFERENCES `tasks`(`taskId`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`subtaskId` INTEGER NOT NULL, `subtask_string` TEXT NOT NULL, `is_checked` INTEGER NOT NULL, `task_id` INTEGER NOT NULL, `subtask_order` INTEGER NOT NULL, PRIMARY KEY(`subtaskId`), FOREIGN KEY(`task_id`) REFERENCES `tasks`(`task_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "subtaskId",
@@ -82,7 +88,7 @@
           },
           {
             "fieldPath": "taskId",
-            "columnName": "taskId",
+            "columnName": "task_id",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -106,10 +112,10 @@
             "onDelete": "CASCADE",
             "onUpdate": "CASCADE",
             "columns": [
-              "taskId"
+              "task_id"
             ],
             "referencedColumns": [
-              "taskId"
+              "task_id"
             ]
           }
         ]
@@ -118,7 +124,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9a9d3108304b6879fa1c28478ee26f3e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e2f87a3711c8d6a02201f8c273ee8fd3')"
     ]
   }
 }

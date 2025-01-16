@@ -33,7 +33,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeFloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -87,26 +86,16 @@ class TasksFragment: Fragment() {
                         when (state) {
                             is TaskState.Content -> TasksContent(
                                 taskList = (state as TaskState.Content).taskList,
-                                isAutoSortCheckedSubtasks = (state as TaskState.Content).isAutoSortCheckedSubtasks,
                                 isAutoSortCheckedTasks = (state as TaskState.Content).isAutoSortCheckedTasks,
-                                onAddNewTask = { viewModel.addNewTask(it) },
+                                onAddNewTask = { taskId: Int?, parentId: Int? ->
+                                    viewModel.addNewTask(taskId, parentId) },
                                 onCheckTask = { viewModel.markTaskComplete(it) },
                                 onUncheckTask = { viewModel.markTaskIncomplete(it) },
-                                onEditTask = { taskIndex: Int, textChange: String ->
-                                    viewModel.editTask(taskIndex, textChange) },
+                                onEditTask = { taskId: Int, textChange: String ->
+                                    viewModel.editTask(taskId, textChange) },
                                 onExpandTask = { viewModel.expandTask(it) },
                                 onMinimizeTask = { viewModel.minimizeTask(it) },
-                                onAddNewSubtask = { taskIndex: Int, subtaskIndex: Int? ->
-                                    viewModel.addNewSubtask(taskIndex, subtaskIndex) },
-                                onCheckSubtask = { taskIndex: Int, subtaskIndex: Int ->
-                                    viewModel.markSubtaskComplete(taskIndex, subtaskIndex) },
-                                onUncheckSubtask = { taskIndex: Int, subtaskIndex: Int ->
-                                    viewModel.markSubtaskIncomplete(taskIndex, subtaskIndex) },
-                                onEditSubtask = { taskIndex: Int, subtaskIndex: Int, textChange: String ->
-                                    viewModel.editSubtask(taskIndex, subtaskIndex, textChange)},
                                 onDeleteTask = { viewModel.deleteTask(it) },
-                                onDeleteSubtask = { taskIndex: Int, subtaskIndex: Int ->
-                                    viewModel.deleteSubtask(taskIndex, subtaskIndex) },
                             )
                             is TaskState.Error -> TasksError()
                             is TaskState.Loading -> TasksLoading()
@@ -120,20 +109,14 @@ class TasksFragment: Fragment() {
     @Composable
     fun TasksContent(
         taskList: List<Task>,
-        isAutoSortCheckedSubtasks: Boolean,
         isAutoSortCheckedTasks: Boolean,
-        onAddNewTask: (Int?) -> Unit,
+        onAddNewTask: (Int?, Int?) -> Unit,
         onCheckTask: (Int) -> Unit,
         onUncheckTask: (Int) -> Unit,
         onEditTask: (Int, String) -> Unit,
         onExpandTask: (Int) -> Unit,
         onMinimizeTask: (Int) -> Unit,
-        onAddNewSubtask: (Int, Int?) -> Unit,
-        onCheckSubtask: (Int, Int) -> Unit,
-        onUncheckSubtask: (Int, Int) -> Unit,
-        onEditSubtask: (Int, Int, String) -> Unit,
         onDeleteTask: (Int) -> Unit,
-        onDeleteSubtask: (Int, Int) -> Unit,
     ) {
         val focusManager = LocalFocusManager.current
         var hideKeyboard by remember { mutableStateOf(false) }
@@ -200,7 +183,6 @@ class TasksFragment: Fragment() {
                                 ) {
                                     TaskRow(
                                         task = taskList[taskIndex],
-                                        taskIndex = taskIndex,
                                         onCheckTask = onCheckTask,
                                         onUncheckTask = onUncheckTask,
                                         onEditTask = onEditTask,
@@ -209,16 +191,14 @@ class TasksFragment: Fragment() {
                                         onClickHideKeyboard = { hideKeyboard = true },
                                     )
                                 }
-                                TaskAndSubtaskExtensions(
-                                    taskIndex = taskIndex,
-                                    addModeEnabled = addModeEnabled,
-                                    rearrangeModeEnabled = rearrangeModeEnabled,
-                                    deleteModeEnabled = deleteModeEnabled,
+                                TaskExtensions(
+                                    taskId = taskList[taskIndex].taskId,
+                                    isAddModeEnabled = addModeEnabled,
                                     isAddModeHidden = (isAutoSortCheckedTasks && taskList[taskIndex].isChecked),
+                                    isDeleteModeEnabled = deleteModeEnabled,
+                                    isRearrangeModeEnabled = rearrangeModeEnabled,
                                     onDeleteTask = onDeleteTask,
-                                    onDeleteSubtask = onDeleteSubtask,
                                     onAddNewTask = onAddNewTask,
-                                    onAddNewSubtask = onAddNewSubtask,
                                     onClickHideKeyboard = { hideKeyboard = true }
                                 )
                             }
@@ -231,43 +211,38 @@ class TasksFragment: Fragment() {
                                             .weight(1f),
                                     ) {
                                         SubtaskColumn(
-                                            taskIndex = taskIndex,
+                                            parentId = taskList[taskIndex].taskId,
                                             subtaskList = taskList[taskIndex].subtaskList,
-                                            onAddNewSubtask = onAddNewSubtask,
-                                            onCheckSubtask = onCheckSubtask,
-                                            onUncheckSubtask = onUncheckSubtask,
-                                            onEditSubtask = onEditSubtask,
+                                            onAddNewTask = onAddNewTask,
+                                            onCheckTask = onCheckTask,
+                                            onUncheckTask = onUncheckTask,
+                                            onEditTask = onEditTask,
                                             onClickHideKeyboard = { hideKeyboard = true },
                                         )
                                     }
                                     Column {
                                         if (taskList[taskIndex].subtaskList.isEmpty()) {
                                             // invisible icon buttons to reserve space
-                                            TaskAndSubtaskExtensions(
-                                                taskIndex = taskIndex,
-                                                addModeEnabled = addModeEnabled,
-                                                rearrangeModeEnabled = rearrangeModeEnabled,
-                                                deleteModeEnabled = deleteModeEnabled,
+                                            TaskExtensions(
+                                                taskId = taskList[taskIndex].taskId,
+                                                isAddModeEnabled = addModeEnabled,
+                                                isDeleteModeEnabled = deleteModeEnabled,
                                                 isHidden = true,
+                                                isRearrangeModeEnabled = rearrangeModeEnabled,
                                                 onDeleteTask = onDeleteTask,
-                                                onDeleteSubtask = onDeleteSubtask,
                                                 onAddNewTask = onAddNewTask,
-                                                onAddNewSubtask = onAddNewSubtask,
                                                 onClickHideKeyboard = { hideKeyboard = true }
                                             )
                                         }
-                                        for ((subtaskIndex, subtask) in taskList[taskIndex].subtaskList.withIndex()) {
-                                            TaskAndSubtaskExtensions(
-                                                taskIndex = taskIndex,
-                                                subtaskIndex = subtaskIndex,
-                                                addModeEnabled = addModeEnabled,
-                                                rearrangeModeEnabled = rearrangeModeEnabled,
-                                                deleteModeEnabled = deleteModeEnabled,
-                                                isAddModeHidden = (isAutoSortCheckedSubtasks && subtask.isChecked),
+                                        for (subtask in taskList[taskIndex].subtaskList) {
+                                            TaskExtensions(
+                                                taskId = subtask.taskId,
+                                                isAddModeEnabled = addModeEnabled,
+                                                isAddModeHidden = (isAutoSortCheckedTasks && subtask.isChecked),
+                                                isDeleteModeEnabled = deleteModeEnabled,
+                                                isRearrangeModeEnabled = rearrangeModeEnabled,
                                                 onDeleteTask = onDeleteTask,
-                                                onDeleteSubtask = onDeleteSubtask,
                                                 onAddNewTask = onAddNewTask,
-                                                onAddNewSubtask = onAddNewSubtask,
                                                 onClickHideKeyboard = { hideKeyboard = true }
                                             )
                                         }
@@ -286,7 +261,7 @@ class TasksFragment: Fragment() {
         ) {
             FloatingActionButton(
                 onClick = {
-                    onAddNewTask(null)
+                    onAddNewTask(null, null)
                     hideKeyboard = true
                 },
                 modifier = Modifier
@@ -414,7 +389,6 @@ fun TasksTopBar(
 @Composable
 fun TaskRow(
     task: Task,
-    taskIndex: Int,
     onCheckTask: (Int) -> Unit,
     onUncheckTask: (Int) -> Unit,
     onEditTask: (Int, String) -> Unit,
@@ -431,16 +405,16 @@ fun TaskRow(
                 checked = task.isChecked,
                 onCheckedChange = {
                     if (task.isChecked) {
-                        onUncheckTask(taskIndex)
+                        onUncheckTask(task.taskId)
                     } else {
-                        onCheckTask(taskIndex)
+                        onCheckTask(task.taskId)
                     }
                     onClickHideKeyboard()
                 },
             )
             BasicTextField(
                 value = task.taskString,
-                onValueChange = { onEditTask(taskIndex, it) },
+                onValueChange = { onEditTask(task.taskId, it) },
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Next
                 ),
@@ -452,9 +426,9 @@ fun TaskRow(
         IconButton(
             onClick = {
                 if (task.isExpanded) {
-                    onMinimizeTask(taskIndex)
+                    onMinimizeTask(task.taskId)
                 } else {
-                    onExpandTask(taskIndex)
+                    onExpandTask(task.taskId)
                 }
                 onClickHideKeyboard()
             },
@@ -477,12 +451,12 @@ fun TaskRow(
 
 @Composable
 fun SubtaskColumn(
-    taskIndex: Int,
-    subtaskList: List<Subtask>,
-    onAddNewSubtask: (Int, Int?) -> Unit,
-    onCheckSubtask: (Int, Int) -> Unit,
-    onUncheckSubtask: (Int, Int) -> Unit,
-    onEditSubtask: (Int, Int, String) -> Unit,
+    parentId: Int,
+    subtaskList: List<Task>,
+    onAddNewTask: (Int?, Int?) -> Unit,
+    onCheckTask: (Int) -> Unit,
+    onUncheckTask: (Int) -> Unit,
+    onEditTask: (Int, String) -> Unit,
     onClickHideKeyboard: () -> Unit
 ) {
     Column(
@@ -490,7 +464,7 @@ fun SubtaskColumn(
     ) {
         if (subtaskList.isNotEmpty()) {
             Column {
-                for ((subtaskIndex, subtask) in subtaskList.withIndex()) {
+                for (subtask in subtaskList) {
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth(),
@@ -500,17 +474,17 @@ fun SubtaskColumn(
                                 checked = subtask.isChecked,
                                 onCheckedChange = {
                                     if (subtask.isChecked) {
-                                        onUncheckSubtask(taskIndex, subtaskIndex)
+                                        onUncheckTask(subtask.taskId)
                                     } else {
-                                        onCheckSubtask(taskIndex, subtaskIndex)
+                                        onCheckTask(subtask.taskId)
                                     }
                                     onClickHideKeyboard()
                                 },
                             )
                             BasicTextField(
-                                value = subtask.subtaskString,
+                                value = subtask.taskString,
                                 onValueChange = {
-                                    onEditSubtask(taskIndex, subtaskIndex, it)
+                                    onEditTask(subtask.taskId, it)
                                 },
                                 keyboardOptions = KeyboardOptions(
                                     imeAction = ImeAction.Next
@@ -528,7 +502,7 @@ fun SubtaskColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    onAddNewSubtask(taskIndex, null)
+                    onAddNewTask(null, parentId)
                     onClickHideKeyboard()
                 }
                 .padding(all = 8.dp),
@@ -547,29 +521,22 @@ fun SubtaskColumn(
 }
 
 @Composable
-fun TaskAndSubtaskExtensions(
-    taskIndex: Int,
-    subtaskIndex: Int? = null,
-    addModeEnabled: Boolean,
-    rearrangeModeEnabled: Boolean,
-    deleteModeEnabled: Boolean,
-    isHidden: Boolean = false,
+fun TaskExtensions(
+    taskId: Int,
+    isAddModeEnabled: Boolean,
     isAddModeHidden: Boolean = false,
-    onAddNewSubtask: (Int, Int) -> Unit,
-    onAddNewTask: (Int) -> Unit,
+    isHidden: Boolean = false,
+    isDeleteModeEnabled: Boolean,
+    isRearrangeModeEnabled: Boolean,
+    onAddNewTask: (Int?, Int?) -> Unit,
     onClickHideKeyboard: () -> Unit,
-    onDeleteSubtask: (Int, Int) -> Unit,
     onDeleteTask: (Int) -> Unit,
 ) {
     Row {
-        if (addModeEnabled) {
+        if (isAddModeEnabled) {
             IconButton(
                 onClick = {
-                    if (subtaskIndex == null) {
-                        onAddNewTask(taskIndex)
-                    } else {
-                        onAddNewSubtask(taskIndex, subtaskIndex)
-                    }
+                    onAddNewTask(taskId, null)
                     onClickHideKeyboard()
                 },
                 enabled = (!isHidden || !isAddModeHidden),
@@ -581,7 +548,7 @@ fun TaskAndSubtaskExtensions(
                 )
             }
         }
-        if (rearrangeModeEnabled) {
+        if (isRearrangeModeEnabled) {
             IconButton(
                 onClick = {
                     onClickHideKeyboard()
@@ -595,14 +562,10 @@ fun TaskAndSubtaskExtensions(
                 )
             }
         }
-        if (deleteModeEnabled) {
+        if (isDeleteModeEnabled) {
             IconButton(
                 onClick = {
-                    if (subtaskIndex == null) {
-                        onDeleteTask(taskIndex)
-                    } else {
-                        onDeleteSubtask(taskIndex, subtaskIndex)
-                    }
+                    onDeleteTask(taskId)
                     onClickHideKeyboard()
                 },
                 enabled = !isHidden,
