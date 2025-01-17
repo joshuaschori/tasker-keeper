@@ -9,7 +9,7 @@ import androidx.room.PrimaryKey
 @Entity(
     tableName = "tasks",
     indices = [Index(value = ["task_order"], unique = false)],
-    /*foreignKeys = [
+    foreignKeys = [
         ForeignKey(
             entity = TaskEntity::class,
             parentColumns = arrayOf("task_id"),
@@ -17,7 +17,7 @@ import androidx.room.PrimaryKey
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE
         )
-    ]*/
+    ]
 )
 data class TaskEntity(
     @PrimaryKey(autoGenerate = true) @ColumnInfo(name = "task_id") val taskId: Int = 0,

@@ -8,7 +8,7 @@ import javax.inject.Singleton
 
 @Singleton
 class TasksRepository @Inject constructor(
-    val db: TaskerKeeperDatabase,
+    private val db: TaskerKeeperDatabase,
 ) {
     suspend fun addTaskAfter(taskId: Int) {
         db.taskDao().addTaskAfter(taskId)

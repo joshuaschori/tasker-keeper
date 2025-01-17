@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "e6884297951e1a2b6b0dadd3b684e6f4",
+    "identityHash": "6bf287949b45e59748ec4a8c63a07ca4",
     "entities": [
       {
         "tableName": "tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`task_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `task_string` TEXT NOT NULL, `is_checked` INTEGER NOT NULL, `is_expanded` INTEGER NOT NULL, `parent_id` INTEGER, `task_order` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`task_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `task_string` TEXT NOT NULL, `is_checked` INTEGER NOT NULL, `is_expanded` INTEGER NOT NULL, `parent_id` INTEGER, `task_order` INTEGER NOT NULL, FOREIGN KEY(`parent_id`) REFERENCES `tasks`(`task_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "taskId",
@@ -62,13 +62,25 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_task_order` ON `${TABLE_NAME}` (`task_order`)"
           }
         ],
-        "foreignKeys": []
+        "foreignKeys": [
+          {
+            "table": "tasks",
+            "onDelete": "CASCADE",
+            "onUpdate": "CASCADE",
+            "columns": [
+              "parent_id"
+            ],
+            "referencedColumns": [
+              "task_id"
+            ]
+          }
+        ]
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e6884297951e1a2b6b0dadd3b684e6f4')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6bf287949b45e59748ec4a8c63a07ca4')"
     ]
   }
 }

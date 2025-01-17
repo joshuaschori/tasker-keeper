@@ -381,7 +381,6 @@ fun TasksTopBar(
                     contentDescription = "Localized description"
                 )
             }
-            //TODO "Done" button when keyboard is up, that clears focus and hides keyboard
         },
     )
 }
