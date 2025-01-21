@@ -5,6 +5,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +23,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DragHandle
@@ -27,6 +31,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NotInterested
+import androidx.compose.material.icons.filled.SubdirectoryArrowLeft
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -175,80 +180,21 @@ class TasksFragment: Fragment() {
                 ) {
                     items(count = taskList.size) { taskIndex ->
                         Column {
-                            Row {
-                                Surface(
-                                    tonalElevation = 5.dp,
-                                    shadowElevation = 5.dp,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    TaskRow(
-                                        task = taskList[taskIndex],
-                                        onCheckTask = onCheckTask,
-                                        onUncheckTask = onUncheckTask,
-                                        onEditTask = onEditTask,
-                                        onExpandTask = onExpandTask,
-                                        onMinimizeTask = onMinimizeTask,
-                                        onClickHideKeyboard = { hideKeyboard = true },
-                                    )
-                                }
-                                TaskExtensions(
-                                    taskId = taskList[taskIndex].taskId,
-                                    isAddModeEnabled = addModeEnabled,
-                                    isAddModeHidden = (isAutoSortCheckedTasks && taskList[taskIndex].isChecked),
-                                    isDeleteModeEnabled = deleteModeEnabled,
-                                    isRearrangeModeEnabled = rearrangeModeEnabled,
-                                    onDeleteTask = onDeleteTask,
-                                    onAddNewTask = onAddNewTask,
-                                    onClickHideKeyboard = { hideKeyboard = true }
-                                )
-                            }
-                            if (taskList[taskIndex].isExpanded) {
-                                Row {
-                                    Surface(
-                                        shadowElevation = 5.dp,
-                                        modifier = Modifier
-                                            .padding(start = 48.dp, top = 1.dp)
-                                            .weight(1f),
-                                    ) {
-                                        SubtaskColumn(
-                                            parentId = taskList[taskIndex].taskId,
-                                            subtaskList = taskList[taskIndex].subtaskList,
-                                            onAddNewTask = onAddNewTask,
-                                            onCheckTask = onCheckTask,
-                                            onUncheckTask = onUncheckTask,
-                                            onEditTask = onEditTask,
-                                            onClickHideKeyboard = { hideKeyboard = true },
-                                        )
-                                    }
-                                    Column {
-                                        if (taskList[taskIndex].subtaskList.isEmpty()) {
-                                            // invisible icon buttons to reserve space
-                                            TaskExtensions(
-                                                taskId = taskList[taskIndex].taskId,
-                                                isAddModeEnabled = addModeEnabled,
-                                                isDeleteModeEnabled = deleteModeEnabled,
-                                                isHidden = true,
-                                                isRearrangeModeEnabled = rearrangeModeEnabled,
-                                                onDeleteTask = onDeleteTask,
-                                                onAddNewTask = onAddNewTask,
-                                                onClickHideKeyboard = { hideKeyboard = true }
-                                            )
-                                        }
-                                        for (subtask in taskList[taskIndex].subtaskList) {
-                                            TaskExtensions(
-                                                taskId = subtask.taskId,
-                                                isAddModeEnabled = addModeEnabled,
-                                                isAddModeHidden = (isAutoSortCheckedTasks && subtask.isChecked),
-                                                isDeleteModeEnabled = deleteModeEnabled,
-                                                isRearrangeModeEnabled = rearrangeModeEnabled,
-                                                onDeleteTask = onDeleteTask,
-                                                onAddNewTask = onAddNewTask,
-                                                onClickHideKeyboard = { hideKeyboard = true }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+                            TaskAndSubtasks(
+                                task = taskList[taskIndex],
+                                taskLayer = 0,
+                                isAddModeEnabled = addModeEnabled,
+                                isDeleteModeEnabled = deleteModeEnabled,
+                                isRearrangeModeEnabled = rearrangeModeEnabled,
+                                onAddNewTask = onAddNewTask,
+                                onCheckTask = onCheckTask,
+                                onClickHideKeyboard = { hideKeyboard = true },
+                                onDeleteTask = onDeleteTask,
+                                onEditTask = onEditTask,
+                                onExpandTask = onExpandTask,
+                                onUncheckTask = onUncheckTask,
+                                onMinimizeTask = onMinimizeTask
+                            )
                         }
                     }
                 }
@@ -386,8 +332,77 @@ fun TasksTopBar(
 }
 
 @Composable
+fun TaskAndSubtasks(
+    task: Task,
+    taskLayer: Int,
+    isAddModeEnabled: Boolean,
+    isDeleteModeEnabled: Boolean,
+    isRearrangeModeEnabled: Boolean,
+    onAddNewTask: (Int?, Int?) -> Unit,
+    onCheckTask: (Int) -> Unit,
+    onClickHideKeyboard: () -> Unit,
+    onDeleteTask: (Int) -> Unit,
+    onEditTask: (Int, String) -> Unit,
+    onExpandTask: (Int) -> Unit,
+    onUncheckTask: (Int) -> Unit,
+    onMinimizeTask: (Int) -> Unit,
+) {
+    // TODO make a constant
+    val maxLayersOfSubtasks = 5
+    Row {
+        Surface(
+            tonalElevation = 5.dp,
+            shadowElevation = 5.dp,
+            modifier = Modifier
+                .padding(start = (48 * taskLayer).dp, top = 1.dp)
+                .weight(1f)
+        ) {
+            TaskRow(
+                task = task,
+                onAddNewTask = onAddNewTask,
+                onCheckTask = onCheckTask,
+                onUncheckTask = onUncheckTask,
+                onEditTask = onEditTask,
+                onExpandTask = onExpandTask,
+                onMinimizeTask = onMinimizeTask,
+                onClickHideKeyboard = onClickHideKeyboard,
+            )
+        }
+        TaskExtensions(
+            taskId = task.taskId,
+            isAddModeEnabled = isAddModeEnabled,
+            isDeleteModeEnabled = isDeleteModeEnabled,
+            isRearrangeModeEnabled = isRearrangeModeEnabled,
+            onAddNewTask = onAddNewTask,
+            onClickHideKeyboard = onClickHideKeyboard,
+            onDeleteTask = onDeleteTask
+        )
+    }
+    if (task.subtaskList.isNotEmpty() && task.isExpanded && taskLayer + 1 < maxLayersOfSubtasks) {
+        for (subtask in task.subtaskList) {
+            TaskAndSubtasks(
+                task = subtask,
+                taskLayer = taskLayer + 1,
+                isAddModeEnabled = isAddModeEnabled,
+                isDeleteModeEnabled = isDeleteModeEnabled,
+                isRearrangeModeEnabled = isRearrangeModeEnabled,
+                onAddNewTask = onAddNewTask,
+                onCheckTask = onCheckTask,
+                onClickHideKeyboard = onClickHideKeyboard,
+                onDeleteTask = onDeleteTask,
+                onEditTask = onEditTask,
+                onExpandTask = onExpandTask,
+                onUncheckTask = onUncheckTask,
+                onMinimizeTask = onMinimizeTask
+            )
+        }
+    }
+}
+
+@Composable
 fun TaskRow(
     task: Task,
+    onAddNewTask: (Int?, Int?) -> Unit,
     onCheckTask: (Int) -> Unit,
     onUncheckTask: (Int) -> Unit,
     onEditTask: (Int, String) -> Unit,
@@ -395,6 +410,12 @@ fun TaskRow(
     onMinimizeTask: (Int) -> Unit,
     onClickHideKeyboard: () -> Unit
 ) {
+    val activeTextField = remember { mutableStateOf("") }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    if (!isFocused) {
+        activeTextField.value = task.taskString
+    }
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier.fillMaxWidth(),
@@ -412,19 +433,29 @@ fun TaskRow(
                 },
             )
             BasicTextField(
-                value = task.taskString,
-                onValueChange = { onEditTask(task.taskId, it) },
+                value = if (isFocused) {
+                    activeTextField.value
+                } else {
+                    task.taskString
+                },
+                onValueChange = {
+                    activeTextField.value = it
+                    onEditTask(task.taskId, it)
+                },
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Next
                 ),
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
                     .fillMaxWidth(0.8f),
+                interactionSource = interactionSource
             )
         }
         IconButton(
             onClick = {
-                if (task.isExpanded) {
+                if (task.subtaskList.isEmpty()) {
+                    onAddNewTask(null, task.taskId)
+                } else if (task.isExpanded) {
                     onMinimizeTask(task.taskId)
                 } else {
                     onExpandTask(task.taskId)
@@ -433,87 +464,20 @@ fun TaskRow(
             },
         ) {
             Icon(
-                imageVector = if (task.isExpanded) {
+                imageVector = if (task.subtaskList.isEmpty()) {
+                    Icons.Filled.Add
+                } else if (task.isExpanded) {
                     Icons.Filled.ExpandLess
                 } else {
                     Icons.Filled.ExpandMore
                 },
-                contentDescription = if (task.isExpanded) {
+                contentDescription = if (task.subtaskList.isEmpty()) {
+                    "Add Subtask"
+                } else if (task.isExpanded) {
                     "Minimize Subtasks"
                 } else {
                     "Expand Subtasks"
                 },
-            )
-        }
-    }
-}
-
-@Composable
-fun SubtaskColumn(
-    parentId: Int,
-    subtaskList: List<Task>,
-    onAddNewTask: (Int?, Int?) -> Unit,
-    onCheckTask: (Int) -> Unit,
-    onUncheckTask: (Int) -> Unit,
-    onEditTask: (Int, String) -> Unit,
-    onClickHideKeyboard: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        if (subtaskList.isNotEmpty()) {
-            Column {
-                for (subtask in subtaskList) {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row {
-                            Checkbox(
-                                checked = subtask.isChecked,
-                                onCheckedChange = {
-                                    if (subtask.isChecked) {
-                                        onUncheckTask(subtask.taskId)
-                                    } else {
-                                        onCheckTask(subtask.taskId)
-                                    }
-                                    onClickHideKeyboard()
-                                },
-                            )
-                            BasicTextField(
-                                value = subtask.taskString,
-                                onValueChange = {
-                                    onEditTask(subtask.taskId, it)
-                                },
-                                keyboardOptions = KeyboardOptions(
-                                    imeAction = ImeAction.Next
-                                ),
-                                modifier = Modifier
-                                    .align(Alignment.CenterVertically)
-                                    .fillMaxWidth(0.8f),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    onAddNewTask(null, parentId)
-                    onClickHideKeyboard()
-                }
-                .padding(all = 8.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Add,
-                contentDescription = "Add Subtask"
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Add Subtask",
-                modifier = Modifier.align(Alignment.CenterVertically)
             )
         }
     }

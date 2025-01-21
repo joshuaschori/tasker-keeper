@@ -5,14 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.taskerkeeper.TaskTreeBuilder
 import com.example.taskerkeeper.TaskTreeNode
 import com.example.taskerkeeper.data.TaskEntity
-import com.example.taskerkeeper.data.TaskerKeeperDatabase
 import com.example.taskerkeeper.data.TasksRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -45,21 +42,6 @@ class TasksViewModel @Inject constructor(
     }
 
     fun editTask(taskId: Int, textChange: String) {
-        /*_uiState.update {currentState ->
-            require(currentState is TaskState.Content)
-            val taskList: List<Task> = List(
-                currentState.taskList.size
-            ) {
-                if (it == taskIndex) {
-                    currentState.taskList[it].copy(
-                        taskString = textChange
-                    )
-                } else {
-                    currentState.taskList[it]
-                }
-            }
-            currentState.copy(taskList = taskList)
-        }*/
         viewModelScope.launch {
             tasksRepository.editTask(taskId, textChange)
         }
@@ -94,43 +76,13 @@ class TasksViewModel @Inject constructor(
     }
 
     fun listenForDatabaseUpdates() {
-        /*val currentState = _uiState.value
-        require(currentState is TaskState.Content)*/
         viewModelScope.launch {
             tasksRepository.getAllTasks().collect { taskEntityList ->
-                val tree = convertTaskEntitiesToTreeList(taskEntityList)
-                val list = convertTaskTreeNodeListToTaskList(tree)
-                println(list)
+                val treeList = convertTaskEntityListToTaskTreeNodeList(taskEntityList)
+                val taskList = convertTaskTreeNodeListToTaskList(treeList)
                 _uiState.update {
                     TaskState.Content(
-                        taskList = list,
-
-
-                        /*taskList = taskEntityList.filter {
-                            it.parentId == null
-                        }.map { taskEntity ->
-                            Task(
-                                taskId = taskEntity.taskId,
-                                //taskString = currentState.taskList[taskEntity.taskOrder].taskString,
-                                taskString = taskEntity.taskString,
-                                isChecked = taskEntity.isChecked,
-                                isExpanded = taskEntity.isExpanded,
-                                parentId = taskEntity.parentId,
-                                subtaskList = taskEntityList.filter {
-                                    it.parentId == taskEntity.taskId
-                                }.map {
-                                    Task(
-                                        taskId = it.taskId,
-                                        //taskString = currentState.taskList[taskEntity.taskOrder].subtaskList[it.taskOrder].taskString,
-                                        taskString = it.taskString,
-                                        isChecked = it.isChecked,
-                                        isExpanded = it.isExpanded,
-                                        parentId = it.parentId,
-                                        subtaskList = emptyList()
-                                    )
-                                }
-                            )
-                        }*/
+                        taskList = taskList
                     )
                 }
             }
@@ -138,7 +90,7 @@ class TasksViewModel @Inject constructor(
     }
 }
 
-fun convertTaskEntitiesToTreeList(taskEntityList: List<TaskEntity>): List<TaskTreeNode> {
+fun convertTaskEntityListToTaskTreeNodeList(taskEntityList: List<TaskEntity>): List<TaskTreeNode> {
     val treeBuilder = TaskTreeBuilder()
     taskEntityList.forEach { taskEntity ->
         val taskTreeNode = TaskTreeNode(
@@ -160,9 +112,9 @@ fun convertTaskEntitiesToTreeList(taskEntityList: List<TaskEntity>): List<TaskTr
 fun convertTaskTreeNodeListToTaskList(taskTreeNodeList: List<TaskTreeNode>): List<Task> {
     val taskList: MutableList<Task> = mutableListOf()
     for (node in taskTreeNodeList) {
-        taskList.addAll(node.preOrderTraversal())
+        taskList.add(node.preOrderTraversal())
     }
-    return taskList.filter{it.parentId == null}
+    return taskList
 }
 
 sealed interface TaskState {
