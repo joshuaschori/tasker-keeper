@@ -1,4 +1,4 @@
-package com.example.taskerkeeper.data
+package com.joshuaschori.taskerkeeper.data
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

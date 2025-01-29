@@ -1,14 +1,17 @@
-package com.example.taskerkeeper.tasks
+package com.joshuaschori.taskerkeeper.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.taskerkeeper.TaskTreeBuilder
-import com.example.taskerkeeper.TaskTreeNode
-import com.example.taskerkeeper.data.TaskEntity
-import com.example.taskerkeeper.data.TasksRepository
+import com.joshuaschori.taskerkeeper.TaskTreeBuilder
+import com.joshuaschori.taskerkeeper.TaskTreeNode
+import com.joshuaschori.taskerkeeper.data.TaskEntity
+import com.joshuaschori.taskerkeeper.data.TasksRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -20,18 +23,37 @@ class TasksViewModel @Inject constructor(
 ): ViewModel() {
     private val _uiState: MutableStateFlow<TaskState> = MutableStateFlow(TaskState.Loading)
     val uiState: StateFlow<TaskState> = _uiState.asStateFlow()
+    // TODO not used yet?
+    private val _uiAction: MutableSharedFlow<TaskAction> = MutableSharedFlow()
+    val uiAction: SharedFlow<TaskAction> = _uiAction.asSharedFlow()
 
     fun addNewTask(selectedTaskId: Int?, parentId: Int?) {
-        val currentState = _uiState.value
-        require(currentState is TaskState.Content)
         viewModelScope.launch {
-            if (selectedTaskId == null && currentState.isAutoSortCheckedTasks) {
-                tasksRepository.addTaskAfterUnchecked(parentId)
-            } else if (selectedTaskId == null) {
-                tasksRepository.addTaskAtEnd(parentId)
-            } else {
-                tasksRepository.addTaskAfter(selectedTaskId)
+            _uiState.update { currentState ->
+                require(currentState is TaskState.Content)
+                if (selectedTaskId == null && currentState.isAutoSortCheckedTasks) {
+                    currentState.copy(
+                        focusTaskId = tasksRepository.addTaskAfterUnchecked(parentId)
+                    )
+                } else if (selectedTaskId == null) {
+                    currentState.copy(
+                        focusTaskId = tasksRepository.addTaskAtEnd(parentId)
+                    )
+                } else {
+                    currentState.copy(
+                        focusTaskId = tasksRepository.addTaskAfter(selectedTaskId)
+                    )
+                }
             }
+        }
+    }
+
+    fun clearFocusTaskId() {
+        _uiState.update { currentState ->
+            require(currentState is TaskState.Content)
+            currentState.copy(
+                focusTaskId = null
+            )
         }
     }
 
@@ -50,6 +72,27 @@ class TasksViewModel @Inject constructor(
     fun expandTask(taskId: Int) {
         viewModelScope.launch {
             tasksRepository.expandTask(taskId)
+        }
+    }
+
+    fun listenForDatabaseUpdates() {
+        viewModelScope.launch {
+            tasksRepository.getAllTasks().collect { taskEntityList ->
+                val treeList = convertTaskEntityListToTaskTreeNodeList(taskEntityList)
+                val taskList = convertTaskTreeNodeListToTaskList(treeList)
+                _uiState.update { currentState ->
+                    if (currentState is TaskState.Content) {
+                        currentState.copy(
+                            taskList = taskList
+                        )
+                    }
+                    else {
+                        TaskState.Content(
+                            taskList = taskList
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -75,18 +118,9 @@ class TasksViewModel @Inject constructor(
         }
     }
 
-    fun listenForDatabaseUpdates() {
-        viewModelScope.launch {
-            tasksRepository.getAllTasks().collect { taskEntityList ->
-                val treeList = convertTaskEntityListToTaskTreeNodeList(taskEntityList)
-                val taskList = convertTaskTreeNodeListToTaskList(treeList)
-                _uiState.update {
-                    TaskState.Content(
-                        taskList = taskList
-                    )
-                }
-            }
-        }
+    // TODO finish
+    fun requestFocus(taskId: Int) {
+
     }
 }
 
@@ -121,7 +155,21 @@ sealed interface TaskState {
     data class Content(
         val taskList: List<Task> = emptyList(),
         val isAutoSortCheckedTasks: Boolean = true,
+        val focusTaskId: Int? = null,
     ) : TaskState
     data object Error : TaskState
     data object Loading : TaskState
 }
+
+sealed interface TaskAction {
+    data class AddNewTask(val selectedTaskId: Int?, val parentId: Int?): TaskAction
+    data class DeleteTask(val taskId: Int): TaskAction
+    data class EditTask(val taskId: Int, val textChange: String): TaskAction
+    data class ExpandTask(val taskId: Int): TaskAction
+    data class MarkTaskComplete(val taskId: Int): TaskAction
+    data class MarkTaskIncomplete(val taskId: Int): TaskAction
+    data class MinimizeTask(val taskId: Int): TaskAction
+    data class RequestFocus(val taskId: Int): TaskAction
+}
+
+typealias TaskActionHandler = (TaskAction) -> Unit

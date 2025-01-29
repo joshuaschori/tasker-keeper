@@ -1,8 +1,7 @@
-package com.example.taskerkeeper.data
+package com.joshuaschori.taskerkeeper.data
 
 import android.content.Context
 import androidx.room.Room
-import com.example.taskerkeeper.tasks.Task
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

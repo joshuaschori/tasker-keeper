@@ -1,4 +1,4 @@
-package com.example.taskerkeeper.tasks
+package com.joshuaschori.taskerkeeper.tasks
 
 data class Task(
     val taskId: Int,

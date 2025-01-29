@@ -1,8 +1,7 @@
-package com.example.taskerkeeper.data
+package com.joshuaschori.taskerkeeper.data
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.example.taskerkeeper.tasks.Task
 
 @Database(
     entities = [TaskEntity::class],

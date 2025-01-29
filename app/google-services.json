@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1038156489539",
+    "project_id": "tasker-keeper",
+    "storage_bucket": "tasker-keeper.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1038156489539:android:8b1591a4322c94c41605f6",
+        "android_client_info": {
+          "package_name": "com.joshuaschori.taskerkeeper"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBX9pOY462hKiBBWc__mAwdRi4280_2zKI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

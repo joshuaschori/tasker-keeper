@@ -1,6 +1,7 @@
-package com.example.taskerkeeper.data
+package com.joshuaschori.taskerkeeper.data
 
 import androidx.room.Dao
+import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
@@ -9,28 +10,68 @@ import kotlinx.coroutines.flow.Flow
 interface TaskDao {
 
     @Transaction
-    suspend fun addTaskAfter(taskId: Int) {
+    suspend fun addTaskAfter(taskId: Int): Long {
         val parentId = getParentId(taskId)
         val taskOrder = getTaskOrder(taskId)
         incrementTasks(parentId, taskOrder + 1)
-        insertTask(parentId, taskOrder + 1)
+        return insertTask(
+            TaskEntity(
+                taskString = "",
+                isChecked = false,
+                isExpanded = false,
+                parentId = parentId,
+                taskOrder = taskOrder + 1
+            )
+        )
     }
 
     @Transaction
-    suspend fun addTaskAfterUnchecked(parentId: Int?) {
+    suspend fun addTaskAfterUnchecked(parentId: Int?): Long {
         val firstCheckedTaskOrder = getFirstCheckedTaskOrder(parentId)
+
+        // if task with parentId as taskId is minimized, expand it
+        if (parentId != null) {
+            if(!verifyExpanded(parentId)) {
+                updateTaskAsExpanded(parentId)
+            }
+        }
+
         if (firstCheckedTaskOrder == null) {
-            addTaskAtEnd(parentId)
+            return addTaskAtEnd(parentId)
         } else {
             incrementTasks(parentId, firstCheckedTaskOrder)
-            insertTask(parentId, firstCheckedTaskOrder)
+            return insertTask(
+                TaskEntity(
+                    taskString = "",
+                    isChecked = false,
+                    isExpanded = false,
+                    parentId = parentId,
+                    taskOrder = firstCheckedTaskOrder
+                )
+            )
         }
     }
 
     @Transaction
-    suspend fun addTaskAtEnd(parentId: Int?) {
+    suspend fun addTaskAtEnd(parentId: Int?): Long {
         val taskCount = getTaskCount(parentId)
-        insertTask(parentId, taskCount)
+
+        // if task with parentId as taskId is minimized, expand it
+        if (parentId != null) {
+            if(!verifyExpanded(parentId)) {
+                updateTaskAsExpanded(parentId)
+            }
+        }
+
+        return insertTask(
+            TaskEntity(
+                taskString = "",
+                isChecked = false,
+                isExpanded = false,
+                parentId = parentId,
+                taskOrder = taskCount
+            )
+        )
     }
 
     @Transaction
@@ -104,8 +145,8 @@ interface TaskDao {
     @Query("UPDATE tasks SET task_order = task_order + 1 WHERE parent_id is :parentId AND task_order >= :taskOrder")
     suspend fun incrementTasks(parentId: Int?, taskOrder: Int)
 
-    @Query("INSERT INTO tasks (task_string, is_checked, is_expanded, parent_id, task_order) VALUES ('', 0, 0, :parentId, :taskOrder)")
-    suspend fun insertTask(parentId: Int?, taskOrder: Int)
+   /* @Query("INSERT INTO tasks (task_string, is_checked, is_expanded, parent_id, task_order) VALUES ('', 0, 0, :parentId, :taskOrder)")
+    suspend fun insertTask(parentId: Int?, taskOrder: Int)*/
 
     @Query("UPDATE tasks SET task_order = :taskOrderTo WHERE task_order = :taskOrderFrom AND parent_id is :parentId")
     suspend fun moveTask(parentId: Int?, taskOrderFrom: Int, taskOrderTo: Int)
@@ -125,7 +166,13 @@ interface TaskDao {
     @Query("UPDATE tasks SET task_string = :textChange WHERE task_id is :taskId")
     suspend fun updateTaskString(taskId: Int, textChange: String)
 
+    @Query("SELECT is_expanded FROM tasks WHERE task_id = :taskId LIMIT 1")
+    suspend fun verifyExpanded(taskId: Int): Boolean
+
     @Query("SELECT is_checked FROM tasks WHERE task_id = :taskId LIMIT 1")
     suspend fun verifyChecked(taskId: Int): Boolean
+
+    @Insert
+    fun insertTask(taskEntity: TaskEntity): Long
 
 }

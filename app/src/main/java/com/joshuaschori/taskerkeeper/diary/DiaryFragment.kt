@@ -1,4 +1,4 @@
-package com.example.taskerkeeper.diary
+package com.joshuaschori.taskerkeeper.diary
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -14,8 +14,8 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
-import com.example.taskerkeeper.MainActivity
-import com.example.taskerkeeper.ui.theme.TaskerKeeperTheme
+import com.joshuaschori.taskerkeeper.MainActivity
+import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
 
 class DiaryFragment: Fragment() {
     override fun onCreateView(

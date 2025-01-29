@@ -1,4 +1,4 @@
-package com.example.taskerkeeper.ui.theme
+package com.joshuaschori.taskerkeeper.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

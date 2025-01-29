@@ -2,7 +2,7 @@
 agp = "8.3.1"
 fragmentKtx = "1.8.5"
 hiltAndroidCompiler = "2.51.1"
-kotlin = "1.9.0"
+kotlin = "2.1.0"
 coreKtx = "1.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -15,8 +15,9 @@ constraintlayout = "2.2.0"
 lifecycleRuntimeComposeAndroid = "2.8.7"
 material3 = "1.4.0-alpha05"
 room_version = "2.6.1"
-ksp_version = "1.9.0-1.0.13"
+ksp_version = "2.1.0-1.0.29"
 hilt_version = "2.51.1"
+google_services_version = "4.4.2"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }
@@ -52,3 +53,5 @@ jetbrainsKotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "k
 androidx-room = { id = "androidx.room", version.ref = "room_version" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp_version" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt_version" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "google_services_version"}
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

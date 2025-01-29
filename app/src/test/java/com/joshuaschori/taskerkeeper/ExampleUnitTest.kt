@@ -1,4 +1,4 @@
-package com.example.taskerkeeper
+package com.joshuaschori.taskerkeeper
 
 import org.junit.Test
 

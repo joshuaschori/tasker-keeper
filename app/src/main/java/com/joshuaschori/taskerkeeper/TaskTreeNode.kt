@@ -1,6 +1,6 @@
-package com.example.taskerkeeper
+package com.joshuaschori.taskerkeeper
 
-import com.example.taskerkeeper.tasks.Task
+import com.joshuaschori.taskerkeeper.tasks.Task
 
 class TaskTreeNode(val data: Task) {
     var children: MutableList<TaskTreeNode> = mutableListOf()

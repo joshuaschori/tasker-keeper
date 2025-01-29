@@ -1,18 +1,10 @@
-package com.example.taskerkeeper
+package com.joshuaschori.taskerkeeper
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Checklist
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Loop
-import androidx.compose.material.icons.twotone.AutoStories
-import androidx.compose.material.icons.twotone.CalendarMonth
-import androidx.compose.material.icons.twotone.Favorite
-import androidx.compose.material.icons.twotone.ListAlt
-import androidx.compose.material.icons.twotone.Loop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem

@@ -1,14 +1,17 @@
-package com.example.taskerkeeper
+package com.joshuaschori.taskerkeeper
 
 import android.os.Bundle
 import androidx.compose.material3.Surface
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commit
 import androidx.fragment.app.replace
-import com.example.taskerkeeper.databinding.ActivityMainBinding
-import com.example.taskerkeeper.diary.DiaryFragment
-import com.example.taskerkeeper.tasks.TasksFragment
-import com.example.taskerkeeper.ui.theme.TaskerKeeperTheme
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
+import com.joshuaschori.taskerkeeper.databinding.ActivityMainBinding
+import com.joshuaschori.taskerkeeper.diary.DiaryFragment
+import com.joshuaschori.taskerkeeper.tasks.TasksFragment
+import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -36,6 +39,9 @@ class MainActivity : FragmentActivity() {
             }
         }
         showTaskFragment()
+
+        // TODO firebase placeholder
+        Firebase.auth.signInAnonymously()
     }
 
     fun showTaskFragment() {

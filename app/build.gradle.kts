@@ -4,14 +4,16 @@ plugins {
     alias(libs.plugins.androidx.room)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
-    namespace = "com.example.taskerkeeper"
+    namespace = "com.joshuaschori.taskerkeeper"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.taskerkeeper"
+        applicationId = "com.joshuaschori.taskerkeeper"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -85,4 +87,8 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
+    implementation(platform("com.google.firebase:firebase-bom:33.8.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-auth")
 }

@@ -1,4 +1,4 @@
-package com.example.taskerkeeper.tasks
+package com.joshuaschori.taskerkeeper.tasks
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -7,23 +7,20 @@ import android.view.ViewGroup
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DragHandle
@@ -31,7 +28,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.NotInterested
-import androidx.compose.material.icons.filled.SubdirectoryArrowLeft
+import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +53,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -64,8 +64,10 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.taskerkeeper.ui.theme.TaskerKeeperTheme
+import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
 import dagger.hilt.android.AndroidEntryPoint
+
+private const val MAX_LAYERS_OF_SUBTASKS = 4
 
 @AndroidEntryPoint
 class TasksFragment: Fragment() {
@@ -74,6 +76,28 @@ class TasksFragment: Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel.listenForDatabaseUpdates()
+        // TODO TaskAction placeholder?
+        /*viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiAction.collect {
+                    handleAction(it)
+                }
+            }
+        }*/
+    }
+
+    private fun handleAction(taskAction: TaskAction) {
+        when (taskAction) {
+            is TaskAction.AddNewTask ->
+                viewModel.addNewTask(taskAction.selectedTaskId, taskAction.parentId)
+            is TaskAction.DeleteTask -> viewModel.deleteTask(taskAction.taskId)
+            is TaskAction.EditTask -> viewModel.editTask(taskAction.taskId, taskAction.textChange)
+            is TaskAction.ExpandTask -> viewModel.expandTask(taskAction.taskId)
+            is TaskAction.MarkTaskComplete -> viewModel.markTaskComplete(taskAction.taskId)
+            is TaskAction.MarkTaskIncomplete -> viewModel.markTaskIncomplete(taskAction.taskId)
+            is TaskAction.MinimizeTask -> viewModel.minimizeTask(taskAction.taskId)
+            is TaskAction.RequestFocus -> viewModel.requestFocus(taskAction.taskId)
+        }
     }
 
     override fun onCreateView(
@@ -91,16 +115,10 @@ class TasksFragment: Fragment() {
                         when (state) {
                             is TaskState.Content -> TasksContent(
                                 taskList = (state as TaskState.Content).taskList,
+                                focusTaskId = (state as TaskState.Content).focusTaskId,
                                 isAutoSortCheckedTasks = (state as TaskState.Content).isAutoSortCheckedTasks,
-                                onAddNewTask = { taskId: Int?, parentId: Int? ->
-                                    viewModel.addNewTask(taskId, parentId) },
-                                onCheckTask = { viewModel.markTaskComplete(it) },
-                                onUncheckTask = { viewModel.markTaskIncomplete(it) },
-                                onEditTask = { taskId: Int, textChange: String ->
-                                    viewModel.editTask(taskId, textChange) },
-                                onExpandTask = { viewModel.expandTask(it) },
-                                onMinimizeTask = { viewModel.minimizeTask(it) },
-                                onDeleteTask = { viewModel.deleteTask(it) },
+                                actionHandler = { handleAction(it) },
+                                onTaskFocused = { viewModel.clearFocusTaskId() },
                             )
                             is TaskState.Error -> TasksError()
                             is TaskState.Loading -> TasksLoading()
@@ -114,18 +132,15 @@ class TasksFragment: Fragment() {
     @Composable
     fun TasksContent(
         taskList: List<Task>,
+        focusTaskId: Int?,
         isAutoSortCheckedTasks: Boolean,
-        onAddNewTask: (Int?, Int?) -> Unit,
-        onCheckTask: (Int) -> Unit,
-        onUncheckTask: (Int) -> Unit,
-        onEditTask: (Int, String) -> Unit,
-        onExpandTask: (Int) -> Unit,
-        onMinimizeTask: (Int) -> Unit,
-        onDeleteTask: (Int) -> Unit,
+        actionHandler: TaskActionHandler,
+        onTaskFocused: () -> Unit,
     ) {
         val focusManager = LocalFocusManager.current
         var hideKeyboard by remember { mutableStateOf(false) }
-        var addModeEnabled by remember { mutableStateOf(false) }
+        var addTaskModeEnabled by remember { mutableStateOf(false) }
+        var addSubtaskModeEnabled by remember { mutableStateOf(false) }
         var rearrangeModeEnabled by remember { mutableStateOf(false) }
         var deleteModeEnabled by remember { mutableStateOf(false) }
 
@@ -140,26 +155,37 @@ class TasksFragment: Fragment() {
                     hideKeyboard = true
                 }
         ) {
+            // TODO refactor ??????
             TasksTopBar(
                 onChangeSegmentedButtonMode = {
                     when (it) {
                         "Normal" -> {
-                            addModeEnabled = false
+                            addTaskModeEnabled = false
+                            addSubtaskModeEnabled = false
                             rearrangeModeEnabled = false
                             deleteModeEnabled = false
                         }
-                        "Add" -> {
-                            addModeEnabled = true
+                        "Add Task" -> {
+                            addTaskModeEnabled = true
+                            addSubtaskModeEnabled = false
+                            rearrangeModeEnabled = false
+                            deleteModeEnabled = false
+                        }
+                        "Add Subtask" -> {
+                            addTaskModeEnabled = false
+                            addSubtaskModeEnabled = true
                             rearrangeModeEnabled = false
                             deleteModeEnabled = false
                         }
                         "Rearrange" -> {
-                            addModeEnabled = false
+                            addTaskModeEnabled = false
+                            addSubtaskModeEnabled = false
                             rearrangeModeEnabled = true
                             deleteModeEnabled = false
                         }
                         "Delete" -> {
-                            addModeEnabled = false
+                            addTaskModeEnabled = false
+                            addSubtaskModeEnabled = false
                             rearrangeModeEnabled = false
                             deleteModeEnabled = true
                         }
@@ -173,27 +199,27 @@ class TasksFragment: Fragment() {
                         start = 16.dp,
                         top = 32.dp,
                         end = 16.dp,
-                        bottom = 16.dp
+                        bottom = 320.dp
                     ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .imePadding(),
                 ) {
                     items(count = taskList.size) { taskIndex ->
                         Column {
                             TaskAndSubtasks(
                                 task = taskList[taskIndex],
                                 taskLayer = 0,
-                                isAddModeEnabled = addModeEnabled,
+                                focusTaskId = focusTaskId,
+                                actionHandler = actionHandler,
+                                isAddSubtaskModeEnabled = addSubtaskModeEnabled,
+                                isAddTaskModeEnabled = addTaskModeEnabled,
+                                isAutoSortCheckedTasks = isAutoSortCheckedTasks,
                                 isDeleteModeEnabled = deleteModeEnabled,
                                 isRearrangeModeEnabled = rearrangeModeEnabled,
-                                onAddNewTask = onAddNewTask,
-                                onCheckTask = onCheckTask,
                                 onClickHideKeyboard = { hideKeyboard = true },
-                                onDeleteTask = onDeleteTask,
-                                onEditTask = onEditTask,
-                                onExpandTask = onExpandTask,
-                                onUncheckTask = onUncheckTask,
-                                onMinimizeTask = onMinimizeTask
+                                onTaskFocused = onTaskFocused,
                             )
                         }
                     }
@@ -207,7 +233,7 @@ class TasksFragment: Fragment() {
         ) {
             FloatingActionButton(
                 onClick = {
-                    onAddNewTask(null, null)
+                    actionHandler(TaskAction.AddNewTask(null, null))
                     hideKeyboard = true
                 },
                 modifier = Modifier
@@ -251,7 +277,7 @@ fun TasksTopBar(
     onClickHideKeyboard: () -> Unit
 ) {
     var selectedIndex by remember { mutableIntStateOf(0) }
-    val options = listOf("Normal", "Add", "Rearrange", "Delete")
+    val options = listOf("Normal", "Add Task", "Add Subtask", "Rearrange", "Delete")
 
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
@@ -265,6 +291,7 @@ fun TasksTopBar(
                 overflow = TextOverflow.Ellipsis
             )
         },
+        // TODO empty button
         navigationIcon = {
             IconButton(
                 onClick = {
@@ -279,7 +306,7 @@ fun TasksTopBar(
         },
         actions = {
             SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth(0.4f)
+                modifier = Modifier.fillMaxWidth(0.5f)
             ) {
                 options.forEachIndexed { index, label ->
                     SegmentedButton(
@@ -300,9 +327,13 @@ fun TasksTopBar(
                                     imageVector = Icons.Filled.NotInterested,
                                     contentDescription = "Normal Mode",
                                 )
-                                "Add" -> Icon(
+                                "Add Task" -> Icon(
                                     imageVector = Icons.Filled.Add,
-                                    contentDescription = "Add Mode",
+                                    contentDescription = "Add Task Mode",
+                                )
+                                "Add Subtask" -> Icon(
+                                    imageVector = Icons.Filled.SubdirectoryArrowRight,
+                                    contentDescription = "Add Subtask Mode",
                                 )
                                 "Rearrange" -> Icon(
                                     imageVector = Icons.Filled.DragHandle,
@@ -317,6 +348,7 @@ fun TasksTopBar(
                     )
                 }
             }
+            // TODO empty button
             IconButton(
                 onClick = {
                     onClickHideKeyboard()
@@ -335,65 +367,62 @@ fun TasksTopBar(
 fun TaskAndSubtasks(
     task: Task,
     taskLayer: Int,
-    isAddModeEnabled: Boolean,
+    focusTaskId: Int?,
+    actionHandler: TaskActionHandler,
+    isAddSubtaskModeEnabled: Boolean,
+    isAddTaskModeEnabled: Boolean,
+    isAutoSortCheckedTasks: Boolean,
     isDeleteModeEnabled: Boolean,
     isRearrangeModeEnabled: Boolean,
-    onAddNewTask: (Int?, Int?) -> Unit,
-    onCheckTask: (Int) -> Unit,
     onClickHideKeyboard: () -> Unit,
-    onDeleteTask: (Int) -> Unit,
-    onEditTask: (Int, String) -> Unit,
-    onExpandTask: (Int) -> Unit,
-    onUncheckTask: (Int) -> Unit,
-    onMinimizeTask: (Int) -> Unit,
+    onTaskFocused: () -> Unit,
 ) {
-    // TODO make a constant
-    val maxLayersOfSubtasks = 5
     Row {
         Surface(
-            tonalElevation = 5.dp,
+            tonalElevation = if (taskLayer == 0) {
+                10.dp
+            } else {
+                0.dp
+            },
             shadowElevation = 5.dp,
             modifier = Modifier
-                .padding(start = (48 * taskLayer).dp, top = 1.dp)
+                .padding(start = (32 * taskLayer).dp, top = 1.dp)
                 .weight(1f)
         ) {
             TaskRow(
                 task = task,
-                onAddNewTask = onAddNewTask,
-                onCheckTask = onCheckTask,
-                onUncheckTask = onUncheckTask,
-                onEditTask = onEditTask,
-                onExpandTask = onExpandTask,
-                onMinimizeTask = onMinimizeTask,
+                focusTaskId = focusTaskId,
+                actionHandler = actionHandler,
                 onClickHideKeyboard = onClickHideKeyboard,
+                onTaskFocused = onTaskFocused,
             )
         }
         TaskExtensions(
-            taskId = task.taskId,
-            isAddModeEnabled = isAddModeEnabled,
+            task = task,
+            taskLayer = taskLayer,
+            actionHandler = actionHandler,
+            isAutoSortCheckedTasks = isAutoSortCheckedTasks,
+            isAddSubtaskModeEnabled = isAddSubtaskModeEnabled,
+            isAddTaskModeEnabled = isAddTaskModeEnabled,
             isDeleteModeEnabled = isDeleteModeEnabled,
             isRearrangeModeEnabled = isRearrangeModeEnabled,
-            onAddNewTask = onAddNewTask,
             onClickHideKeyboard = onClickHideKeyboard,
-            onDeleteTask = onDeleteTask
         )
     }
-    if (task.subtaskList.isNotEmpty() && task.isExpanded && taskLayer + 1 < maxLayersOfSubtasks) {
+    if (task.subtaskList.isNotEmpty() && task.isExpanded && taskLayer < MAX_LAYERS_OF_SUBTASKS) {
         for (subtask in task.subtaskList) {
             TaskAndSubtasks(
                 task = subtask,
                 taskLayer = taskLayer + 1,
-                isAddModeEnabled = isAddModeEnabled,
+                focusTaskId = focusTaskId,
+                actionHandler = actionHandler,
+                isAddSubtaskModeEnabled = isAddSubtaskModeEnabled,
+                isAddTaskModeEnabled = isAddTaskModeEnabled,
+                isAutoSortCheckedTasks = isAutoSortCheckedTasks,
                 isDeleteModeEnabled = isDeleteModeEnabled,
                 isRearrangeModeEnabled = isRearrangeModeEnabled,
-                onAddNewTask = onAddNewTask,
-                onCheckTask = onCheckTask,
                 onClickHideKeyboard = onClickHideKeyboard,
-                onDeleteTask = onDeleteTask,
-                onEditTask = onEditTask,
-                onExpandTask = onExpandTask,
-                onUncheckTask = onUncheckTask,
-                onMinimizeTask = onMinimizeTask
+                onTaskFocused = onTaskFocused,
             )
         }
     }
@@ -402,20 +431,28 @@ fun TaskAndSubtasks(
 @Composable
 fun TaskRow(
     task: Task,
-    onAddNewTask: (Int?, Int?) -> Unit,
-    onCheckTask: (Int) -> Unit,
-    onUncheckTask: (Int) -> Unit,
-    onEditTask: (Int, String) -> Unit,
-    onExpandTask: (Int) -> Unit,
-    onMinimizeTask: (Int) -> Unit,
-    onClickHideKeyboard: () -> Unit
+    focusTaskId: Int?,
+    actionHandler: TaskActionHandler,
+    onClickHideKeyboard: () -> Unit,
+    onTaskFocused: () -> Unit,
 ) {
+    // focus when task is first created
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        if (focusTaskId == task.taskId) {
+            focusRequester.requestFocus()
+            onTaskFocused()
+        }
+    }
+
+    // while text field is being interacted with, update UI immediately and not from database
     val activeTextField = remember { mutableStateOf("") }
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
     if (!isFocused) {
         activeTextField.value = task.taskString
     }
+
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier.fillMaxWidth(),
@@ -425,9 +462,9 @@ fun TaskRow(
                 checked = task.isChecked,
                 onCheckedChange = {
                     if (task.isChecked) {
-                        onUncheckTask(task.taskId)
+                        actionHandler(TaskAction.MarkTaskIncomplete(task.taskId))
                     } else {
-                        onCheckTask(task.taskId)
+                        actionHandler(TaskAction.MarkTaskComplete(task.taskId))
                     }
                     onClickHideKeyboard()
                 },
@@ -440,74 +477,94 @@ fun TaskRow(
                 },
                 onValueChange = {
                     activeTextField.value = it
-                    onEditTask(task.taskId, it)
+                    actionHandler(TaskAction.EditTask(task.taskId, it))
                 },
                 keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Next
+                    imeAction = ImeAction.Done
                 ),
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
-                    .fillMaxWidth(0.8f),
+                    .fillMaxWidth(0.75f)
+                    .focusRequester(focusRequester),
                 interactionSource = interactionSource
             )
         }
-        IconButton(
-            onClick = {
-                if (task.subtaskList.isEmpty()) {
-                    onAddNewTask(null, task.taskId)
-                } else if (task.isExpanded) {
-                    onMinimizeTask(task.taskId)
-                } else {
-                    onExpandTask(task.taskId)
-                }
-                onClickHideKeyboard()
-            },
-        ) {
-            Icon(
-                imageVector = if (task.subtaskList.isEmpty()) {
-                    Icons.Filled.Add
-                } else if (task.isExpanded) {
-                    Icons.Filled.ExpandLess
-                } else {
-                    Icons.Filled.ExpandMore
+        if (task.subtaskList.isNotEmpty()) {
+            IconButton(
+                onClick = {
+                    if (task.isExpanded) {
+                        actionHandler(TaskAction.MinimizeTask(task.taskId))
+                    } else {
+                        actionHandler(TaskAction.ExpandTask(task.taskId))
+                    }
+                    onClickHideKeyboard()
                 },
-                contentDescription = if (task.subtaskList.isEmpty()) {
-                    "Add Subtask"
-                } else if (task.isExpanded) {
-                    "Minimize Subtasks"
-                } else {
-                    "Expand Subtasks"
-                },
-            )
+            ) {
+                Icon(
+                    if (task.isExpanded) {
+                        Icons.Filled.ExpandLess
+                    } else {
+                        Icons.Filled.ExpandMore
+                    },
+                    contentDescription = if (task.isExpanded) {
+                        "Minimize Subtasks"
+                    } else {
+                        "Expand Subtasks"
+                    },
+                )
+            }
         }
     }
 }
 
 @Composable
 fun TaskExtensions(
-    taskId: Int,
-    isAddModeEnabled: Boolean,
-    isAddModeHidden: Boolean = false,
-    isHidden: Boolean = false,
+    task: Task,
+    taskLayer: Int,
+    actionHandler: TaskActionHandler,
+    isAutoSortCheckedTasks: Boolean,
+    isAddSubtaskModeEnabled: Boolean,
+    isAddTaskModeEnabled: Boolean,
     isDeleteModeEnabled: Boolean,
     isRearrangeModeEnabled: Boolean,
-    onAddNewTask: (Int?, Int?) -> Unit,
     onClickHideKeyboard: () -> Unit,
-    onDeleteTask: (Int) -> Unit,
 ) {
     Row {
-        if (isAddModeEnabled) {
+        if (isAddTaskModeEnabled) {
             IconButton(
                 onClick = {
-                    onAddNewTask(taskId, null)
+                    actionHandler(TaskAction.AddNewTask(task.taskId, null))
                     onClickHideKeyboard()
                 },
-                enabled = (!isHidden || !isAddModeHidden),
-                modifier = Modifier.alpha(if (isHidden || isAddModeHidden) 0f else 1f)
+                enabled = (
+                    !(isAutoSortCheckedTasks && task.isChecked)
+                ),
+                modifier = Modifier.alpha(
+                    if (isAutoSortCheckedTasks && task.isChecked) 0f else 1f
+                )
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,
-                    contentDescription = "Add",
+                    contentDescription = "Add Task After",
+                )
+            }
+        }
+        if (isAddSubtaskModeEnabled) {
+            IconButton(
+                onClick = {
+                    actionHandler(TaskAction.AddNewTask(null, task.taskId))
+                    onClickHideKeyboard()
+                },
+                enabled = (
+                    !((isAutoSortCheckedTasks && task.isChecked) || taskLayer >= MAX_LAYERS_OF_SUBTASKS)
+                ),
+                modifier = Modifier.alpha(
+                    if ((isAutoSortCheckedTasks && task.isChecked) || taskLayer >= MAX_LAYERS_OF_SUBTASKS) 0f else 1f
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.SubdirectoryArrowRight,
+                    contentDescription = "Add Subtask",
                 )
             }
         }
@@ -515,9 +572,7 @@ fun TaskExtensions(
             IconButton(
                 onClick = {
                     onClickHideKeyboard()
-                },
-                enabled = !isHidden,
-                modifier = Modifier.alpha(if (isHidden) 0f else 1f)
+                }
             ) {
                 Icon(
                     imageVector = Icons.Filled.DragHandle,
@@ -528,11 +583,9 @@ fun TaskExtensions(
         if (isDeleteModeEnabled) {
             IconButton(
                 onClick = {
-                    onDeleteTask(taskId)
+                    actionHandler(TaskAction.DeleteTask(task.taskId))
                     onClickHideKeyboard()
-                },
-                enabled = !isHidden,
-                modifier = Modifier.alpha(if (isHidden) 0f else 1f)
+                }
             ) {
                 Icon(
                     imageVector = Icons.Filled.DeleteForever,

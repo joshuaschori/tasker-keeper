@@ -1,4 +1,4 @@
-package com.example.taskerkeeper
+package com.joshuaschori.taskerkeeper
 
 class TaskTreeBuilder {
     private val nodesById = mutableMapOf<Int, TaskTreeNode>()
