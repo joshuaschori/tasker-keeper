@@ -2,13 +2,19 @@ package com.joshuaschori.taskerkeeper.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// top bar title text:
 val primaryLight = Color(0xFF69548D)
 val onPrimaryLight = Color(0xFFFFFFFF)
+// floating action button, top bar, unselected segmented buttons:
 val primaryContainerLight = Color(0xFFEBDCFF)
+// floating action button icon:
 val onPrimaryContainerLight = Color(0xFF240E45)
+// selected bottom bar text:
 val secondaryLight = Color(0xFF635B70)
 val onSecondaryLight = Color(0xFFFFFFFF)
-val secondaryContainerLight = Color(0xFFEADEF7)
+// selected icon backgrounds:
+val secondaryContainerLight = Color(0xFFD6C7EE) //Color(0xFFEADEF7)
+// selected icons:
 val onSecondaryContainerLight = Color(0xFF1F182A)
 val tertiaryLight = Color(0xFF7F525D)
 val onTertiaryLight = Color(0xFFFFFFFF)
@@ -20,10 +26,14 @@ val errorContainerLight = Color(0xFFFFDAD6)
 val onErrorContainerLight = Color(0xFF410002)
 val backgroundLight = Color(0xFFFEF7FF)
 val onBackgroundLight = Color(0xFF1D1B20)
+// task content background:
 val surfaceLight = Color(0xFFFEF7FF)
+// unselected segmented button icons and top bar back icon:
 val onSurfaceLight = Color(0xFF1D1B20)
 val surfaceVariantLight = Color(0xFFE8E0EB)
+// checkbox outlines, unselected bottom bar icons:
 val onSurfaceVariantLight = Color(0xFF49454E)
+// segmented button outline:
 val outlineLight = Color(0xFF7A757F)
 val outlineVariantLight = Color(0xFFCBC4CF)
 val scrimLight = Color(0xFF000000)
@@ -34,6 +44,7 @@ val surfaceDimLight = Color(0xFFDED8E0)
 val surfaceBrightLight = Color(0xFFFEF7FF)
 val surfaceContainerLowestLight = Color(0xFFFFFFFF)
 val surfaceContainerLowLight = Color(0xFFF8F1F9)
+// bottom bar background:
 val surfaceContainerLight = Color(0xFFF3ECF4)
 val surfaceContainerHighLight = Color(0xFFEDE6EE)
 val surfaceContainerHighestLight = Color(0xFFE7E0E8)

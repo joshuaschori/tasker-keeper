@@ -46,7 +46,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -55,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -139,10 +139,8 @@ class TasksFragment: Fragment() {
     ) {
         val focusManager = LocalFocusManager.current
         var hideKeyboard by remember { mutableStateOf(false) }
-        var addTaskModeEnabled by remember { mutableStateOf(false) }
-        var addSubtaskModeEnabled by remember { mutableStateOf(false) }
-        var rearrangeModeEnabled by remember { mutableStateOf(false) }
-        var deleteModeEnabled by remember { mutableStateOf(false) }
+        val taskExtensionModeOptions = listOf("Normal", "Add Task", "Add Subtask", "Rearrange", "Delete")
+        var selectedTaskExtensionMode by remember { mutableStateOf("Normal") }
 
         Column(
             modifier = Modifier
@@ -155,43 +153,13 @@ class TasksFragment: Fragment() {
                     hideKeyboard = true
                 }
         ) {
-            // TODO refactor ??????
             TasksTopBar(
-                onChangeSegmentedButtonMode = {
-                    when (it) {
-                        "Normal" -> {
-                            addTaskModeEnabled = false
-                            addSubtaskModeEnabled = false
-                            rearrangeModeEnabled = false
-                            deleteModeEnabled = false
-                        }
-                        "Add Task" -> {
-                            addTaskModeEnabled = true
-                            addSubtaskModeEnabled = false
-                            rearrangeModeEnabled = false
-                            deleteModeEnabled = false
-                        }
-                        "Add Subtask" -> {
-                            addTaskModeEnabled = false
-                            addSubtaskModeEnabled = true
-                            rearrangeModeEnabled = false
-                            deleteModeEnabled = false
-                        }
-                        "Rearrange" -> {
-                            addTaskModeEnabled = false
-                            addSubtaskModeEnabled = false
-                            rearrangeModeEnabled = true
-                            deleteModeEnabled = false
-                        }
-                        "Delete" -> {
-                            addTaskModeEnabled = false
-                            addSubtaskModeEnabled = false
-                            rearrangeModeEnabled = false
-                            deleteModeEnabled = true
-                        }
-                    }
+                taskExtensionModeOptions = taskExtensionModeOptions,
+                selectedTaskExtensionMode = selectedTaskExtensionMode,
+                onChangeTaskExtensionMode = {
+                    selectedTaskExtensionMode = it
                 },
-                onClickHideKeyboard = { hideKeyboard = true }
+                onClickHideKeyboard = { hideKeyboard = true },
             )
             if (taskList.isNotEmpty()) {
                 LazyColumn(
@@ -213,11 +181,8 @@ class TasksFragment: Fragment() {
                                 taskLayer = 0,
                                 focusTaskId = focusTaskId,
                                 actionHandler = actionHandler,
-                                isAddSubtaskModeEnabled = addSubtaskModeEnabled,
-                                isAddTaskModeEnabled = addTaskModeEnabled,
+                                selectedTaskExtensionMode = selectedTaskExtensionMode,
                                 isAutoSortCheckedTasks = isAutoSortCheckedTasks,
-                                isDeleteModeEnabled = deleteModeEnabled,
-                                isRearrangeModeEnabled = rearrangeModeEnabled,
                                 onClickHideKeyboard = { hideKeyboard = true },
                                 onTaskFocused = onTaskFocused,
                             )
@@ -273,12 +238,11 @@ class TasksFragment: Fragment() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasksTopBar(
-    onChangeSegmentedButtonMode: (String) -> Unit,
-    onClickHideKeyboard: () -> Unit
+    selectedTaskExtensionMode: String,
+    taskExtensionModeOptions: List<String>,
+    onChangeTaskExtensionMode: (String) -> Unit,
+    onClickHideKeyboard: () -> Unit,
 ) {
-    var selectedIndex by remember { mutableIntStateOf(0) }
-    val options = listOf("Normal", "Add Task", "Add Subtask", "Rearrange", "Delete")
-
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -308,17 +272,16 @@ fun TasksTopBar(
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier.fillMaxWidth(0.5f)
             ) {
-                options.forEachIndexed { index, label ->
+                taskExtensionModeOptions.forEachIndexed { index, label ->
                     SegmentedButton(
-                        selected = index == selectedIndex,
+                        selected = label == selectedTaskExtensionMode,
                         onClick = {
-                            selectedIndex = index
-                            onChangeSegmentedButtonMode(label)
+                            onChangeTaskExtensionMode(label)
                             onClickHideKeyboard()
                         },
                         shape = SegmentedButtonDefaults.itemShape(
                             index = index,
-                            count = options.size
+                            count = taskExtensionModeOptions.size
                         ),
                         icon = {},
                         label = {
@@ -368,12 +331,9 @@ fun TaskAndSubtasks(
     task: Task,
     taskLayer: Int,
     focusTaskId: Int?,
-    actionHandler: TaskActionHandler,
-    isAddSubtaskModeEnabled: Boolean,
-    isAddTaskModeEnabled: Boolean,
+    selectedTaskExtensionMode: String,
     isAutoSortCheckedTasks: Boolean,
-    isDeleteModeEnabled: Boolean,
-    isRearrangeModeEnabled: Boolean,
+    actionHandler: TaskActionHandler,
     onClickHideKeyboard: () -> Unit,
     onTaskFocused: () -> Unit,
 ) {
@@ -401,11 +361,8 @@ fun TaskAndSubtasks(
             task = task,
             taskLayer = taskLayer,
             actionHandler = actionHandler,
+            selectedTaskExtensionMode = selectedTaskExtensionMode,
             isAutoSortCheckedTasks = isAutoSortCheckedTasks,
-            isAddSubtaskModeEnabled = isAddSubtaskModeEnabled,
-            isAddTaskModeEnabled = isAddTaskModeEnabled,
-            isDeleteModeEnabled = isDeleteModeEnabled,
-            isRearrangeModeEnabled = isRearrangeModeEnabled,
             onClickHideKeyboard = onClickHideKeyboard,
         )
     }
@@ -415,12 +372,9 @@ fun TaskAndSubtasks(
                 task = subtask,
                 taskLayer = taskLayer + 1,
                 focusTaskId = focusTaskId,
-                actionHandler = actionHandler,
-                isAddSubtaskModeEnabled = isAddSubtaskModeEnabled,
-                isAddTaskModeEnabled = isAddTaskModeEnabled,
+                selectedTaskExtensionMode = selectedTaskExtensionMode,
                 isAutoSortCheckedTasks = isAutoSortCheckedTasks,
-                isDeleteModeEnabled = isDeleteModeEnabled,
-                isRearrangeModeEnabled = isRearrangeModeEnabled,
+                actionHandler = actionHandler,
                 onClickHideKeyboard = onClickHideKeyboard,
                 onTaskFocused = onTaskFocused,
             )
@@ -521,76 +475,75 @@ fun TaskRow(
 fun TaskExtensions(
     task: Task,
     taskLayer: Int,
-    actionHandler: TaskActionHandler,
+    selectedTaskExtensionMode: String,
     isAutoSortCheckedTasks: Boolean,
-    isAddSubtaskModeEnabled: Boolean,
-    isAddTaskModeEnabled: Boolean,
-    isDeleteModeEnabled: Boolean,
-    isRearrangeModeEnabled: Boolean,
+    actionHandler: TaskActionHandler,
     onClickHideKeyboard: () -> Unit,
 ) {
     Row {
-        if (isAddTaskModeEnabled) {
-            IconButton(
-                onClick = {
-                    actionHandler(TaskAction.AddNewTask(task.taskId, null))
-                    onClickHideKeyboard()
-                },
-                enabled = (
-                    !(isAutoSortCheckedTasks && task.isChecked)
-                ),
-                modifier = Modifier.alpha(
-                    if (isAutoSortCheckedTasks && task.isChecked) 0f else 1f
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "Add Task After",
-                )
-            }
-        }
-        if (isAddSubtaskModeEnabled) {
-            IconButton(
-                onClick = {
-                    actionHandler(TaskAction.AddNewTask(null, task.taskId))
-                    onClickHideKeyboard()
-                },
-                enabled = (
-                    !((isAutoSortCheckedTasks && task.isChecked) || taskLayer >= MAX_LAYERS_OF_SUBTASKS)
-                ),
-                modifier = Modifier.alpha(
-                    if ((isAutoSortCheckedTasks && task.isChecked) || taskLayer >= MAX_LAYERS_OF_SUBTASKS) 0f else 1f
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.SubdirectoryArrowRight,
-                    contentDescription = "Add Subtask",
-                )
-            }
-        }
-        if (isRearrangeModeEnabled) {
-            IconButton(
-                onClick = {
-                    onClickHideKeyboard()
+        when (selectedTaskExtensionMode) {
+            "Add Task" -> {
+                IconButton(
+                    onClick = {
+                        actionHandler(TaskAction.AddNewTask(task.taskId, null))
+                        onClickHideKeyboard()
+                    },
+                    enabled = (
+                            !(isAutoSortCheckedTasks && task.isChecked)
+                            ),
+                    modifier = Modifier.alpha(
+                        if (isAutoSortCheckedTasks && task.isChecked) 0f else 1f
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Add Task After",
+                    )
                 }
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.DragHandle,
-                    contentDescription = "Rearrange",
-                )
             }
-        }
-        if (isDeleteModeEnabled) {
-            IconButton(
-                onClick = {
-                    actionHandler(TaskAction.DeleteTask(task.taskId))
-                    onClickHideKeyboard()
+            "Add Subtask" -> {
+                IconButton(
+                    onClick = {
+                        actionHandler(TaskAction.AddNewTask(null, task.taskId))
+                        onClickHideKeyboard()
+                    },
+                    enabled = (
+                            !((isAutoSortCheckedTasks && task.isChecked) || taskLayer >= MAX_LAYERS_OF_SUBTASKS)
+                            ),
+                    modifier = Modifier.alpha(
+                        if ((isAutoSortCheckedTasks && task.isChecked) || taskLayer >= MAX_LAYERS_OF_SUBTASKS) 0f else 1f
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.SubdirectoryArrowRight,
+                        contentDescription = "Add Subtask",
+                    )
                 }
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.DeleteForever,
-                    contentDescription = "Delete",
-                )
+            }
+            "Rearrange" -> {
+                IconButton(
+                    onClick = {
+                        onClickHideKeyboard()
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.DragHandle,
+                        contentDescription = "Rearrange",
+                    )
+                }
+            }
+            "Delete" -> {
+                IconButton(
+                    onClick = {
+                        actionHandler(TaskAction.DeleteTask(task.taskId))
+                        onClickHideKeyboard()
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.DeleteForever,
+                        contentDescription = "Delete",
+                    )
+                }
             }
         }
     }
