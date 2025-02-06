@@ -20,25 +20,29 @@ class TasksRepository @Inject constructor(
     }
 
     suspend fun addTaskAfterUnchecked(parentId: Int?): Int {
-        // TODO why does this infinitely add subtasks?
         // if task with parentId as taskId is minimized, expand it
-        /*if (parentId != null) {
+        if (parentId != null) {
             if(!db.taskDao().verifyExpanded(parentId)) {
                 db.taskDao().updateTaskAsExpanded(parentId)
             }
-        }*/
-
+        }
         return db.taskDao().addTaskAfterUnchecked(parentId).toInt()
     }
 
     suspend fun addTaskAtEnd(parentId: Int?): Int {
+        // if task with parentId as taskId is minimized, expand it
+        if (parentId != null) {
+            if(!db.taskDao().verifyExpanded(parentId)) {
+                db.taskDao().updateTaskAsExpanded(parentId)
+            }
+        }
         return db.taskDao().addTaskAtEnd(parentId).toInt()
     }
 
     suspend fun editTask(taskId: Int, textChange: String) {
         db.taskDao().updateTaskString(taskId, textChange)
 
-        // TODO
+        // TODO firebase stuff
         FirebaseDatabase.getInstance().getReference()
             .child(Firebase.auth.currentUser!!.uid)
             .child(taskId.toString())

@@ -28,14 +28,6 @@ interface TaskDao {
     @Transaction
     suspend fun addTaskAfterUnchecked(parentId: Int?): Long {
         val firstCheckedTaskOrder = getFirstCheckedTaskOrder(parentId)
-
-        // if task with parentId as taskId is minimized, expand it
-        if (parentId != null) {
-            if(!verifyExpanded(parentId)) {
-                updateTaskAsExpanded(parentId)
-            }
-        }
-
         if (firstCheckedTaskOrder == null) {
             return addTaskAtEnd(parentId)
         } else {
@@ -55,14 +47,6 @@ interface TaskDao {
     @Transaction
     suspend fun addTaskAtEnd(parentId: Int?): Long {
         val taskCount = getTaskCount(parentId)
-
-        // if task with parentId as taskId is minimized, expand it
-        if (parentId != null) {
-            if(!verifyExpanded(parentId)) {
-                updateTaskAsExpanded(parentId)
-            }
-        }
-
         return insertTask(
             TaskEntity(
                 taskString = "",

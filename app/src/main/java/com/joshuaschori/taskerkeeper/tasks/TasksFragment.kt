@@ -54,7 +54,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -63,27 +62,34 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 private const val MAX_LAYERS_OF_SUBTASKS = 4
 
 @AndroidEntryPoint
 class TasksFragment: Fragment() {
-    val viewModel: TasksViewModel by viewModels()
+    private val viewModel: TasksViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel.listenForDatabaseUpdates()
-        // TODO TaskAction placeholder?
-        /*viewLifecycleOwner.lifecycleScope.launch {
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiAction.collect {
                     handleAction(it)
                 }
             }
-        }*/
+        }
     }
 
     private fun handleAction(taskAction: TaskAction) {
@@ -116,7 +122,8 @@ class TasksFragment: Fragment() {
                             is TaskState.Content -> TasksContent(
                                 taskList = (state as TaskState.Content).taskList,
                                 focusTaskId = (state as TaskState.Content).focusTaskId,
-                                isAutoSortCheckedTasks = (state as TaskState.Content).isAutoSortCheckedTasks,
+                                isAutoSortCheckedTasks = (state as TaskState.Content)
+                                    .isAutoSortCheckedTasks,
                                 actionHandler = { handleAction(it) },
                                 onTaskFocused = { viewModel.clearFocusTaskId() },
                             )
@@ -139,35 +146,23 @@ class TasksFragment: Fragment() {
     ) {
         val focusManager = LocalFocusManager.current
         var hideKeyboard by remember { mutableStateOf(false) }
-        val taskExtensionModeOptions = listOf("Normal", "Add Task", "Add Subtask", "Rearrange", "Delete")
-        var selectedTaskExtensionMode by remember { mutableStateOf("Normal") }
+        var selectedTaskExtensionMode by remember { mutableStateOf(TaskExtensionMode.NORMAL) }
 
         Column(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth()
-                .clickable(
-                    interactionSource = null,
-                    indication = null,
-                ) {
-                    hideKeyboard = true
-                }
+                .clickable(interactionSource = null, indication = null) { hideKeyboard = true }
         ) {
             TasksTopBar(
-                taskExtensionModeOptions = taskExtensionModeOptions,
                 selectedTaskExtensionMode = selectedTaskExtensionMode,
-                onChangeTaskExtensionMode = {
-                    selectedTaskExtensionMode = it
-                },
+                onChangeTaskExtensionMode = { selectedTaskExtensionMode = it },
                 onClickHideKeyboard = { hideKeyboard = true },
             )
             if (taskList.isNotEmpty()) {
                 LazyColumn(
                     contentPadding = PaddingValues(
-                        start = 16.dp,
-                        top = 32.dp,
-                        end = 16.dp,
-                        bottom = 320.dp
+                        start = 16.dp, top = 32.dp, end = 16.dp, bottom = 320.dp
                     ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
@@ -175,14 +170,16 @@ class TasksFragment: Fragment() {
                         .imePadding(),
                 ) {
                     items(count = taskList.size) { taskIndex ->
-                        Column {
+                        Column(
+                            modifier = Modifier.animateItem()
+                        ) {
                             TaskAndSubtasks(
                                 task = taskList[taskIndex],
                                 taskLayer = 0,
                                 focusTaskId = focusTaskId,
-                                actionHandler = actionHandler,
-                                selectedTaskExtensionMode = selectedTaskExtensionMode,
                                 isAutoSortCheckedTasks = isAutoSortCheckedTasks,
+                                selectedTaskExtensionMode = selectedTaskExtensionMode,
+                                actionHandler = actionHandler,
                                 onClickHideKeyboard = { hideKeyboard = true },
                                 onTaskFocused = onTaskFocused,
                             )
@@ -238,9 +235,8 @@ class TasksFragment: Fragment() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasksTopBar(
-    selectedTaskExtensionMode: String,
-    taskExtensionModeOptions: List<String>,
-    onChangeTaskExtensionMode: (String) -> Unit,
+    selectedTaskExtensionMode: TaskExtensionMode,
+    onChangeTaskExtensionMode: (TaskExtensionMode) -> Unit,
     onClickHideKeyboard: () -> Unit,
 ) {
     TopAppBar(
@@ -264,7 +260,7 @@ fun TasksTopBar(
             ) {
                 Icon(
                     imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = "Localized description"
+                    contentDescription = "Back"
                 )
             }
         },
@@ -272,7 +268,7 @@ fun TasksTopBar(
             SingleChoiceSegmentedButtonRow(
                 modifier = Modifier.fillMaxWidth(0.5f)
             ) {
-                taskExtensionModeOptions.forEachIndexed { index, label ->
+                TaskExtensionMode.entries.forEachIndexed { index, label ->
                     SegmentedButton(
                         selected = label == selectedTaskExtensionMode,
                         onClick = {
@@ -281,30 +277,30 @@ fun TasksTopBar(
                         },
                         shape = SegmentedButtonDefaults.itemShape(
                             index = index,
-                            count = taskExtensionModeOptions.size
+                            count = TaskExtensionMode.entries.size
                         ),
                         icon = {},
                         label = {
                             when (label) {
-                                "Normal" -> Icon(
+                                TaskExtensionMode.NORMAL -> Icon(
                                     imageVector = Icons.Filled.NotInterested,
-                                    contentDescription = "Normal Mode",
+                                    contentDescription = TaskExtensionMode.NORMAL.contentDescription,
                                 )
-                                "Add Task" -> Icon(
+                                TaskExtensionMode.ADD_NEW_TASK -> Icon(
                                     imageVector = Icons.Filled.Add,
-                                    contentDescription = "Add Task Mode",
+                                    contentDescription = TaskExtensionMode.ADD_NEW_TASK.contentDescription,
                                 )
-                                "Add Subtask" -> Icon(
+                                TaskExtensionMode.ADD_NEW_SUBTASK -> Icon(
                                     imageVector = Icons.Filled.SubdirectoryArrowRight,
-                                    contentDescription = "Add Subtask Mode",
+                                    contentDescription = TaskExtensionMode.ADD_NEW_SUBTASK.contentDescription,
                                 )
-                                "Rearrange" -> Icon(
+                                TaskExtensionMode.REARRANGE -> Icon(
                                     imageVector = Icons.Filled.DragHandle,
-                                    contentDescription = "Rearrange Mode",
+                                    contentDescription = TaskExtensionMode.REARRANGE.contentDescription,
                                 )
-                                "Delete" -> Icon(
+                                TaskExtensionMode.DELETE -> Icon(
                                     imageVector = Icons.Filled.DeleteForever,
-                                    contentDescription = "Delete Mode",
+                                    contentDescription = TaskExtensionMode.DELETE.contentDescription,
                                 )
                             }
                         }
@@ -319,7 +315,7 @@ fun TasksTopBar(
             ) {
                 Icon(
                     imageVector = Icons.Filled.MoreVert,
-                    contentDescription = "Localized description"
+                    contentDescription = "More Options"
                 )
             }
         },
@@ -331,7 +327,7 @@ fun TaskAndSubtasks(
     task: Task,
     taskLayer: Int,
     focusTaskId: Int?,
-    selectedTaskExtensionMode: String,
+    selectedTaskExtensionMode: TaskExtensionMode,
     isAutoSortCheckedTasks: Boolean,
     actionHandler: TaskActionHandler,
     onClickHideKeyboard: () -> Unit,
@@ -475,14 +471,15 @@ fun TaskRow(
 fun TaskExtensions(
     task: Task,
     taskLayer: Int,
-    selectedTaskExtensionMode: String,
+    selectedTaskExtensionMode: TaskExtensionMode,
     isAutoSortCheckedTasks: Boolean,
     actionHandler: TaskActionHandler,
     onClickHideKeyboard: () -> Unit,
 ) {
     Row {
         when (selectedTaskExtensionMode) {
-            "Add Task" -> {
+            TaskExtensionMode.NORMAL -> {}
+            TaskExtensionMode.ADD_NEW_TASK -> {
                 IconButton(
                     onClick = {
                         actionHandler(TaskAction.AddNewTask(task.taskId, null))
@@ -501,17 +498,19 @@ fun TaskExtensions(
                     )
                 }
             }
-            "Add Subtask" -> {
+            TaskExtensionMode.ADD_NEW_SUBTASK -> {
                 IconButton(
                     onClick = {
                         actionHandler(TaskAction.AddNewTask(null, task.taskId))
                         onClickHideKeyboard()
                     },
                     enabled = (
-                            !((isAutoSortCheckedTasks && task.isChecked) || taskLayer >= MAX_LAYERS_OF_SUBTASKS)
-                            ),
+                        !((isAutoSortCheckedTasks && task.isChecked)
+                            || taskLayer >= MAX_LAYERS_OF_SUBTASKS)
+                    ),
                     modifier = Modifier.alpha(
-                        if ((isAutoSortCheckedTasks && task.isChecked) || taskLayer >= MAX_LAYERS_OF_SUBTASKS) 0f else 1f
+                        if ((isAutoSortCheckedTasks && task.isChecked)
+                            || taskLayer >= MAX_LAYERS_OF_SUBTASKS) 0f else 1f
                     )
                 ) {
                     Icon(
@@ -520,7 +519,7 @@ fun TaskExtensions(
                     )
                 }
             }
-            "Rearrange" -> {
+            TaskExtensionMode.REARRANGE -> {
                 IconButton(
                     onClick = {
                         onClickHideKeyboard()
@@ -532,7 +531,7 @@ fun TaskExtensions(
                     )
                 }
             }
-            "Delete" -> {
+            TaskExtensionMode.DELETE -> {
                 IconButton(
                     onClick = {
                         actionHandler(TaskAction.DeleteTask(task.taskId))

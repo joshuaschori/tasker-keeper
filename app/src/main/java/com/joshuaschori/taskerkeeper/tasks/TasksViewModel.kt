@@ -23,15 +23,14 @@ class TasksViewModel @Inject constructor(
 ): ViewModel() {
     private val _uiState: MutableStateFlow<TaskState> = MutableStateFlow(TaskState.Loading)
     val uiState: StateFlow<TaskState> = _uiState.asStateFlow()
-    // TODO not used yet?
     private val _uiAction: MutableSharedFlow<TaskAction> = MutableSharedFlow()
     val uiAction: SharedFlow<TaskAction> = _uiAction.asSharedFlow()
 
     fun addNewTask(selectedTaskId: Int?, parentId: Int?) {
         viewModelScope.launch {
-            _uiState.update { currentState ->
-                require(currentState is TaskState.Content)
-                if (selectedTaskId == null && currentState.isAutoSortCheckedTasks) {
+            val currentState = _uiState.value
+            if (currentState is TaskState.Content) {
+                val nextState = if (selectedTaskId == null && currentState.isAutoSortCheckedTasks) {
                     currentState.copy(
                         focusTaskId = tasksRepository.addTaskAfterUnchecked(parentId)
                     )
@@ -44,6 +43,9 @@ class TasksViewModel @Inject constructor(
                         focusTaskId = tasksRepository.addTaskAfter(selectedTaskId)
                     )
                 }
+                _uiState.value = nextState
+            } else {
+                _uiState.value = TaskState.Error
             }
         }
     }
@@ -51,9 +53,7 @@ class TasksViewModel @Inject constructor(
     fun clearFocusTaskId() {
         _uiState.update { currentState ->
             require(currentState is TaskState.Content)
-            currentState.copy(
-                focusTaskId = null
-            )
+            currentState.copy(focusTaskId = null)
         }
     }
 
@@ -80,18 +80,14 @@ class TasksViewModel @Inject constructor(
             tasksRepository.getAllTasks().collect { taskEntityList ->
                 val treeList = convertTaskEntityListToTaskTreeNodeList(taskEntityList)
                 val taskList = convertTaskTreeNodeListToTaskList(treeList)
-                _uiState.update { currentState ->
-                    if (currentState is TaskState.Content) {
-                        currentState.copy(
-                            taskList = taskList
-                        )
-                    }
-                    else {
-                        TaskState.Content(
-                            taskList = taskList
-                        )
-                    }
+                val currentState = _uiState.value
+                val nextState = if (currentState is TaskState.Content) {
+                    currentState.copy(taskList = taskList)
                 }
+                else {
+                    TaskState.Content(taskList = taskList)
+                }
+                _uiState.value = nextState
             }
         }
     }
@@ -102,6 +98,7 @@ class TasksViewModel @Inject constructor(
         viewModelScope.launch {
             tasksRepository.markTaskComplete(taskId, currentState.isAutoSortCheckedTasks)
         }
+
     }
 
     fun markTaskIncomplete(taskId: Int) {
@@ -120,7 +117,7 @@ class TasksViewModel @Inject constructor(
 
     // TODO finish
     fun requestFocus(taskId: Int) {
-
+        //TaskAction.PopBackstack
     }
 }
 
@@ -169,6 +166,7 @@ sealed interface TaskAction {
     data class MarkTaskComplete(val taskId: Int): TaskAction
     data class MarkTaskIncomplete(val taskId: Int): TaskAction
     data class MinimizeTask(val taskId: Int): TaskAction
+    // TODO
     data class RequestFocus(val taskId: Int): TaskAction
 }
 
