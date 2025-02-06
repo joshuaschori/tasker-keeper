@@ -51,27 +51,47 @@ class TasksViewModel @Inject constructor(
     }
 
     fun clearFocusTaskId() {
-        _uiState.update { currentState ->
-            require(currentState is TaskState.Content)
-            currentState.copy(focusTaskId = null)
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is TaskState.Content) {
+                val nextState = currentState.copy(focusTaskId = null)
+                _uiState.value = nextState
+            } else {
+                _uiState.value = TaskState.Error
+            }
         }
     }
 
     fun deleteTask(taskId: Int) {
         viewModelScope.launch {
-            tasksRepository.removeTask(taskId)
+            val currentState = _uiState.value
+            if (currentState is TaskState.Content) {
+                tasksRepository.removeTask(taskId)
+            } else {
+                _uiState.value = TaskState.Error
+            }
         }
     }
 
     fun editTask(taskId: Int, textChange: String) {
         viewModelScope.launch {
-            tasksRepository.editTask(taskId, textChange)
+            val currentState = _uiState.value
+            if (currentState is TaskState.Content) {
+                tasksRepository.editTask(taskId, textChange)
+            } else {
+                _uiState.value = TaskState.Error
+            }
         }
     }
 
     fun expandTask(taskId: Int) {
         viewModelScope.launch {
-            tasksRepository.expandTask(taskId)
+            val currentState = _uiState.value
+            if (currentState is TaskState.Content) {
+                tasksRepository.expandTask(taskId)
+            } else {
+                _uiState.value = TaskState.Error
+            }
         }
     }
 
@@ -93,25 +113,35 @@ class TasksViewModel @Inject constructor(
     }
 
     fun markTaskComplete(taskId: Int) {
-        val currentState = _uiState.value
-        require(currentState is TaskState.Content)
         viewModelScope.launch {
-            tasksRepository.markTaskComplete(taskId, currentState.isAutoSortCheckedTasks)
+            val currentState = _uiState.value
+            if (currentState is TaskState.Content) {
+                tasksRepository.markTaskComplete(taskId, currentState.isAutoSortCheckedTasks)
+            } else {
+                _uiState.value = TaskState.Error
+            }
         }
-
     }
 
     fun markTaskIncomplete(taskId: Int) {
-        val currentState = _uiState.value
-        require(currentState is TaskState.Content)
         viewModelScope.launch {
-            tasksRepository.markTaskIncomplete(taskId, currentState.isAutoSortCheckedTasks)
+            val currentState = _uiState.value
+            if (currentState is TaskState.Content) {
+                tasksRepository.markTaskIncomplete(taskId, currentState.isAutoSortCheckedTasks)
+            } else {
+                _uiState.value = TaskState.Error
+            }
         }
     }
 
     fun minimizeTask(taskId: Int) {
         viewModelScope.launch {
-            tasksRepository.minimizeTask(taskId)
+            val currentState = _uiState.value
+            if (currentState is TaskState.Content) {
+                tasksRepository.minimizeTask(taskId)
+            } else {
+                _uiState.value = TaskState.Error
+            }
         }
     }
 
