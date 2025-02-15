@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -50,11 +49,23 @@ class TasksViewModel @Inject constructor(
         }
     }
 
-    fun clearFocusTaskId() {
+    fun changeTaskExtensionMode(taskExtensionMode: TaskExtensionMode) {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TaskState.Content) {
-                val nextState = currentState.copy(focusTaskId = null)
+                val nextState = currentState.copy(selectedTaskExtensionMode = taskExtensionMode)
+                _uiState.value = nextState
+            } else {
+                _uiState.value = TaskState.Error
+            }
+        }
+    }
+
+    fun clearFocus() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is TaskState.Content) {
+                val nextState = currentState.copy(clearFocusTrigger = true)
                 _uiState.value = nextState
             } else {
                 _uiState.value = TaskState.Error
@@ -145,10 +156,30 @@ class TasksViewModel @Inject constructor(
         }
     }
 
-    // TODO finish
-    fun requestFocus(taskId: Int) {
-        //TaskAction.PopBackstack
+    fun resetClearFocusTrigger() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is TaskState.Content) {
+                val nextState = currentState.copy(clearFocusTrigger = false)
+                _uiState.value = nextState
+            } else {
+                _uiState.value = TaskState.Error
+            }
+        }
     }
+
+    fun resetFocusTrigger() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is TaskState.Content) {
+                val nextState = currentState.copy(focusTaskId = null)
+                _uiState.value = nextState
+            } else {
+                _uiState.value = TaskState.Error
+            }
+        }
+    }
+
 }
 
 fun convertTaskEntityListToTaskTreeNodeList(taskEntityList: List<TaskEntity>): List<TaskTreeNode> {
@@ -181,8 +212,10 @@ fun convertTaskTreeNodeListToTaskList(taskTreeNodeList: List<TaskTreeNode>): Lis
 sealed interface TaskState {
     data class Content(
         val taskList: List<Task> = emptyList(),
-        val isAutoSortCheckedTasks: Boolean = true,
+        val selectedTaskExtensionMode: TaskExtensionMode = TaskExtensionMode.NORMAL,
+        val clearFocusTrigger: Boolean = false,
         val focusTaskId: Int? = null,
+        val isAutoSortCheckedTasks: Boolean = true,
     ) : TaskState
     data object Error : TaskState
     data object Loading : TaskState
@@ -190,14 +223,16 @@ sealed interface TaskState {
 
 sealed interface TaskAction {
     data class AddNewTask(val selectedTaskId: Int?, val parentId: Int?): TaskAction
+    data class ChangeTaskExtensionMode(val taskExtensionMode: TaskExtensionMode): TaskAction
+    data object ClearFocus: TaskAction
     data class DeleteTask(val taskId: Int): TaskAction
     data class EditTask(val taskId: Int, val textChange: String): TaskAction
     data class ExpandTask(val taskId: Int): TaskAction
     data class MarkTaskComplete(val taskId: Int): TaskAction
     data class MarkTaskIncomplete(val taskId: Int): TaskAction
     data class MinimizeTask(val taskId: Int): TaskAction
-    // TODO
-    data class RequestFocus(val taskId: Int): TaskAction
+    data object ResetClearFocusTrigger: TaskAction
+    data object ResetFocusTrigger: TaskAction
 }
 
 typealias TaskActionHandler = (TaskAction) -> Unit

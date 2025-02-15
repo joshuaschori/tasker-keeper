@@ -48,7 +48,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -96,13 +95,17 @@ class TasksFragment: Fragment() {
         when (taskAction) {
             is TaskAction.AddNewTask ->
                 viewModel.addNewTask(taskAction.selectedTaskId, taskAction.parentId)
+            is TaskAction.ChangeTaskExtensionMode ->
+                viewModel.changeTaskExtensionMode(taskAction.taskExtensionMode)
+            is TaskAction.ClearFocus -> viewModel.clearFocus()
             is TaskAction.DeleteTask -> viewModel.deleteTask(taskAction.taskId)
             is TaskAction.EditTask -> viewModel.editTask(taskAction.taskId, taskAction.textChange)
             is TaskAction.ExpandTask -> viewModel.expandTask(taskAction.taskId)
             is TaskAction.MarkTaskComplete -> viewModel.markTaskComplete(taskAction.taskId)
             is TaskAction.MarkTaskIncomplete -> viewModel.markTaskIncomplete(taskAction.taskId)
             is TaskAction.MinimizeTask -> viewModel.minimizeTask(taskAction.taskId)
-            is TaskAction.RequestFocus -> viewModel.requestFocus(taskAction.taskId)
+            is TaskAction.ResetClearFocusTrigger -> viewModel.resetClearFocusTrigger()
+            is TaskAction.ResetFocusTrigger -> viewModel.resetFocusTrigger()
         }
     }
 
@@ -121,11 +124,13 @@ class TasksFragment: Fragment() {
                         when (state) {
                             is TaskState.Content -> TasksContent(
                                 taskList = (state as TaskState.Content).taskList,
+                                selectedTaskExtensionMode = (state as TaskState.Content)
+                                    .selectedTaskExtensionMode,
+                                clearFocusTrigger = (state as TaskState.Content).clearFocusTrigger,
                                 focusTaskId = (state as TaskState.Content).focusTaskId,
                                 isAutoSortCheckedTasks = (state as TaskState.Content)
                                     .isAutoSortCheckedTasks,
                                 actionHandler = { handleAction(it) },
-                                onTaskFocused = { viewModel.clearFocusTaskId() },
                             )
                             is TaskState.Error -> TasksError()
                             is TaskState.Loading -> TasksLoading()
@@ -139,25 +144,29 @@ class TasksFragment: Fragment() {
     @Composable
     fun TasksContent(
         taskList: List<Task>,
+        selectedTaskExtensionMode: TaskExtensionMode,
+        clearFocusTrigger: Boolean,
         focusTaskId: Int?,
         isAutoSortCheckedTasks: Boolean,
         actionHandler: TaskActionHandler,
-        onTaskFocused: () -> Unit,
     ) {
         val focusManager = LocalFocusManager.current
-        var hideKeyboard by remember { mutableStateOf(false) }
-        var selectedTaskExtensionMode by remember { mutableStateOf(TaskExtensionMode.NORMAL) }
+        if (clearFocusTrigger) {
+            focusManager.clearFocus()
+            actionHandler(TaskAction.ResetClearFocusTrigger)
+        }
 
         Column(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth()
-                .clickable(interactionSource = null, indication = null) { hideKeyboard = true }
+                .clickable(interactionSource = null, indication = null) {
+                    actionHandler(TaskAction.ClearFocus)
+                }
         ) {
             TasksTopBar(
                 selectedTaskExtensionMode = selectedTaskExtensionMode,
-                onChangeTaskExtensionMode = { selectedTaskExtensionMode = it },
-                onClickHideKeyboard = { hideKeyboard = true },
+                actionHandler = actionHandler,
             )
             if (taskList.isNotEmpty()) {
                 LazyColumn(
@@ -169,21 +178,15 @@ class TasksFragment: Fragment() {
                         .fillMaxWidth()
                         .imePadding(),
                 ) {
-                    items(count = taskList.size) { taskIndex ->
-                        Column(
-                            modifier = Modifier.animateItem()
-                        ) {
-                            TaskAndSubtasks(
-                                task = taskList[taskIndex],
-                                taskLayer = 0,
-                                focusTaskId = focusTaskId,
-                                isAutoSortCheckedTasks = isAutoSortCheckedTasks,
-                                selectedTaskExtensionMode = selectedTaskExtensionMode,
-                                actionHandler = actionHandler,
-                                onClickHideKeyboard = { hideKeyboard = true },
-                                onTaskFocused = onTaskFocused,
-                            )
-                        }
+                    items(count = taskList.size) {
+                        TaskAndSubtasks(
+                            task = taskList[it],
+                            taskLayer = 0,
+                            focusTaskId = focusTaskId,
+                            isAutoSortCheckedTasks = isAutoSortCheckedTasks,
+                            selectedTaskExtensionMode = selectedTaskExtensionMode,
+                            actionHandler = actionHandler,
+                        )
                     }
                 }
             }
@@ -196,7 +199,7 @@ class TasksFragment: Fragment() {
             FloatingActionButton(
                 onClick = {
                     actionHandler(TaskAction.AddNewTask(null, null))
-                    hideKeyboard = true
+                    actionHandler(TaskAction.ClearFocus)
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -207,10 +210,6 @@ class TasksFragment: Fragment() {
                     contentDescription = "Add Task"
                 )
             }
-        }
-        if (hideKeyboard) {
-            focusManager.clearFocus()
-            hideKeyboard = false
         }
     }
 
@@ -236,8 +235,7 @@ class TasksFragment: Fragment() {
 @Composable
 fun TasksTopBar(
     selectedTaskExtensionMode: TaskExtensionMode,
-    onChangeTaskExtensionMode: (TaskExtensionMode) -> Unit,
-    onClickHideKeyboard: () -> Unit,
+    actionHandler: TaskActionHandler,
 ) {
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
@@ -255,7 +253,7 @@ fun TasksTopBar(
         navigationIcon = {
             IconButton(
                 onClick = {
-                    onClickHideKeyboard()
+                    actionHandler(TaskAction.ClearFocus)
                 }
             ) {
                 Icon(
@@ -272,8 +270,8 @@ fun TasksTopBar(
                     SegmentedButton(
                         selected = label == selectedTaskExtensionMode,
                         onClick = {
-                            onChangeTaskExtensionMode(label)
-                            onClickHideKeyboard()
+                            actionHandler(TaskAction.ChangeTaskExtensionMode(label))
+                            actionHandler(TaskAction.ClearFocus)
                         },
                         shape = SegmentedButtonDefaults.itemShape(
                             index = index,
@@ -310,7 +308,7 @@ fun TasksTopBar(
             // TODO empty button
             IconButton(
                 onClick = {
-                    onClickHideKeyboard()
+                    actionHandler(TaskAction.ClearFocus)
                 }
             ) {
                 Icon(
@@ -326,20 +324,14 @@ fun TasksTopBar(
 fun TaskAndSubtasks(
     task: Task,
     taskLayer: Int,
-    focusTaskId: Int?,
     selectedTaskExtensionMode: TaskExtensionMode,
+    focusTaskId: Int?,
     isAutoSortCheckedTasks: Boolean,
     actionHandler: TaskActionHandler,
-    onClickHideKeyboard: () -> Unit,
-    onTaskFocused: () -> Unit,
 ) {
     Row {
         Surface(
-            tonalElevation = if (taskLayer == 0) {
-                10.dp
-            } else {
-                0.dp
-            },
+            tonalElevation = if (taskLayer == 0) { 10.dp } else { 0.dp },
             shadowElevation = 5.dp,
             modifier = Modifier
                 .padding(start = (32 * taskLayer).dp, top = 1.dp)
@@ -349,8 +341,6 @@ fun TaskAndSubtasks(
                 task = task,
                 focusTaskId = focusTaskId,
                 actionHandler = actionHandler,
-                onClickHideKeyboard = onClickHideKeyboard,
-                onTaskFocused = onTaskFocused,
             )
         }
         TaskExtensions(
@@ -359,7 +349,6 @@ fun TaskAndSubtasks(
             actionHandler = actionHandler,
             selectedTaskExtensionMode = selectedTaskExtensionMode,
             isAutoSortCheckedTasks = isAutoSortCheckedTasks,
-            onClickHideKeyboard = onClickHideKeyboard,
         )
     }
     if (task.subtaskList.isNotEmpty() && task.isExpanded && taskLayer < MAX_LAYERS_OF_SUBTASKS) {
@@ -367,12 +356,10 @@ fun TaskAndSubtasks(
             TaskAndSubtasks(
                 task = subtask,
                 taskLayer = taskLayer + 1,
-                focusTaskId = focusTaskId,
                 selectedTaskExtensionMode = selectedTaskExtensionMode,
+                focusTaskId = focusTaskId,
                 isAutoSortCheckedTasks = isAutoSortCheckedTasks,
                 actionHandler = actionHandler,
-                onClickHideKeyboard = onClickHideKeyboard,
-                onTaskFocused = onTaskFocused,
             )
         }
     }
@@ -383,15 +370,13 @@ fun TaskRow(
     task: Task,
     focusTaskId: Int?,
     actionHandler: TaskActionHandler,
-    onClickHideKeyboard: () -> Unit,
-    onTaskFocused: () -> Unit,
 ) {
     // focus when task is first created
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         if (focusTaskId == task.taskId) {
             focusRequester.requestFocus()
-            onTaskFocused()
+            actionHandler(TaskAction.ResetFocusTrigger)
         }
     }
 
@@ -416,7 +401,7 @@ fun TaskRow(
                     } else {
                         actionHandler(TaskAction.MarkTaskComplete(task.taskId))
                     }
-                    onClickHideKeyboard()
+                    actionHandler(TaskAction.ClearFocus)
                 },
             )
             BasicTextField(
@@ -447,7 +432,7 @@ fun TaskRow(
                     } else {
                         actionHandler(TaskAction.ExpandTask(task.taskId))
                     }
-                    onClickHideKeyboard()
+                    actionHandler(TaskAction.ClearFocus)
                 },
             ) {
                 Icon(
@@ -474,7 +459,6 @@ fun TaskExtensions(
     selectedTaskExtensionMode: TaskExtensionMode,
     isAutoSortCheckedTasks: Boolean,
     actionHandler: TaskActionHandler,
-    onClickHideKeyboard: () -> Unit,
 ) {
     Row {
         when (selectedTaskExtensionMode) {
@@ -483,7 +467,7 @@ fun TaskExtensions(
                 IconButton(
                     onClick = {
                         actionHandler(TaskAction.AddNewTask(task.taskId, null))
-                        onClickHideKeyboard()
+                        actionHandler(TaskAction.ClearFocus)
                     },
                     enabled = (
                             !(isAutoSortCheckedTasks && task.isChecked)
@@ -502,7 +486,7 @@ fun TaskExtensions(
                 IconButton(
                     onClick = {
                         actionHandler(TaskAction.AddNewTask(null, task.taskId))
-                        onClickHideKeyboard()
+                        actionHandler(TaskAction.ClearFocus)
                     },
                     enabled = (
                         !((isAutoSortCheckedTasks && task.isChecked)
@@ -522,7 +506,7 @@ fun TaskExtensions(
             TaskExtensionMode.REARRANGE -> {
                 IconButton(
                     onClick = {
-                        onClickHideKeyboard()
+                        actionHandler(TaskAction.ClearFocus)
                     }
                 ) {
                     Icon(
@@ -535,7 +519,7 @@ fun TaskExtensions(
                 IconButton(
                     onClick = {
                         actionHandler(TaskAction.DeleteTask(task.taskId))
-                        onClickHideKeyboard()
+                        actionHandler(TaskAction.ClearFocus)
                     }
                 ) {
                     Icon(

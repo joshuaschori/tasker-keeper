@@ -129,9 +129,6 @@ interface TaskDao {
     @Query("UPDATE tasks SET task_order = task_order + 1 WHERE parent_id is :parentId AND task_order >= :taskOrder")
     suspend fun incrementTasks(parentId: Int?, taskOrder: Int)
 
-   /* @Query("INSERT INTO tasks (task_string, is_checked, is_expanded, parent_id, task_order) VALUES ('', 0, 0, :parentId, :taskOrder)")
-    suspend fun insertTask(parentId: Int?, taskOrder: Int)*/
-
     @Query("UPDATE tasks SET task_order = :taskOrderTo WHERE task_order = :taskOrderFrom AND parent_id is :parentId")
     suspend fun moveTask(parentId: Int?, taskOrderFrom: Int, taskOrderTo: Int)
 
