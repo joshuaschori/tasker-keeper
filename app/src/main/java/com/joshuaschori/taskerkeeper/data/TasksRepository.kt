@@ -14,7 +14,8 @@ class TasksRepository @Inject constructor(
         val newTaskId = db.taskDao().addTaskAfter(taskId).toInt()
 
         // TODO pass in remote source into repository that can send firebase data, abstractions to hide and secure
-        FirebaseDatabase.getInstance().getReference().child(newTaskId.toString()).setValue("")
+        FirebaseDatabase.getInstance().getReference()
+            .child(newTaskId.toString()).setValue("")
 
         return newTaskId
     }

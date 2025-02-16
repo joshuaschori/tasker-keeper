@@ -10,32 +10,30 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 
 @Composable
-fun BottomNav(onClick: (Int) -> Unit) {
-    //TODO selectedItem lift out of BottomNav?
-    var selectedItem by remember { mutableIntStateOf(1) }
-    val items = listOf("Habits", "Tasks", "Diary", "Calendar")
-    val icons = listOf(Icons.Filled.Loop, Icons.Filled.Checklist, Icons.Filled.AutoStories, Icons.Filled.CalendarMonth)
-
+fun BottomNav(
+    bottomNavState: BottomNavState,
+    actionHandler: MainActivityActionHandler
+) {
     NavigationBar {
-        items.forEachIndexed { index, item ->
+        BottomNavState.entries.forEachIndexed { index, label ->
             NavigationBarItem(
                 icon = {
                     Icon(
-                        imageVector = icons[index],
-                        contentDescription = item
+                        imageVector = when (label) {
+                            BottomNavState.HABITS -> Icons.Filled.Loop
+                            BottomNavState.TASKS -> Icons.Filled.Checklist
+                            BottomNavState.DIARY -> Icons.Filled.AutoStories
+                            BottomNavState.CALENDAR -> Icons.Filled.CalendarMonth
+                        },
+                        contentDescription = label.contentDescription
                     )
                 },
-                label = { Text(item) },
-                selected = selectedItem == index,
+                label = { Text(label.contentDescription) },
+                selected = bottomNavState == label,
                 onClick = {
-                    selectedItem = index
-                    onClick(selectedItem)
+                    actionHandler(MainActivityAction.ChangeBottomNavState(label))
                 }
             )
         }

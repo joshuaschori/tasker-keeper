@@ -60,7 +60,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -72,41 +72,47 @@ import kotlinx.coroutines.launch
 private const val MAX_LAYERS_OF_SUBTASKS = 4
 
 @AndroidEntryPoint
-class TasksFragment: Fragment() {
-    private val viewModel: TasksViewModel by viewModels()
+class TasksListFragment: Fragment() {
+    private val tasksListViewModel: TasksListViewModel by activityViewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel.listenForDatabaseUpdates()
+        tasksListViewModel.listenForDatabaseUpdates()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiAction.collect {
+                tasksListViewModel.uiAction.collect {
                     handleAction(it)
                 }
             }
         }
     }
 
-    private fun handleAction(taskAction: TaskAction) {
-        when (taskAction) {
-            is TaskAction.AddNewTask ->
-                viewModel.addNewTask(taskAction.selectedTaskId, taskAction.parentId)
-            is TaskAction.ChangeTaskExtensionMode ->
-                viewModel.changeTaskExtensionMode(taskAction.taskExtensionMode)
-            is TaskAction.ClearFocus -> viewModel.clearFocus()
-            is TaskAction.DeleteTask -> viewModel.deleteTask(taskAction.taskId)
-            is TaskAction.EditTask -> viewModel.editTask(taskAction.taskId, taskAction.textChange)
-            is TaskAction.ExpandTask -> viewModel.expandTask(taskAction.taskId)
-            is TaskAction.MarkTaskComplete -> viewModel.markTaskComplete(taskAction.taskId)
-            is TaskAction.MarkTaskIncomplete -> viewModel.markTaskIncomplete(taskAction.taskId)
-            is TaskAction.MinimizeTask -> viewModel.minimizeTask(taskAction.taskId)
-            is TaskAction.ResetClearFocusTrigger -> viewModel.resetClearFocusTrigger()
-            is TaskAction.ResetFocusTrigger -> viewModel.resetFocusTrigger()
+    private fun handleAction(tasksListAction: TasksListAction) {
+        when (tasksListAction) {
+            is TasksListAction.AddNewTask ->
+                tasksListViewModel.addNewTask(tasksListAction.selectedTaskId, tasksListAction.parentId)
+            is TasksListAction.ChangeTaskExtensionMode ->
+                tasksListViewModel.changeTaskExtensionMode(tasksListAction.taskExtensionMode)
+            is TasksListAction.ClearFocus -> tasksListViewModel.clearFocus()
+            is TasksListAction.DeleteTask -> tasksListViewModel.deleteTask(tasksListAction.taskId)
+            is TasksListAction.EditTask -> tasksListViewModel.editTask(tasksListAction.taskId, tasksListAction.textChange)
+            is TasksListAction.ExpandTask -> tasksListViewModel.expandTask(tasksListAction.taskId)
+            is TasksListAction.MarkTaskComplete -> tasksListViewModel.markTaskComplete(tasksListAction.taskId)
+            is TasksListAction.MarkTaskIncomplete -> tasksListViewModel.markTaskIncomplete(tasksListAction.taskId)
+            is TasksListAction.MinimizeTask -> tasksListViewModel.minimizeTask(tasksListAction.taskId)
+            is TasksListAction.ResetClearFocusTrigger -> tasksListViewModel.resetClearFocusTrigger()
+            is TasksListAction.ResetFocusTrigger -> tasksListViewModel.resetFocusTrigger()
+            is TasksListAction.NavigateToTasksMenu -> navigateToTasksMenu()
         }
+    }
+
+    // TODO
+    fun navigateToTasksMenu() {
+        tasksListViewModel.tasksTabState = "TasksMenu"
     }
 
     override fun onCreateView(
@@ -118,22 +124,22 @@ class TasksFragment: Fragment() {
             // Dispose of the Composition when the view's LifecycleOwner is destroyed
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                val state by viewModel.uiState.collectAsStateWithLifecycle()
+                val state by tasksListViewModel.uiState.collectAsStateWithLifecycle()
                 TaskerKeeperTheme {
                     Surface {
                         when (state) {
-                            is TaskState.Content -> TasksContent(
-                                taskList = (state as TaskState.Content).taskList,
-                                selectedTaskExtensionMode = (state as TaskState.Content)
+                            is TasksListState.Content -> TasksContent(
+                                taskList = (state as TasksListState.Content).taskList,
+                                selectedTaskExtensionMode = (state as TasksListState.Content)
                                     .selectedTaskExtensionMode,
-                                clearFocusTrigger = (state as TaskState.Content).clearFocusTrigger,
-                                focusTaskId = (state as TaskState.Content).focusTaskId,
-                                isAutoSortCheckedTasks = (state as TaskState.Content)
+                                clearFocusTrigger = (state as TasksListState.Content).clearFocusTrigger,
+                                focusTaskId = (state as TasksListState.Content).focusTaskId,
+                                isAutoSortCheckedTasks = (state as TasksListState.Content)
                                     .isAutoSortCheckedTasks,
                                 actionHandler = { handleAction(it) },
                             )
-                            is TaskState.Error -> TasksError()
-                            is TaskState.Loading -> TasksLoading()
+                            is TasksListState.Error -> TasksError()
+                            is TasksListState.Loading -> TasksLoading()
                         }
                     }
                 }
@@ -153,7 +159,7 @@ class TasksFragment: Fragment() {
         val focusManager = LocalFocusManager.current
         if (clearFocusTrigger) {
             focusManager.clearFocus()
-            actionHandler(TaskAction.ResetClearFocusTrigger)
+            actionHandler(TasksListAction.ResetClearFocusTrigger)
         }
 
         Column(
@@ -161,7 +167,7 @@ class TasksFragment: Fragment() {
                 .fillMaxHeight()
                 .fillMaxWidth()
                 .clickable(interactionSource = null, indication = null) {
-                    actionHandler(TaskAction.ClearFocus)
+                    actionHandler(TasksListAction.ClearFocus)
                 }
         ) {
             TasksTopBar(
@@ -198,8 +204,8 @@ class TasksFragment: Fragment() {
         ) {
             FloatingActionButton(
                 onClick = {
-                    actionHandler(TaskAction.AddNewTask(null, null))
-                    actionHandler(TaskAction.ClearFocus)
+                    actionHandler(TasksListAction.AddNewTask(null, null))
+                    actionHandler(TasksListAction.ClearFocus)
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -253,7 +259,7 @@ fun TasksTopBar(
         navigationIcon = {
             IconButton(
                 onClick = {
-                    actionHandler(TaskAction.ClearFocus)
+                    actionHandler(TasksListAction.NavigateToTasksMenu)
                 }
             ) {
                 Icon(
@@ -270,8 +276,8 @@ fun TasksTopBar(
                     SegmentedButton(
                         selected = label == selectedTaskExtensionMode,
                         onClick = {
-                            actionHandler(TaskAction.ChangeTaskExtensionMode(label))
-                            actionHandler(TaskAction.ClearFocus)
+                            actionHandler(TasksListAction.ChangeTaskExtensionMode(label))
+                            actionHandler(TasksListAction.ClearFocus)
                         },
                         shape = SegmentedButtonDefaults.itemShape(
                             index = index,
@@ -308,7 +314,7 @@ fun TasksTopBar(
             // TODO empty button
             IconButton(
                 onClick = {
-                    actionHandler(TaskAction.ClearFocus)
+                    actionHandler(TasksListAction.ClearFocus)
                 }
             ) {
                 Icon(
@@ -374,9 +380,11 @@ fun TaskRow(
     // focus when task is first created
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
+        // TODO some kind of bug where sometimes new task doesn't appear until recompose
+        // TODO keyboard doesn't pop up, which makes sense
         if (focusTaskId == task.taskId) {
             focusRequester.requestFocus()
-            actionHandler(TaskAction.ResetFocusTrigger)
+            actionHandler(TasksListAction.ResetFocusTrigger)
         }
     }
 
@@ -397,11 +405,11 @@ fun TaskRow(
                 checked = task.isChecked,
                 onCheckedChange = {
                     if (task.isChecked) {
-                        actionHandler(TaskAction.MarkTaskIncomplete(task.taskId))
+                        actionHandler(TasksListAction.MarkTaskIncomplete(task.taskId))
                     } else {
-                        actionHandler(TaskAction.MarkTaskComplete(task.taskId))
+                        actionHandler(TasksListAction.MarkTaskComplete(task.taskId))
                     }
-                    actionHandler(TaskAction.ClearFocus)
+                    actionHandler(TasksListAction.ClearFocus)
                 },
             )
             BasicTextField(
@@ -412,7 +420,7 @@ fun TaskRow(
                 },
                 onValueChange = {
                     activeTextField.value = it
-                    actionHandler(TaskAction.EditTask(task.taskId, it))
+                    actionHandler(TasksListAction.EditTask(task.taskId, it))
                 },
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Done
@@ -428,11 +436,11 @@ fun TaskRow(
             IconButton(
                 onClick = {
                     if (task.isExpanded) {
-                        actionHandler(TaskAction.MinimizeTask(task.taskId))
+                        actionHandler(TasksListAction.MinimizeTask(task.taskId))
                     } else {
-                        actionHandler(TaskAction.ExpandTask(task.taskId))
+                        actionHandler(TasksListAction.ExpandTask(task.taskId))
                     }
-                    actionHandler(TaskAction.ClearFocus)
+                    actionHandler(TasksListAction.ClearFocus)
                 },
             ) {
                 Icon(
@@ -466,8 +474,8 @@ fun TaskExtensions(
             TaskExtensionMode.ADD_NEW_TASK -> {
                 IconButton(
                     onClick = {
-                        actionHandler(TaskAction.AddNewTask(task.taskId, null))
-                        actionHandler(TaskAction.ClearFocus)
+                        actionHandler(TasksListAction.AddNewTask(task.taskId, null))
+                        actionHandler(TasksListAction.ClearFocus)
                     },
                     enabled = (
                             !(isAutoSortCheckedTasks && task.isChecked)
@@ -485,8 +493,8 @@ fun TaskExtensions(
             TaskExtensionMode.ADD_NEW_SUBTASK -> {
                 IconButton(
                     onClick = {
-                        actionHandler(TaskAction.AddNewTask(null, task.taskId))
-                        actionHandler(TaskAction.ClearFocus)
+                        actionHandler(TasksListAction.AddNewTask(null, task.taskId))
+                        actionHandler(TasksListAction.ClearFocus)
                     },
                     enabled = (
                         !((isAutoSortCheckedTasks && task.isChecked)
@@ -504,9 +512,10 @@ fun TaskExtensions(
                 }
             }
             TaskExtensionMode.REARRANGE -> {
+                // TODO rearrange functionality
                 IconButton(
                     onClick = {
-                        actionHandler(TaskAction.ClearFocus)
+                        actionHandler(TasksListAction.ClearFocus)
                     }
                 ) {
                     Icon(
@@ -518,8 +527,8 @@ fun TaskExtensions(
             TaskExtensionMode.DELETE -> {
                 IconButton(
                     onClick = {
-                        actionHandler(TaskAction.DeleteTask(task.taskId))
-                        actionHandler(TaskAction.ClearFocus)
+                        actionHandler(TasksListAction.DeleteTask(task.taskId))
+                        actionHandler(TasksListAction.ClearFocus)
                     }
                 ) {
                     Icon(

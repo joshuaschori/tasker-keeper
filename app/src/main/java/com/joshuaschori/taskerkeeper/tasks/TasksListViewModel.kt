@@ -17,18 +17,21 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class TasksViewModel @Inject constructor(
+class TasksListViewModel @Inject constructor(
     private val tasksRepository: TasksRepository
 ): ViewModel() {
-    private val _uiState: MutableStateFlow<TaskState> = MutableStateFlow(TaskState.Loading)
-    val uiState: StateFlow<TaskState> = _uiState.asStateFlow()
-    private val _uiAction: MutableSharedFlow<TaskAction> = MutableSharedFlow()
-    val uiAction: SharedFlow<TaskAction> = _uiAction.asSharedFlow()
+    // TODO
+    var tasksTabState: String = "Tasks"
+
+    private val _uiState: MutableStateFlow<TasksListState> = MutableStateFlow(TasksListState.Loading)
+    val uiState: StateFlow<TasksListState> = _uiState.asStateFlow()
+    private val _uiAction: MutableSharedFlow<TasksListAction> = MutableSharedFlow()
+    val uiAction: SharedFlow<TasksListAction> = _uiAction.asSharedFlow()
 
     fun addNewTask(selectedTaskId: Int?, parentId: Int?) {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is TaskState.Content) {
+            if (currentState is TasksListState.Content) {
                 val nextState = if (selectedTaskId == null && currentState.isAutoSortCheckedTasks) {
                     currentState.copy(
                         focusTaskId = tasksRepository.addTaskAfterUnchecked(parentId)
@@ -44,7 +47,7 @@ class TasksViewModel @Inject constructor(
                 }
                 _uiState.value = nextState
             } else {
-                _uiState.value = TaskState.Error
+                _uiState.value = TasksListState.Error
             }
         }
     }
@@ -52,11 +55,11 @@ class TasksViewModel @Inject constructor(
     fun changeTaskExtensionMode(taskExtensionMode: TaskExtensionMode) {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is TaskState.Content) {
+            if (currentState is TasksListState.Content) {
                 val nextState = currentState.copy(selectedTaskExtensionMode = taskExtensionMode)
                 _uiState.value = nextState
             } else {
-                _uiState.value = TaskState.Error
+                _uiState.value = TasksListState.Error
             }
         }
     }
@@ -64,11 +67,11 @@ class TasksViewModel @Inject constructor(
     fun clearFocus() {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is TaskState.Content) {
+            if (currentState is TasksListState.Content) {
                 val nextState = currentState.copy(clearFocusTrigger = true)
                 _uiState.value = nextState
             } else {
-                _uiState.value = TaskState.Error
+                _uiState.value = TasksListState.Error
             }
         }
     }
@@ -76,10 +79,10 @@ class TasksViewModel @Inject constructor(
     fun deleteTask(taskId: Int) {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is TaskState.Content) {
+            if (currentState is TasksListState.Content) {
                 tasksRepository.removeTask(taskId)
             } else {
-                _uiState.value = TaskState.Error
+                _uiState.value = TasksListState.Error
             }
         }
     }
@@ -87,10 +90,10 @@ class TasksViewModel @Inject constructor(
     fun editTask(taskId: Int, textChange: String) {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is TaskState.Content) {
+            if (currentState is TasksListState.Content) {
                 tasksRepository.editTask(taskId, textChange)
             } else {
-                _uiState.value = TaskState.Error
+                _uiState.value = TasksListState.Error
             }
         }
     }
@@ -98,10 +101,10 @@ class TasksViewModel @Inject constructor(
     fun expandTask(taskId: Int) {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is TaskState.Content) {
+            if (currentState is TasksListState.Content) {
                 tasksRepository.expandTask(taskId)
             } else {
-                _uiState.value = TaskState.Error
+                _uiState.value = TasksListState.Error
             }
         }
     }
@@ -112,11 +115,11 @@ class TasksViewModel @Inject constructor(
                 val treeList = convertTaskEntityListToTaskTreeNodeList(taskEntityList)
                 val taskList = convertTaskTreeNodeListToTaskList(treeList)
                 val currentState = _uiState.value
-                val nextState = if (currentState is TaskState.Content) {
+                val nextState = if (currentState is TasksListState.Content) {
                     currentState.copy(taskList = taskList)
                 }
                 else {
-                    TaskState.Content(taskList = taskList)
+                    TasksListState.Content(taskList = taskList)
                 }
                 _uiState.value = nextState
             }
@@ -126,10 +129,10 @@ class TasksViewModel @Inject constructor(
     fun markTaskComplete(taskId: Int) {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is TaskState.Content) {
+            if (currentState is TasksListState.Content) {
                 tasksRepository.markTaskComplete(taskId, currentState.isAutoSortCheckedTasks)
             } else {
-                _uiState.value = TaskState.Error
+                _uiState.value = TasksListState.Error
             }
         }
     }
@@ -137,10 +140,10 @@ class TasksViewModel @Inject constructor(
     fun markTaskIncomplete(taskId: Int) {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is TaskState.Content) {
+            if (currentState is TasksListState.Content) {
                 tasksRepository.markTaskIncomplete(taskId, currentState.isAutoSortCheckedTasks)
             } else {
-                _uiState.value = TaskState.Error
+                _uiState.value = TasksListState.Error
             }
         }
     }
@@ -148,10 +151,10 @@ class TasksViewModel @Inject constructor(
     fun minimizeTask(taskId: Int) {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is TaskState.Content) {
+            if (currentState is TasksListState.Content) {
                 tasksRepository.minimizeTask(taskId)
             } else {
-                _uiState.value = TaskState.Error
+                _uiState.value = TasksListState.Error
             }
         }
     }
@@ -159,11 +162,11 @@ class TasksViewModel @Inject constructor(
     fun resetClearFocusTrigger() {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is TaskState.Content) {
+            if (currentState is TasksListState.Content) {
                 val nextState = currentState.copy(clearFocusTrigger = false)
                 _uiState.value = nextState
             } else {
-                _uiState.value = TaskState.Error
+                _uiState.value = TasksListState.Error
             }
         }
     }
@@ -171,11 +174,11 @@ class TasksViewModel @Inject constructor(
     fun resetFocusTrigger() {
         viewModelScope.launch {
             val currentState = _uiState.value
-            if (currentState is TaskState.Content) {
+            if (currentState is TasksListState.Content) {
                 val nextState = currentState.copy(focusTaskId = null)
                 _uiState.value = nextState
             } else {
-                _uiState.value = TaskState.Error
+                _uiState.value = TasksListState.Error
             }
         }
     }
@@ -209,30 +212,31 @@ fun convertTaskTreeNodeListToTaskList(taskTreeNodeList: List<TaskTreeNode>): Lis
     return taskList
 }
 
-sealed interface TaskState {
+sealed interface TasksListState {
     data class Content(
         val taskList: List<Task> = emptyList(),
         val selectedTaskExtensionMode: TaskExtensionMode = TaskExtensionMode.NORMAL,
         val clearFocusTrigger: Boolean = false,
         val focusTaskId: Int? = null,
         val isAutoSortCheckedTasks: Boolean = true,
-    ) : TaskState
-    data object Error : TaskState
-    data object Loading : TaskState
+    ) : TasksListState
+    data object Error : TasksListState
+    data object Loading : TasksListState
 }
 
-sealed interface TaskAction {
-    data class AddNewTask(val selectedTaskId: Int?, val parentId: Int?): TaskAction
-    data class ChangeTaskExtensionMode(val taskExtensionMode: TaskExtensionMode): TaskAction
-    data object ClearFocus: TaskAction
-    data class DeleteTask(val taskId: Int): TaskAction
-    data class EditTask(val taskId: Int, val textChange: String): TaskAction
-    data class ExpandTask(val taskId: Int): TaskAction
-    data class MarkTaskComplete(val taskId: Int): TaskAction
-    data class MarkTaskIncomplete(val taskId: Int): TaskAction
-    data class MinimizeTask(val taskId: Int): TaskAction
-    data object ResetClearFocusTrigger: TaskAction
-    data object ResetFocusTrigger: TaskAction
+sealed interface TasksListAction {
+    data class AddNewTask(val selectedTaskId: Int?, val parentId: Int?): TasksListAction
+    data class ChangeTaskExtensionMode(val taskExtensionMode: TaskExtensionMode): TasksListAction
+    data object ClearFocus: TasksListAction
+    data class DeleteTask(val taskId: Int): TasksListAction
+    data class EditTask(val taskId: Int, val textChange: String): TasksListAction
+    data class ExpandTask(val taskId: Int): TasksListAction
+    data class MarkTaskComplete(val taskId: Int): TasksListAction
+    data class MarkTaskIncomplete(val taskId: Int): TasksListAction
+    data class MinimizeTask(val taskId: Int): TasksListAction
+    data object NavigateToTasksMenu: TasksListAction
+    data object ResetClearFocusTrigger: TasksListAction
+    data object ResetFocusTrigger: TasksListAction
 }
 
-typealias TaskActionHandler = (TaskAction) -> Unit
+typealias TaskActionHandler = (TasksListAction) -> Unit

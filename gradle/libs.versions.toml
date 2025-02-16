@@ -18,6 +18,7 @@ room_version = "2.6.1"
 ksp_version = "2.1.0-1.0.29"
 hilt_version = "2.51.1"
 google_services_version = "4.4.2"
+appcompat = "1.7.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityCompose" }
@@ -46,6 +47,7 @@ androidx-room = { module = "androidx.room:room-runtime", version.ref = "room_ver
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room_version" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room_version" }
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
