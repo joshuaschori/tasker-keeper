@@ -33,6 +33,18 @@ class MainActivityViewModel: ViewModel() {
             }
         }
     }
+
+    fun navigateToTasksMenu() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is MainActivityState.Content) {
+                _uiState.value = currentState.copy(tasksTabState = TasksTabState.MENU)
+                _uiAction.emit(MainActivityAction.ShowTasksTab(TasksTabState.MENU))
+            } else {
+                _uiState.value = MainActivityState.Error
+            }
+        }
+    }
 }
 
 sealed interface MainActivityState {

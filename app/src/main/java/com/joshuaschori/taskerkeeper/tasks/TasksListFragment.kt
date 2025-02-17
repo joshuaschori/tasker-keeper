@@ -80,6 +80,7 @@ class TasksListFragment: Fragment() {
         tasksListViewModel.listenForDatabaseUpdates()
     }
 
+    // TODO is this being used if we're not emitting anything?
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewLifecycleOwner.lifecycleScope.launch {
@@ -104,15 +105,11 @@ class TasksListFragment: Fragment() {
             is TasksListAction.MarkTaskComplete -> tasksListViewModel.markTaskComplete(tasksListAction.taskId)
             is TasksListAction.MarkTaskIncomplete -> tasksListViewModel.markTaskIncomplete(tasksListAction.taskId)
             is TasksListAction.MinimizeTask -> tasksListViewModel.minimizeTask(tasksListAction.taskId)
+            is TasksListAction.NavigateToTasksMenu -> tasksListViewModel.navigateToTasksMenu()
             is TasksListAction.ResetClearFocusTrigger -> tasksListViewModel.resetClearFocusTrigger()
             is TasksListAction.ResetFocusTrigger -> tasksListViewModel.resetFocusTrigger()
-            is TasksListAction.NavigateToTasksMenu -> navigateToTasksMenu()
+            is TasksListAction.TellMainActivityToNavigateToTasksMenu -> {}
         }
-    }
-
-    // TODO
-    fun navigateToTasksMenu() {
-        tasksListViewModel.tasksTabState = "TasksMenu"
     }
 
     override fun onCreateView(

@@ -21,6 +21,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.joshuaschori.taskerkeeper.databinding.ActivityMainBinding
 import com.joshuaschori.taskerkeeper.diary.DiaryFragment
+import com.joshuaschori.taskerkeeper.tasks.TasksListAction
 import com.joshuaschori.taskerkeeper.tasks.TasksListFragment
 import com.joshuaschori.taskerkeeper.tasks.TasksMenuFragment
 import com.joshuaschori.taskerkeeper.tasks.TasksListViewModel
@@ -65,12 +66,20 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    private fun handleAction(mainActivityAction: MainActivityAction) {
+    private fun handleMainActivityAction(mainActivityAction: MainActivityAction) {
         when (mainActivityAction) {
             is MainActivityAction.ChangeBottomNavState ->
                 mainActivityViewModel.changeBottomNavState(mainActivityAction.bottomNavState)
             is MainActivityAction.ShowDiaryTab -> showDiaryFragment()
             is MainActivityAction.ShowTasksTab -> showTasksTab(mainActivityAction.tasksTabState)
+        }
+    }
+
+    private fun handleTasksListAction(tasksListAction: TasksListAction) {
+        when (tasksListAction) {
+            is TasksListAction.TellMainActivityToNavigateToTasksMenu ->
+                mainActivityViewModel.navigateToTasksMenu()
+            else -> { }
         }
     }
 
@@ -88,7 +97,7 @@ class MainActivity : FragmentActivity() {
                     when (state) {
                         is MainActivityState.Content -> MainActivityContent(
                             bottomNavState = (state as MainActivityState.Content).bottomNavState,
-                            actionHandler = { handleAction(it) }
+                            actionHandler = { handleMainActivityAction(it) }
                         )
                         is MainActivityState.Error -> MainActivityError()
                         is MainActivityState.Loading -> MainActivityLoading()
@@ -98,7 +107,12 @@ class MainActivity : FragmentActivity() {
             // TODO collect in a better way? remember difference between this and other handleAction above in lambda
             LaunchedEffect(Unit) {
                 mainActivityViewModel.uiAction.collect {
-                    handleAction(it)
+                    handleMainActivityAction(it)
+                }
+            }
+            LaunchedEffect(Unit) {
+                tasksListViewModel.uiAction.collect {
+                    handleTasksListAction(it)
                 }
             }
         }

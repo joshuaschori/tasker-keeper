@@ -2,8 +2,10 @@ package com.joshuaschori.taskerkeeper.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.joshuaschori.taskerkeeper.MainActivityAction
 import com.joshuaschori.taskerkeeper.TaskTreeBuilder
 import com.joshuaschori.taskerkeeper.TaskTreeNode
+import com.joshuaschori.taskerkeeper.TasksTabState
 import com.joshuaschori.taskerkeeper.data.TaskEntity
 import com.joshuaschori.taskerkeeper.data.TasksRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,9 +22,6 @@ import javax.inject.Inject
 class TasksListViewModel @Inject constructor(
     private val tasksRepository: TasksRepository
 ): ViewModel() {
-    // TODO
-    var tasksTabState: String = "Tasks"
-
     private val _uiState: MutableStateFlow<TasksListState> = MutableStateFlow(TasksListState.Loading)
     val uiState: StateFlow<TasksListState> = _uiState.asStateFlow()
     private val _uiAction: MutableSharedFlow<TasksListAction> = MutableSharedFlow()
@@ -32,20 +31,19 @@ class TasksListViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksListState.Content) {
-                val nextState = if (selectedTaskId == null && currentState.isAutoSortCheckedTasks) {
-                    currentState.copy(
+                if (selectedTaskId == null && currentState.isAutoSortCheckedTasks) {
+                    _uiState.value = currentState.copy(
                         focusTaskId = tasksRepository.addTaskAfterUnchecked(parentId)
                     )
                 } else if (selectedTaskId == null) {
-                    currentState.copy(
+                    _uiState.value = currentState.copy(
                         focusTaskId = tasksRepository.addTaskAtEnd(parentId)
                     )
                 } else {
-                    currentState.copy(
+                    _uiState.value = currentState.copy(
                         focusTaskId = tasksRepository.addTaskAfter(selectedTaskId)
                     )
                 }
-                _uiState.value = nextState
             } else {
                 _uiState.value = TasksListState.Error
             }
@@ -56,8 +54,7 @@ class TasksListViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksListState.Content) {
-                val nextState = currentState.copy(selectedTaskExtensionMode = taskExtensionMode)
-                _uiState.value = nextState
+                _uiState.value = currentState.copy(selectedTaskExtensionMode = taskExtensionMode)
             } else {
                 _uiState.value = TasksListState.Error
             }
@@ -68,8 +65,7 @@ class TasksListViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksListState.Content) {
-                val nextState = currentState.copy(clearFocusTrigger = true)
-                _uiState.value = nextState
+                _uiState.value = currentState.copy(clearFocusTrigger = true)
             } else {
                 _uiState.value = TasksListState.Error
             }
@@ -115,13 +111,12 @@ class TasksListViewModel @Inject constructor(
                 val treeList = convertTaskEntityListToTaskTreeNodeList(taskEntityList)
                 val taskList = convertTaskTreeNodeListToTaskList(treeList)
                 val currentState = _uiState.value
-                val nextState = if (currentState is TasksListState.Content) {
-                    currentState.copy(taskList = taskList)
+                if (currentState is TasksListState.Content) {
+                    _uiState.value = currentState.copy(taskList = taskList)
                 }
                 else {
-                    TasksListState.Content(taskList = taskList)
+                    _uiState.value = TasksListState.Content(taskList = taskList)
                 }
-                _uiState.value = nextState
             }
         }
     }
@@ -159,12 +154,17 @@ class TasksListViewModel @Inject constructor(
         }
     }
 
+    fun navigateToTasksMenu() {
+        viewModelScope.launch {
+            _uiAction.emit(TasksListAction.TellMainActivityToNavigateToTasksMenu)
+        }
+    }
+
     fun resetClearFocusTrigger() {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksListState.Content) {
-                val nextState = currentState.copy(clearFocusTrigger = false)
-                _uiState.value = nextState
+                _uiState.value = currentState.copy(clearFocusTrigger = false)
             } else {
                 _uiState.value = TasksListState.Error
             }
@@ -175,8 +175,7 @@ class TasksListViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksListState.Content) {
-                val nextState = currentState.copy(focusTaskId = null)
-                _uiState.value = nextState
+                _uiState.value = currentState.copy(focusTaskId = null)
             } else {
                 _uiState.value = TasksListState.Error
             }
@@ -237,6 +236,7 @@ sealed interface TasksListAction {
     data object NavigateToTasksMenu: TasksListAction
     data object ResetClearFocusTrigger: TasksListAction
     data object ResetFocusTrigger: TasksListAction
+    data object TellMainActivityToNavigateToTasksMenu: TasksListAction
 }
 
 typealias TaskActionHandler = (TasksListAction) -> Unit
