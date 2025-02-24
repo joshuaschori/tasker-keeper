@@ -2,7 +2,7 @@ package com.joshuaschori.taskerkeeper.diary
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.joshuaschori.taskerkeeper.data.TasksRepository
+import com.joshuaschori.taskerkeeper.data.tasks.tasksDetail.TasksDetailRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +15,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DiaryViewModel @Inject constructor(
-    private val tasksRepository: TasksRepository
+    private val tasksDetailRepository: TasksDetailRepository
 ): ViewModel() {
     private val _uiState: MutableStateFlow<DiaryState> = MutableStateFlow(DiaryState.Loading)
     val uiState: StateFlow<DiaryState> = _uiState.asStateFlow()

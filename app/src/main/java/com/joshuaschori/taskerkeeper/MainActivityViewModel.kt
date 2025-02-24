@@ -22,8 +22,7 @@ class MainActivityViewModel: ViewModel() {
             if (currentState is MainActivityState.Content) {
                 when (bottomNavState) {
                     BottomNavState.HABITS -> _uiAction.emit(MainActivityAction.ShowDiaryTab)
-                    BottomNavState.TASKS ->
-                        _uiAction.emit(MainActivityAction.ShowTasksTab(currentState.tasksTabState))
+                    BottomNavState.TASKS -> _uiAction.emit(MainActivityAction.ShowTasksTab(currentState.tasksTabState))
                     BottomNavState.DIARY -> _uiAction.emit(MainActivityAction.ShowDiaryTab)
                     BottomNavState.CALENDAR -> _uiAction.emit(MainActivityAction.ShowDiaryTab)
                 }
@@ -38,8 +37,22 @@ class MainActivityViewModel: ViewModel() {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is MainActivityState.Content) {
-                _uiState.value = currentState.copy(tasksTabState = TasksTabState.MENU)
-                _uiAction.emit(MainActivityAction.ShowTasksTab(TasksTabState.MENU))
+                _uiState.value = currentState.copy(tasksTabState = TasksTabState.Menu)
+                _uiAction.emit(MainActivityAction.ShowTasksTab(TasksTabState.Menu))
+            } else {
+                _uiState.value = MainActivityState.Error
+            }
+        }
+    }
+
+    fun navigateToTasksDetail(
+        parentCategoryId: Int
+    ) {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is MainActivityState.Content) {
+                _uiState.value = currentState.copy(tasksTabState = TasksTabState.Detail(parentCategoryId))
+                _uiAction.emit(MainActivityAction.ShowTasksTab(TasksTabState.Detail(parentCategoryId)))
             } else {
                 _uiState.value = MainActivityState.Error
             }
@@ -50,7 +63,7 @@ class MainActivityViewModel: ViewModel() {
 sealed interface MainActivityState {
     data class Content(
         val bottomNavState: BottomNavState = BottomNavState.TASKS,
-        val tasksTabState: TasksTabState = TasksTabState.LIST,
+        val tasksTabState: TasksTabState = TasksTabState.Menu,
     ) : MainActivityState
     data object Error : MainActivityState
     data object Loading : MainActivityState

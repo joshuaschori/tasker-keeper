@@ -1,6 +1,6 @@
 package com.joshuaschori.taskerkeeper
 
-enum class TasksTabState {
-    LIST,
-    MENU
+sealed interface TasksTabState {
+    data class Detail(val parentCategoryId: Int): TasksTabState
+    data object Menu: TasksTabState
 }

@@ -1,4 +1,4 @@
-package com.joshuaschori.taskerkeeper
+package com.joshuaschori.taskerkeeper.tasks.tasksDetail
 
 class TaskTreeBuilder {
     private val nodesById = mutableMapOf<Int, TaskTreeNode>()
@@ -24,18 +24,18 @@ class TaskTreeBuilder {
         nodesById[node.data.taskId] = node
 
         // If this is a root node, attach its orphan tree and return
-        if (node.data.parentId == null) {
+        if (node.data.parentTaskId == null) {
             attachOrphansRecursively(node)
             return node
         }
 
         // If parent exists, add this node as its child and attach its orphan tree
-        nodesById[node.data.parentId]?.let { parent ->
+        nodesById[node.data.parentTaskId]?.let { parent ->
             parent.children.add(node)
             attachOrphansRecursively(node)
         } ?: run {
             // Parent doesn't exist yet, add to orphans
-            orphans.getOrPut(node.data.parentId) { mutableListOf() }.add(node)
+            orphans.getOrPut(node.data.parentTaskId) { mutableListOf() }.add(node)
         }
 
         return node
@@ -45,7 +45,7 @@ class TaskTreeBuilder {
         val roots = mutableListOf<TaskTreeNode>()
 
         nodesById.forEach { (key, value) ->
-            if (value.data.parentId == null) {
+            if (value.data.parentTaskId == null) {
                 roots.add(value)
             }
         }

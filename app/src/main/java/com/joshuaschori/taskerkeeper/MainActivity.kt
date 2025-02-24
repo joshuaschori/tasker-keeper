@@ -9,44 +9,53 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commit
 import androidx.fragment.app.replace
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.joshuaschori.taskerkeeper.databinding.ActivityMainBinding
 import com.joshuaschori.taskerkeeper.diary.DiaryFragment
-import com.joshuaschori.taskerkeeper.tasks.TasksListAction
-import com.joshuaschori.taskerkeeper.tasks.TasksListFragment
-import com.joshuaschori.taskerkeeper.tasks.TasksMenuFragment
-import com.joshuaschori.taskerkeeper.tasks.TasksListViewModel
+import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailAction
+import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailFragment
+import com.joshuaschori.taskerkeeper.tasks.tasksMenu.TasksMenuFragment
+import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailViewModel
+import com.joshuaschori.taskerkeeper.tasks.tasksMenu.TasksMenuAction
+import com.joshuaschori.taskerkeeper.tasks.tasksMenu.TasksMenuViewModel
 import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
     private val mainActivityViewModel: MainActivityViewModel by viewModels()
-    private val tasksListViewModel: TasksListViewModel by viewModels()
+    private val tasksDetailViewModel: TasksDetailViewModel by viewModels()
+    private val tasksMenuViewModel: TasksMenuViewModel by viewModels()
 
     private fun showTasksTab(
         tasksTabState: TasksTabState
     ) {
         when (tasksTabState) {
-            TasksTabState.LIST -> showTasksFragment()
-            TasksTabState.MENU -> showTasksMenuFragment()
+            is TasksTabState.Detail -> showTasksDetailFragment(tasksTabState.parentCategoryId)
+            is TasksTabState.Menu -> showTasksMenuFragment()
         }
     }
 
-    private fun showTasksFragment() {
+    private fun showTasksDetailFragment(
+        parentCategoryId: Int
+    ) {
+        val tasksDetailFragment = TasksDetailFragment.newInstance(parentCategoryId)
         supportFragmentManager.commit {
             setReorderingAllowed(true)
             // Replace whatever is in the fragment_container view with this fragment
-            replace<TasksListFragment>(R.id.fragmentContainer)
+            replace(R.id.fragmentContainer, tasksDetailFragment)
         }
     }
 
@@ -68,17 +77,24 @@ class MainActivity : FragmentActivity() {
 
     private fun handleMainActivityAction(mainActivityAction: MainActivityAction) {
         when (mainActivityAction) {
-            is MainActivityAction.ChangeBottomNavState ->
-                mainActivityViewModel.changeBottomNavState(mainActivityAction.bottomNavState)
+            is MainActivityAction.ChangeBottomNavState -> mainActivityViewModel.changeBottomNavState(mainActivityAction.bottomNavState)
             is MainActivityAction.ShowDiaryTab -> showDiaryFragment()
             is MainActivityAction.ShowTasksTab -> showTasksTab(mainActivityAction.tasksTabState)
         }
     }
 
-    private fun handleTasksListAction(tasksListAction: TasksListAction) {
-        when (tasksListAction) {
-            is TasksListAction.TellMainActivityToNavigateToTasksMenu ->
-                mainActivityViewModel.navigateToTasksMenu()
+    private fun handleTasksDetailAction(tasksDetailAction: TasksDetailAction) {
+        when (tasksDetailAction) {
+            is TasksDetailAction.TellMainActivityToNavigateToTasksMenu -> mainActivityViewModel.navigateToTasksMenu()
+            else -> { }
+        }
+    }
+
+    private fun handleTasksMenuAction(tasksMenuAction: TasksMenuAction) {
+        when (tasksMenuAction) {
+            is TasksMenuAction.TellMainActivityToNavigateToTasksDetail -> {
+                mainActivityViewModel.navigateToTasksDetail(tasksMenuAction.categoryId)
+            }
             else -> { }
         }
     }
@@ -90,6 +106,31 @@ class MainActivity : FragmentActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                mainActivityViewModel.uiAction.collect {
+                    handleMainActivityAction(it)
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                tasksDetailViewModel.uiAction.collect {
+                    handleTasksDetailAction(it)
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                tasksMenuViewModel.uiAction.collect {
+                    handleTasksMenuAction(it)
+                }
+            }
+        }
+
         binding.bottomNav.setContent {
             val state by mainActivityViewModel.uiState.collectAsStateWithLifecycle()
             TaskerKeeperTheme {
@@ -104,20 +145,9 @@ class MainActivity : FragmentActivity() {
                     }
                 }
             }
-            // TODO collect in a better way? remember difference between this and other handleAction above in lambda
-            LaunchedEffect(Unit) {
-                mainActivityViewModel.uiAction.collect {
-                    handleMainActivityAction(it)
-                }
-            }
-            LaunchedEffect(Unit) {
-                tasksListViewModel.uiAction.collect {
-                    handleTasksListAction(it)
-                }
-            }
         }
 
-        showTasksFragment()
+        showTasksMenuFragment()
 
         // TODO firebase placeholder
         Firebase.auth.signInAnonymously()

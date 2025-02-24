@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "6bf287949b45e59748ec4a8c63a07ca4",
+    "identityHash": "868269198389f48993cd519b58e00091",
     "entities": [
       {
         "tableName": "tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`task_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `task_string` TEXT NOT NULL, `is_checked` INTEGER NOT NULL, `is_expanded` INTEGER NOT NULL, `parent_id` INTEGER, `task_order` INTEGER NOT NULL, FOREIGN KEY(`parent_id`) REFERENCES `tasks`(`task_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`task_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `parent_category_id` INTEGER NOT NULL, `parent_task_id` INTEGER, `description` TEXT NOT NULL, `list_order` INTEGER NOT NULL, `is_checked` INTEGER NOT NULL, `is_expanded` INTEGER NOT NULL, FOREIGN KEY(`parent_task_id`) REFERENCES `tasks`(`task_id`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`parent_category_id`) REFERENCES `task_categories`(`category_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "taskId",
@@ -15,9 +15,27 @@
             "notNull": true
           },
           {
-            "fieldPath": "taskString",
-            "columnName": "task_string",
+            "fieldPath": "parentCategoryId",
+            "columnName": "parent_category_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentTaskId",
+            "columnName": "parent_task_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
             "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "listOrder",
+            "columnName": "list_order",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -31,18 +49,6 @@
             "columnName": "is_expanded",
             "affinity": "INTEGER",
             "notNull": true
-          },
-          {
-            "fieldPath": "parentId",
-            "columnName": "parent_id",
-            "affinity": "INTEGER",
-            "notNull": false
-          },
-          {
-            "fieldPath": "taskOrder",
-            "columnName": "task_order",
-            "affinity": "INTEGER",
-            "notNull": true
           }
         ],
         "primaryKey": {
@@ -51,36 +57,69 @@
             "task_id"
           ]
         },
-        "indices": [
-          {
-            "name": "index_tasks_task_order",
-            "unique": false,
-            "columnNames": [
-              "task_order"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_task_order` ON `${TABLE_NAME}` (`task_order`)"
-          }
-        ],
+        "indices": [],
         "foreignKeys": [
           {
             "table": "tasks",
             "onDelete": "CASCADE",
             "onUpdate": "CASCADE",
             "columns": [
-              "parent_id"
+              "parent_task_id"
             ],
             "referencedColumns": [
               "task_id"
             ]
+          },
+          {
+            "table": "task_categories",
+            "onDelete": "CASCADE",
+            "onUpdate": "CASCADE",
+            "columns": [
+              "parent_category_id"
+            ],
+            "referencedColumns": [
+              "category_id"
+            ]
           }
         ]
+      },
+      {
+        "tableName": "task_categories",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`category_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `list_order` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "categoryId",
+            "columnName": "category_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "listOrder",
+            "columnName": "list_order",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "category_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6bf287949b45e59748ec4a8c63a07ca4')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '868269198389f48993cd519b58e00091')"
     ]
   }
 }

@@ -1,6 +1,4 @@
-package com.joshuaschori.taskerkeeper
-
-import com.joshuaschori.taskerkeeper.tasks.Task
+package com.joshuaschori.taskerkeeper.tasks.tasksDetail
 
 class TaskTreeNode(val data: Task) {
     var children: MutableList<TaskTreeNode> = mutableListOf()
