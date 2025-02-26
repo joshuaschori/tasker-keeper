@@ -23,11 +23,9 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.joshuaschori.taskerkeeper.databinding.ActivityMainBinding
 import com.joshuaschori.taskerkeeper.diary.DiaryFragment
-import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailAction
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailFragment
-import com.joshuaschori.taskerkeeper.tasks.tasksMenu.TasksMenuFragment
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailViewModel
-import com.joshuaschori.taskerkeeper.tasks.tasksMenu.TasksMenuAction
+import com.joshuaschori.taskerkeeper.tasks.tasksMenu.TasksMenuFragment
 import com.joshuaschori.taskerkeeper.tasks.tasksMenu.TasksMenuViewModel
 import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -67,7 +65,7 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    private fun showDiaryFragment() {
+    private fun showDiaryTab() {
         supportFragmentManager.commit {
             setReorderingAllowed(true)
             // Replace whatever is in the fragment_container view with this fragment
@@ -78,24 +76,10 @@ class MainActivity : FragmentActivity() {
     private fun handleMainActivityAction(mainActivityAction: MainActivityAction) {
         when (mainActivityAction) {
             is MainActivityAction.ChangeBottomNavState -> mainActivityViewModel.changeBottomNavState(mainActivityAction.bottomNavState)
-            is MainActivityAction.ShowDiaryTab -> showDiaryFragment()
+            is MainActivityAction.NavigateToTasksDetail -> mainActivityViewModel.navigateToTasksDetail(mainActivityAction.categoryId)
+            is MainActivityAction.NavigateToTasksMenu -> mainActivityViewModel.navigateToTasksMenu()
+            is MainActivityAction.ShowDiaryTab -> showDiaryTab()
             is MainActivityAction.ShowTasksTab -> showTasksTab(mainActivityAction.tasksTabState)
-        }
-    }
-
-    private fun handleTasksDetailAction(tasksDetailAction: TasksDetailAction) {
-        when (tasksDetailAction) {
-            is TasksDetailAction.TellMainActivityToNavigateToTasksMenu -> mainActivityViewModel.navigateToTasksMenu()
-            else -> { }
-        }
-    }
-
-    private fun handleTasksMenuAction(tasksMenuAction: TasksMenuAction) {
-        when (tasksMenuAction) {
-            is TasksMenuAction.TellMainActivityToNavigateToTasksDetail -> {
-                mainActivityViewModel.navigateToTasksDetail(tasksMenuAction.categoryId)
-            }
-            else -> { }
         }
     }
 
@@ -109,24 +93,20 @@ class MainActivity : FragmentActivity() {
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                mainActivityViewModel.uiAction.collect {
-                    handleMainActivityAction(it)
+                launch {
+                    mainActivityViewModel.uiAction.collect {
+                        handleMainActivityAction(it)
+                    }
                 }
-            }
-        }
-
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                tasksDetailViewModel.uiAction.collect {
-                    handleTasksDetailAction(it)
+                launch {
+                    tasksDetailViewModel.mainActivityAction.collect {
+                        handleMainActivityAction(it)
+                    }
                 }
-            }
-        }
-
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                tasksMenuViewModel.uiAction.collect {
-                    handleTasksMenuAction(it)
+                launch {
+                    tasksMenuViewModel.mainActivityAction.collect {
+                        handleMainActivityAction(it)
+                    }
                 }
             }
         }

@@ -31,16 +31,12 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import com.joshuaschori.taskerkeeper.data.tasks.tasksMenu.TaskCategoryEntity
 import com.joshuaschori.taskerkeeper.tasks.tasksMenu.ui.CategoryRow
 import com.joshuaschori.taskerkeeper.tasks.tasksMenu.ui.TasksMenuTopBar
 import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class TasksMenuFragment: Fragment() {
@@ -51,7 +47,8 @@ class TasksMenuFragment: Fragment() {
         tasksMenuViewModel.listenForDatabaseUpdates()
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    // TODO not being used unless we're emitting something
+    /*override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -60,7 +57,7 @@ class TasksMenuFragment: Fragment() {
                 }
             }
         }
-    }
+    }*/
 
     private fun handleAction(tasksMenuAction: TasksMenuAction) {
         when (tasksMenuAction) {
@@ -69,8 +66,7 @@ class TasksMenuFragment: Fragment() {
             is TasksMenuAction.EditCategoryTitle -> tasksMenuViewModel.editCategoryTitle(tasksMenuAction.categoryId, tasksMenuAction.titleChange)
             is TasksMenuAction.NavigateToTasksDetail -> tasksMenuViewModel.navigateToTasksDetail(tasksMenuAction.categoryId)
             is TasksMenuAction.ResetClearFocusTrigger -> tasksMenuViewModel.resetClearFocusTrigger()
-            TasksMenuAction.ResetFocusTrigger -> tasksMenuViewModel.resetFocusTrigger()
-            is TasksMenuAction.TellMainActivityToNavigateToTasksDetail -> { }
+            is TasksMenuAction.ResetFocusTrigger -> tasksMenuViewModel.resetFocusTrigger()
         }
     }
 

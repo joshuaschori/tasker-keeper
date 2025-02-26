@@ -2,6 +2,7 @@ package com.joshuaschori.taskerkeeper.tasks.tasksMenu
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.joshuaschori.taskerkeeper.MainActivityAction
 import com.joshuaschori.taskerkeeper.data.tasks.tasksMenu.TaskCategoryEntity
 import com.joshuaschori.taskerkeeper.data.tasks.tasksMenu.TasksMenuRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,8 +21,11 @@ class TasksMenuViewModel @Inject constructor(
 ): ViewModel() {
     private val _uiState: MutableStateFlow<TasksMenuState> = MutableStateFlow(TasksMenuState.Loading)
     val uiState: StateFlow<TasksMenuState> = _uiState.asStateFlow()
-    private val _uiAction: MutableSharedFlow<TasksMenuAction> = MutableSharedFlow()
-    val uiAction: SharedFlow<TasksMenuAction> = _uiAction.asSharedFlow()
+    // TODO not being used unless we're emitting something
+    /*private val _uiAction: MutableSharedFlow<TasksMenuAction> = MutableSharedFlow()
+    val uiAction: SharedFlow<TasksMenuAction> = _uiAction.asSharedFlow()*/
+    private val _mainActivityAction: MutableSharedFlow<MainActivityAction> = MutableSharedFlow()
+    val mainActivityAction: SharedFlow<MainActivityAction> = _mainActivityAction.asSharedFlow()
 
     fun addNewCategory() {
         viewModelScope.launch {
@@ -78,7 +82,7 @@ class TasksMenuViewModel @Inject constructor(
 
     fun navigateToTasksDetail(categoryId: Int) {
         viewModelScope.launch {
-            _uiAction.emit(TasksMenuAction.TellMainActivityToNavigateToTasksDetail(categoryId))
+            _mainActivityAction.emit(MainActivityAction.NavigateToTasksDetail(categoryId))
         }
     }
 
@@ -122,7 +126,6 @@ sealed interface TasksMenuAction {
     data class NavigateToTasksDetail(val categoryId: Int): TasksMenuAction
     data object ResetClearFocusTrigger: TasksMenuAction
     data object ResetFocusTrigger: TasksMenuAction
-    data class TellMainActivityToNavigateToTasksDetail(val categoryId: Int): TasksMenuAction
 }
 
 typealias TasksMenuActionHandler = (TasksMenuAction) -> Unit

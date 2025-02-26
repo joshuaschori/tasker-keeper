@@ -72,6 +72,8 @@ sealed interface MainActivityState {
 sealed interface MainActivityAction {
     data class ChangeBottomNavState(val bottomNavState: BottomNavState): MainActivityAction
     data object ShowDiaryTab: MainActivityAction
+    data class NavigateToTasksDetail(val categoryId: Int): MainActivityAction
+    data object NavigateToTasksMenu: MainActivityAction
     data class ShowTasksTab(val tasksTabState: TasksTabState): MainActivityAction
 }
 
