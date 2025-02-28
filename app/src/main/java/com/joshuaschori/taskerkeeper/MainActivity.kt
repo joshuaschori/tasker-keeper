@@ -12,74 +12,68 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commit
-import androidx.fragment.app.replace
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import com.joshuaschori.taskerkeeper.calendar.CalendarFragment
 import com.joshuaschori.taskerkeeper.databinding.ActivityMainBinding
-import com.joshuaschori.taskerkeeper.diary.DiaryFragment
+import com.joshuaschori.taskerkeeper.diary.diaryDetail.DiaryDetailFragment
+import com.joshuaschori.taskerkeeper.diary.diaryMenu.DiaryMenuFragment
+import com.joshuaschori.taskerkeeper.habits.habitsDetail.HabitsDetailFragment
+import com.joshuaschori.taskerkeeper.habits.habitsMenu.HabitsMenuFragment
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailFragment
-import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailViewModel
 import com.joshuaschori.taskerkeeper.tasks.tasksMenu.TasksMenuFragment
-import com.joshuaschori.taskerkeeper.tasks.tasksMenu.TasksMenuViewModel
 import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
-    private val mainActivityViewModel: MainActivityViewModel by viewModels()
-    private val tasksDetailViewModel: TasksDetailViewModel by viewModels()
-    private val tasksMenuViewModel: TasksMenuViewModel by viewModels()
+    private val navigationViewModel: NavigationViewModel by viewModels()
 
-    private fun showTasksTab(
-        tasksTabState: TasksTabState
-    ) {
+    private fun showDiaryTab(diaryTabState: TabState) {
+        when (diaryTabState) {
+            is TabState.Detail -> showFragment(DiaryDetailFragment.newInstance(diaryTabState.detailId))
+            is TabState.Menu -> showFragment(DiaryMenuFragment())
+        }
+    }
+
+    private fun showFragment(fragment: Fragment) {
+        supportFragmentManager.commit {
+            setReorderingAllowed(true)
+            replace(R.id.fragmentContainer, fragment)
+        }
+    }
+
+    private fun showHabitsTab(habitsTabState: TabState) {
+        when (habitsTabState) {
+            is TabState.Detail -> showFragment(HabitsDetailFragment.newInstance(habitsTabState.detailId))
+            is TabState.Menu -> showFragment(HabitsMenuFragment.newInstance())
+        }
+    }
+
+    private fun showTasksTab(tasksTabState: TabState) {
         when (tasksTabState) {
-            is TasksTabState.Detail -> showTasksDetailFragment(tasksTabState.parentCategoryId)
-            is TasksTabState.Menu -> showTasksMenuFragment()
+            is TabState.Detail -> showFragment(TasksDetailFragment.newInstance(tasksTabState.detailId))
+            is TabState.Menu -> showFragment(TasksMenuFragment.newInstance())
         }
     }
 
-    private fun showTasksDetailFragment(
-        parentCategoryId: Int
-    ) {
-        val tasksDetailFragment = TasksDetailFragment.newInstance(parentCategoryId)
-        supportFragmentManager.commit {
-            setReorderingAllowed(true)
-            // Replace whatever is in the fragment_container view with this fragment
-            replace(R.id.fragmentContainer, tasksDetailFragment)
-        }
-    }
-
-    private fun showTasksMenuFragment() {
-        supportFragmentManager.commit {
-            setReorderingAllowed(true)
-            // Replace whatever is in the fragment_container view with this fragment
-            replace<TasksMenuFragment>(R.id.fragmentContainer)
-        }
-    }
-
-    private fun showDiaryTab() {
-        supportFragmentManager.commit {
-            setReorderingAllowed(true)
-            // Replace whatever is in the fragment_container view with this fragment
-            replace<DiaryFragment>(R.id.fragmentContainer)
-        }
-    }
-
-    private fun handleMainActivityAction(mainActivityAction: MainActivityAction) {
-        when (mainActivityAction) {
-            is MainActivityAction.ChangeBottomNavState -> mainActivityViewModel.changeBottomNavState(mainActivityAction.bottomNavState)
-            is MainActivityAction.NavigateToTasksDetail -> mainActivityViewModel.navigateToTasksDetail(mainActivityAction.categoryId)
-            is MainActivityAction.NavigateToTasksMenu -> mainActivityViewModel.navigateToTasksMenu()
-            is MainActivityAction.ShowDiaryTab -> showDiaryTab()
-            is MainActivityAction.ShowTasksTab -> showTasksTab(mainActivityAction.tasksTabState)
+    private fun handleNavigationAction(navigationAction: NavigationAction) {
+        when (navigationAction) {
+            is NavigationAction.ChangeBottomNavState -> this.navigationViewModel.changeBottomNavState(navigationAction.bottomNavState)
+            is NavigationAction.NavigateToTasksDetail -> this.navigationViewModel.navigateToTasksDetail(navigationAction.categoryId)
+            is NavigationAction.NavigateToTasksMenu -> this.navigationViewModel.navigateToTasksMenu()
+            is NavigationAction.ShowCalendarTab -> showFragment(CalendarFragment.newInstance())
+            is NavigationAction.ShowDiaryTab -> showDiaryTab(navigationAction.diaryTabState)
+            is NavigationAction.ShowHabitsTab -> showHabitsTab(navigationAction.habitsTabState)
+            is NavigationAction.ShowTasksTab -> showTasksTab(navigationAction.tasksTabState)
         }
     }
 
@@ -94,49 +88,39 @@ class MainActivity : FragmentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    mainActivityViewModel.uiAction.collect {
-                        handleMainActivityAction(it)
-                    }
-                }
-                launch {
-                    tasksDetailViewModel.mainActivityAction.collect {
-                        handleMainActivityAction(it)
-                    }
-                }
-                launch {
-                    tasksMenuViewModel.mainActivityAction.collect {
-                        handleMainActivityAction(it)
+                    navigationViewModel.uiAction.collect {
+                        handleNavigationAction(it)
                     }
                 }
             }
         }
 
         binding.bottomNav.setContent {
-            val state by mainActivityViewModel.uiState.collectAsStateWithLifecycle()
+            val state by this.navigationViewModel.uiState.collectAsStateWithLifecycle()
             TaskerKeeperTheme {
                 Surface {
                     when (state) {
-                        is MainActivityState.Content -> MainActivityContent(
-                            bottomNavState = (state as MainActivityState.Content).bottomNavState,
-                            actionHandler = { handleMainActivityAction(it) }
+                        is NavigationState.Content -> NavigationContent(
+                            bottomNavState = (state as NavigationState.Content).bottomNavState,
+                            actionHandler = { handleNavigationAction(it) }
                         )
-                        is MainActivityState.Error -> MainActivityError()
-                        is MainActivityState.Loading -> MainActivityLoading()
+                        is NavigationState.Error -> NavigationError()
+                        is NavigationState.Loading -> NavigationLoading()
                     }
                 }
             }
         }
 
-        showTasksMenuFragment()
+        showTasksTab(tasksTabState = TabState.Menu)
 
         // TODO firebase placeholder
         Firebase.auth.signInAnonymously()
     }
 
     @Composable
-    fun MainActivityContent(
+    fun NavigationContent(
         bottomNavState: BottomNavState,
-        actionHandler: MainActivityActionHandler
+        actionHandler: NavigationActionHandler
     ) {
         BottomNav(
             bottomNavState = bottomNavState,
@@ -145,12 +129,12 @@ class MainActivity : FragmentActivity() {
     }
 
     @Composable
-    fun MainActivityError() {
+    fun NavigationError() {
         Text("Error")
     }
 
     @Composable
-    fun MainActivityLoading() {
+    fun NavigationLoading() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()

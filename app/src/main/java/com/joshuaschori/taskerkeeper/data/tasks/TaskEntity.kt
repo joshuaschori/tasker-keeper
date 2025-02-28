@@ -1,10 +1,9 @@
-package com.joshuaschori.taskerkeeper.data.tasks.tasksDetail
+package com.joshuaschori.taskerkeeper.data.tasks
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
-import com.joshuaschori.taskerkeeper.data.tasks.tasksMenu.TaskCategoryEntity
 
 @Entity(
     tableName = "tasks",

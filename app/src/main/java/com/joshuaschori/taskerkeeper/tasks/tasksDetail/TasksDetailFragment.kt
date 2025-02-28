@@ -32,45 +32,38 @@ import androidx.compose.ui.unit.dp
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.Lifecycle
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
+import com.joshuaschori.taskerkeeper.NavigationViewModel
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TaskAndSubtasks
-import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TasksTopBar
+import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TasksDetailTopBar
 import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import kotlin.properties.Delegates
 
 @AndroidEntryPoint
 class TasksDetailFragment: Fragment() {
-    private val tasksDetailViewModel: TasksDetailViewModel by activityViewModels()
+    private val navigationViewModel: NavigationViewModel by activityViewModels()
+    private val tasksDetailViewModel: TasksDetailViewModel by viewModels()
     private var parentCategoryId: Int by Delegates.notNull()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         parentCategoryId = requireArguments().getInt(PARENT_CATEGORY_ID)
+        tasksDetailViewModel.listenForDatabaseUpdates(parentCategoryId)
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    // TODO not being used unless we're emitting something
+    /*override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        // TODO not being used unless we're emitting something
-        /*viewLifecycleOwner.lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 tasksDetailViewModel.uiAction.collect {
                     handleAction(it)
                 }
             }
-        }*/
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                tasksDetailViewModel.listenForDatabaseUpdates(parentCategoryId).collect {
-                    tasksDetailViewModel.emitContentState(parentCategoryId, it)
-                }
-            }
         }
-    }
+    }*/
 
     private fun handleAction(tasksDetailAction: TasksDetailAction) {
         when (tasksDetailAction) {
@@ -83,7 +76,7 @@ class TasksDetailFragment: Fragment() {
             is TasksDetailAction.MarkTaskComplete -> tasksDetailViewModel.markTaskComplete(tasksDetailAction.taskId)
             is TasksDetailAction.MarkTaskIncomplete -> tasksDetailViewModel.markTaskIncomplete(tasksDetailAction.taskId)
             is TasksDetailAction.MinimizeTask -> tasksDetailViewModel.minimizeTask(tasksDetailAction.taskId)
-            is TasksDetailAction.NavigateToTasksMenu -> tasksDetailViewModel.navigateToTasksMenu()
+            is TasksDetailAction.NavigateToTasksMenu -> navigationViewModel.navigateToTasksMenu()
             is TasksDetailAction.ResetClearFocusTrigger -> tasksDetailViewModel.resetClearFocusTrigger()
             is TasksDetailAction.ResetFocusTrigger -> tasksDetailViewModel.resetFocusTrigger()
         }
@@ -144,7 +137,7 @@ class TasksDetailFragment: Fragment() {
                     actionHandler(TasksDetailAction.ClearFocus)
                 }
         ) {
-            TasksTopBar(
+            TasksDetailTopBar(
                 selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
                 actionHandler = actionHandler,
             )

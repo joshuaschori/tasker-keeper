@@ -2,15 +2,11 @@ package com.joshuaschori.taskerkeeper.tasks.tasksMenu
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.joshuaschori.taskerkeeper.MainActivityAction
-import com.joshuaschori.taskerkeeper.data.tasks.tasksMenu.TaskCategoryEntity
-import com.joshuaschori.taskerkeeper.data.tasks.tasksMenu.TasksMenuRepository
+import com.joshuaschori.taskerkeeper.data.tasks.TaskCategoryEntity
+import com.joshuaschori.taskerkeeper.data.tasks.TasksMenuRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,8 +20,6 @@ class TasksMenuViewModel @Inject constructor(
     // TODO not being used unless we're emitting something
     /*private val _uiAction: MutableSharedFlow<TasksMenuAction> = MutableSharedFlow()
     val uiAction: SharedFlow<TasksMenuAction> = _uiAction.asSharedFlow()*/
-    private val _mainActivityAction: MutableSharedFlow<MainActivityAction> = MutableSharedFlow()
-    val mainActivityAction: SharedFlow<MainActivityAction> = _mainActivityAction.asSharedFlow()
 
     fun addNewCategory() {
         viewModelScope.launch {
@@ -77,12 +71,6 @@ class TasksMenuViewModel @Inject constructor(
                     _uiState.value = TasksMenuState.Error
                 }
             }
-        }
-    }
-
-    fun navigateToTasksDetail(categoryId: Int) {
-        viewModelScope.launch {
-            _mainActivityAction.emit(MainActivityAction.NavigateToTasksDetail(categoryId))
         }
     }
 

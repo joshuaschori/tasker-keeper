@@ -1,4 +1,4 @@
-package com.joshuaschori.taskerkeeper.data.tasks.tasksDetail
+package com.joshuaschori.taskerkeeper.data.tasks
 
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth

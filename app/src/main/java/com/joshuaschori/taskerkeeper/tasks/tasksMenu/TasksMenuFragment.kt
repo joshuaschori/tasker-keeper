@@ -29,10 +29,13 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.joshuaschori.taskerkeeper.data.tasks.tasksMenu.TaskCategoryEntity
+import com.joshuaschori.taskerkeeper.NavigationViewModel
+import com.joshuaschori.taskerkeeper.data.tasks.TaskCategoryEntity
 import com.joshuaschori.taskerkeeper.tasks.tasksMenu.ui.CategoryRow
 import com.joshuaschori.taskerkeeper.tasks.tasksMenu.ui.TasksMenuTopBar
 import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
@@ -40,7 +43,8 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class TasksMenuFragment: Fragment() {
-    private val tasksMenuViewModel: TasksMenuViewModel by activityViewModels()
+    private val navigationViewModel: NavigationViewModel by activityViewModels()
+    private val tasksMenuViewModel: TasksMenuViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,7 +68,7 @@ class TasksMenuFragment: Fragment() {
             is TasksMenuAction.AddNewCategory -> tasksMenuViewModel.addNewCategory()
             is TasksMenuAction.ClearFocus -> tasksMenuViewModel.clearFocus()
             is TasksMenuAction.EditCategoryTitle -> tasksMenuViewModel.editCategoryTitle(tasksMenuAction.categoryId, tasksMenuAction.titleChange)
-            is TasksMenuAction.NavigateToTasksDetail -> tasksMenuViewModel.navigateToTasksDetail(tasksMenuAction.categoryId)
+            is TasksMenuAction.NavigateToTasksDetail -> navigationViewModel.navigateToTasksDetail(tasksMenuAction.categoryId)
             is TasksMenuAction.ResetClearFocusTrigger -> tasksMenuViewModel.resetClearFocusTrigger()
             is TasksMenuAction.ResetFocusTrigger -> tasksMenuViewModel.resetFocusTrigger()
         }
@@ -179,5 +183,9 @@ class TasksMenuFragment: Fragment() {
         ) {
             CircularProgressIndicator()
         }
+    }
+
+    companion object {
+        fun newInstance() = TasksMenuFragment()
     }
 }

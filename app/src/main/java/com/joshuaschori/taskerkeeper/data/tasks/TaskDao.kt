@@ -1,4 +1,4 @@
-package com.joshuaschori.taskerkeeper.data.tasks.tasksDetail
+package com.joshuaschori.taskerkeeper.data.tasks
 
 import androidx.room.Dao
 import androidx.room.Insert

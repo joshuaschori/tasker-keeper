@@ -28,7 +28,7 @@ import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailExtensionMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TasksTopBar(
+fun TasksDetailTopBar(
     selectedTasksDetailExtensionMode: TasksDetailExtensionMode,
     actionHandler: TasksDetailActionHandler,
 ) {

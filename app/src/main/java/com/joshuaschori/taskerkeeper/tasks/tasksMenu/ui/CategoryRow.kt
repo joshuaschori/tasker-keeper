@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
-import com.joshuaschori.taskerkeeper.data.tasks.tasksMenu.TaskCategoryEntity
+import com.joshuaschori.taskerkeeper.data.tasks.TaskCategoryEntity
 import com.joshuaschori.taskerkeeper.tasks.tasksMenu.TasksMenuAction
 import com.joshuaschori.taskerkeeper.tasks.tasksMenu.TasksMenuActionHandler
 

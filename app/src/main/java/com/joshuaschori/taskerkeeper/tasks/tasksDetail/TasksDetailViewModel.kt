@@ -2,16 +2,11 @@ package com.joshuaschori.taskerkeeper.tasks.tasksDetail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.joshuaschori.taskerkeeper.MainActivityAction
-import com.joshuaschori.taskerkeeper.data.tasks.tasksDetail.TaskEntity
-import com.joshuaschori.taskerkeeper.data.tasks.tasksDetail.TasksDetailRepository
+import com.joshuaschori.taskerkeeper.data.tasks.TaskEntity
+import com.joshuaschori.taskerkeeper.data.tasks.TasksDetailRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,8 +20,6 @@ class TasksDetailViewModel @Inject constructor(
     // TODO not being used unless we're emitting something
     /*private val _uiAction: MutableSharedFlow<TasksDetailAction> = MutableSharedFlow()
     val uiAction: SharedFlow<TasksDetailAction> = _uiAction.asSharedFlow()*/
-    private val _mainActivityAction: MutableSharedFlow<MainActivityAction> = MutableSharedFlow()
-    val mainActivityAction: SharedFlow<MainActivityAction> = _mainActivityAction.asSharedFlow()
 
     fun addNewTask(selectedTaskId: Int?, parentId: Int?) {
         viewModelScope.launch {
@@ -106,19 +99,14 @@ class TasksDetailViewModel @Inject constructor(
         }
     }
 
-    fun listenForDatabaseUpdates(
-        parentCategoryId: Int
-    ): Flow<List<TaskEntity>> {
-        return tasksDetailRepository.getTasks(parentCategoryId)
-    }
-
-    fun emitContentState(
-        parentCategoryId: Int,
-        taskEntityList: List<TaskEntity>
-    ) {
-        val treeList = convertTaskEntityListToTaskTreeNodeList(taskEntityList)
-        val taskList = convertTaskTreeNodeListToTaskList(treeList)
-        _uiState.value = TasksDetailState.Content(parentCategoryId, taskList)
+    fun listenForDatabaseUpdates(parentCategoryId: Int) {
+        viewModelScope.launch {
+            tasksDetailRepository.getTasks(parentCategoryId).collect { taskEntityList ->
+                val treeList = convertTaskEntityListToTaskTreeNodeList(taskEntityList)
+                val taskList = convertTaskTreeNodeListToTaskList(treeList)
+                _uiState.value = TasksDetailState.Content(parentCategoryId, taskList)
+            }
+        }
     }
 
     fun markTaskComplete(taskId: Int) {
@@ -151,13 +139,6 @@ class TasksDetailViewModel @Inject constructor(
             } else {
                 _uiState.value = TasksDetailState.Error
             }
-        }
-    }
-
-    fun navigateToTasksMenu() {
-        viewModelScope.launch {
-            _uiState.value = TasksDetailState.Loading
-            _mainActivityAction.emit(MainActivityAction.NavigateToTasksMenu)
         }
     }
 

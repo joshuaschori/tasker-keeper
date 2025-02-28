@@ -1,4 +1,4 @@
-package com.joshuaschori.taskerkeeper.data.tasks.tasksMenu
+package com.joshuaschori.taskerkeeper.data.tasks
 
 import com.joshuaschori.taskerkeeper.data.TaskerKeeperDatabase
 import javax.inject.Inject
@@ -10,12 +10,12 @@ class TasksMenuRepository @Inject constructor(
     private val db: TaskerKeeperDatabase,
 ) {
     suspend fun addTaskCategoryAtEnd() {
-        db.tasksListDao().addTaskCategoryAtEnd()
+        db.taskCategoryDao().addTaskCategoryAtEnd()
     }
 
     suspend fun editTaskCategoryTitle(categoryId: Int, titleChange: String) {
-        db.tasksListDao().updateTaskCategoryTitle(categoryId, titleChange)
+        db.taskCategoryDao().updateTaskCategoryTitle(categoryId, titleChange)
     }
 
-    fun getTaskCategories() = db.tasksListDao().getTaskCategories()
+    fun getTaskCategories() = db.taskCategoryDao().getTaskCategories()
 }

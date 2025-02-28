@@ -14,7 +14,7 @@ import androidx.compose.runtime.Composable
 @Composable
 fun BottomNav(
     bottomNavState: BottomNavState,
-    actionHandler: MainActivityActionHandler
+    actionHandler: NavigationActionHandler
 ) {
     NavigationBar {
         BottomNavState.entries.forEachIndexed { index, label ->
@@ -33,7 +33,7 @@ fun BottomNav(
                 label = { Text(label.contentDescription) },
                 selected = bottomNavState == label,
                 onClick = {
-                    actionHandler(MainActivityAction.ChangeBottomNavState(label))
+                    actionHandler(NavigationAction.ChangeBottomNavState(label))
                 }
             )
         }

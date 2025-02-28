@@ -1,4 +1,4 @@
-package com.joshuaschori.taskerkeeper.data.tasks.tasksMenu
+package com.joshuaschori.taskerkeeper.data.tasks
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
