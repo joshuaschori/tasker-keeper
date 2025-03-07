@@ -157,6 +157,6 @@ interface TaskDao {
     suspend fun verifyIsChecked(taskId: Int): Boolean
 
     @Insert
-    fun insertTask(taskEntity: TaskEntity): Long
+    suspend fun insertTask(taskEntity: TaskEntity): Long
 
 }

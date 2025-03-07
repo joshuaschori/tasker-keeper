@@ -3,7 +3,7 @@ package com.joshuaschori.taskerkeeper.tasks.tasksDetail
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joshuaschori.taskerkeeper.data.tasks.TaskEntity
-import com.joshuaschori.taskerkeeper.data.tasks.TasksDetailRepository
+import com.joshuaschori.taskerkeeper.data.tasks.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +13,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TasksDetailViewModel @Inject constructor(
-    private val tasksDetailRepository: TasksDetailRepository
+    private val taskRepository: TaskRepository
 ): ViewModel() {
     private val _uiState: MutableStateFlow<TasksDetailState> = MutableStateFlow(TasksDetailState.Loading)
     val uiState: StateFlow<TasksDetailState> = _uiState.asStateFlow()
@@ -27,15 +27,15 @@ class TasksDetailViewModel @Inject constructor(
             if (currentState is TasksDetailState.Content) {
                 if (selectedTaskId == null && currentState.isAutoSortCheckedTasks) {
                     _uiState.value = currentState.copy(
-                        focusTaskId = tasksDetailRepository.addTaskAfterUnchecked(currentState.parentCategoryId, parentId)
+                        focusTaskId = taskRepository.addTaskAfterUnchecked(currentState.parentCategoryId, parentId)
                     )
                 } else if (selectedTaskId == null) {
                     _uiState.value = currentState.copy(
-                        focusTaskId = tasksDetailRepository.addTaskAtEnd(currentState.parentCategoryId, parentId)
+                        focusTaskId = taskRepository.addTaskAtEnd(currentState.parentCategoryId, parentId)
                     )
                 } else {
                     _uiState.value = currentState.copy(
-                        focusTaskId = tasksDetailRepository.addTaskAfter(currentState.parentCategoryId, selectedTaskId)
+                        focusTaskId = taskRepository.addTaskAfter(currentState.parentCategoryId, selectedTaskId)
                     )
                 }
             } else {
@@ -70,7 +70,7 @@ class TasksDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
-                tasksDetailRepository.removeTask(currentState.parentCategoryId, taskId)
+                taskRepository.removeTask(currentState.parentCategoryId, taskId)
             } else {
                 _uiState.value = TasksDetailState.Error
             }
@@ -81,7 +81,7 @@ class TasksDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
-                tasksDetailRepository.editTaskDescription(taskId, descriptionChange)
+                taskRepository.editTaskDescription(taskId, descriptionChange)
             } else {
                 _uiState.value = TasksDetailState.Error
             }
@@ -92,7 +92,7 @@ class TasksDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
-                tasksDetailRepository.expandTask(taskId)
+                taskRepository.expandTask(taskId)
             } else {
                 _uiState.value = TasksDetailState.Error
             }
@@ -101,7 +101,7 @@ class TasksDetailViewModel @Inject constructor(
 
     fun listenForDatabaseUpdates(parentCategoryId: Int) {
         viewModelScope.launch {
-            tasksDetailRepository.getTasks(parentCategoryId).collect { taskEntityList ->
+            taskRepository.getTasks(parentCategoryId).collect { taskEntityList ->
                 val treeList = convertTaskEntityListToTaskTreeNodeList(taskEntityList)
                 val taskList = convertTaskTreeNodeListToTaskList(treeList)
                 _uiState.value = TasksDetailState.Content(parentCategoryId, taskList)
@@ -113,7 +113,7 @@ class TasksDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
-                tasksDetailRepository.markTaskComplete(currentState.parentCategoryId, taskId, currentState.isAutoSortCheckedTasks)
+                taskRepository.markTaskComplete(currentState.parentCategoryId, taskId, currentState.isAutoSortCheckedTasks)
             } else {
                 _uiState.value = TasksDetailState.Error
             }
@@ -124,7 +124,7 @@ class TasksDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
-                tasksDetailRepository.markTaskIncomplete(currentState.parentCategoryId, taskId, currentState.isAutoSortCheckedTasks)
+                taskRepository.markTaskIncomplete(currentState.parentCategoryId, taskId, currentState.isAutoSortCheckedTasks)
             } else {
                 _uiState.value = TasksDetailState.Error
             }
@@ -135,7 +135,7 @@ class TasksDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
-                tasksDetailRepository.minimizeTask(taskId)
+                taskRepository.minimizeTask(taskId)
             } else {
                 _uiState.value = TasksDetailState.Error
             }

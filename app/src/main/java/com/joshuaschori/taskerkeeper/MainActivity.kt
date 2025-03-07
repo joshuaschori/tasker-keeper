@@ -111,6 +111,7 @@ class MainActivity : FragmentActivity() {
             }
         }
 
+        //TODO
         showTasksTab(tasksTabState = TabState.Menu)
 
         // TODO firebase placeholder

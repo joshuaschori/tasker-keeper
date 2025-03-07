@@ -8,9 +8,21 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class TasksDetailRepository @Inject constructor(
+class TaskRepository @Inject constructor(
     private val db: TaskerKeeperDatabase,
 ) {
+    // taskCategoryDao functions
+    suspend fun addTaskCategoryAtEnd() {
+        db.taskCategoryDao().addTaskCategoryAtEnd()
+    }
+
+    suspend fun editTaskCategoryTitle(categoryId: Int, titleChange: String) {
+        db.taskCategoryDao().updateTaskCategoryTitle(categoryId, titleChange)
+    }
+
+    fun getTaskCategories() = db.taskCategoryDao().getTaskCategories()
+
+    // taskDao functions
     suspend fun addTaskAfter(parentCategoryId: Int, taskId: Int): Int {
         val newTaskId = db.taskDao().addTaskAfter(parentCategoryId, taskId).toInt()
 

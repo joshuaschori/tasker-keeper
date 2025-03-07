@@ -2,7 +2,7 @@ package com.joshuaschori.taskerkeeper.habits.habitsDetail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.joshuaschori.taskerkeeper.data.habits.HabitsDetailRepository
+import com.joshuaschori.taskerkeeper.data.habits.HabitRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HabitsDetailViewModel @Inject constructor(
-    private val habitsDetailRepository: HabitsDetailRepository
+    private val habitRepository: HabitRepository
 ): ViewModel() {
     private val _uiState: MutableStateFlow<HabitsDetailState> = MutableStateFlow(HabitsDetailState.Loading)
     val uiState: StateFlow<HabitsDetailState> = _uiState.asStateFlow()

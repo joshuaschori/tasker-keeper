@@ -2,11 +2,83 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "868269198389f48993cd519b58e00091",
+    "identityHash": "de7ef8c713a7ad9e4b7898c600063bf8",
     "entities": [
       {
+        "tableName": "diary_entries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`diary_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `diary_date` TEXT NOT NULL, `diary_text` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "diaryId",
+            "columnName": "diary_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "diaryDate",
+            "columnName": "diary_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "diaryText",
+            "columnName": "diary_text",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "diary_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "habits",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`habit_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "habitId",
+            "columnName": "habit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "habit_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "habit_categories",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`habit_category_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "habitCategoryId",
+            "columnName": "habit_category_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "habit_category_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
         "tableName": "tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`task_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `parent_category_id` INTEGER NOT NULL, `parent_task_id` INTEGER, `description` TEXT NOT NULL, `list_order` INTEGER NOT NULL, `is_checked` INTEGER NOT NULL, `is_expanded` INTEGER NOT NULL, FOREIGN KEY(`parent_task_id`) REFERENCES `tasks`(`task_id`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`parent_category_id`) REFERENCES `task_categories`(`category_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`task_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `parent_category_id` INTEGER NOT NULL, `parent_task_id` INTEGER, `description` TEXT NOT NULL, `list_order` INTEGER NOT NULL, `is_checked` INTEGER NOT NULL, `is_expanded` INTEGER NOT NULL, FOREIGN KEY(`parent_task_id`) REFERENCES `tasks`(`task_id`) ON UPDATE CASCADE ON DELETE CASCADE , FOREIGN KEY(`parent_category_id`) REFERENCES `task_categories`(`task_category_id`) ON UPDATE CASCADE ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "taskId",
@@ -78,18 +150,18 @@
               "parent_category_id"
             ],
             "referencedColumns": [
-              "category_id"
+              "task_category_id"
             ]
           }
         ]
       },
       {
         "tableName": "task_categories",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`category_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `list_order` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`task_category_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `list_order` INTEGER NOT NULL)",
         "fields": [
           {
-            "fieldPath": "categoryId",
-            "columnName": "category_id",
+            "fieldPath": "taskCategoryId",
+            "columnName": "task_category_id",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -109,7 +181,7 @@
         "primaryKey": {
           "autoGenerate": true,
           "columnNames": [
-            "category_id"
+            "task_category_id"
           ]
         },
         "indices": [],
@@ -119,7 +191,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '868269198389f48993cd519b58e00091')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'de7ef8c713a7ad9e4b7898c600063bf8')"
     ]
   }
 }

@@ -2,7 +2,7 @@ package com.joshuaschori.taskerkeeper.diary.diaryMenu
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.joshuaschori.taskerkeeper.data.diary.DiaryMenuRepository
+import com.joshuaschori.taskerkeeper.data.diary.DiaryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DiaryMenuViewModel @Inject constructor(
-    private val diaryMenuRepository: DiaryMenuRepository
+    private val diaryRepository: DiaryRepository
 ): ViewModel() {
     private val _uiState: MutableStateFlow<DiaryMenuState> = MutableStateFlow(DiaryMenuState.Loading)
     val uiState: StateFlow<DiaryMenuState> = _uiState.asStateFlow()

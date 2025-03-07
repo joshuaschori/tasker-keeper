@@ -3,7 +3,7 @@ package com.joshuaschori.taskerkeeper.tasks.tasksMenu
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joshuaschori.taskerkeeper.data.tasks.TaskCategoryEntity
-import com.joshuaschori.taskerkeeper.data.tasks.TasksMenuRepository
+import com.joshuaschori.taskerkeeper.data.tasks.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +13,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TasksMenuViewModel @Inject constructor(
-    private val tasksMenuRepository: TasksMenuRepository
+    private val taskRepository: TaskRepository
 ): ViewModel() {
     private val _uiState: MutableStateFlow<TasksMenuState> = MutableStateFlow(TasksMenuState.Loading)
     val uiState: StateFlow<TasksMenuState> = _uiState.asStateFlow()
@@ -25,7 +25,7 @@ class TasksMenuViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksMenuState.Content) {
-                tasksMenuRepository.addTaskCategoryAtEnd()
+                taskRepository.addTaskCategoryAtEnd()
             } else {
                 _uiState.value = TasksMenuState.Error
             }
@@ -47,7 +47,7 @@ class TasksMenuViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksMenuState.Content) {
-                tasksMenuRepository.editTaskCategoryTitle(categoryId, titleChange)
+                taskRepository.editTaskCategoryTitle(categoryId, titleChange)
             } else {
                 _uiState.value = TasksMenuState.Error
             }
@@ -58,12 +58,12 @@ class TasksMenuViewModel @Inject constructor(
         viewModelScope.launch {
             when (val currentState = _uiState.value) {
                 is TasksMenuState.Content -> {
-                    tasksMenuRepository.getTaskCategories().collect {
+                    taskRepository.getTaskCategories().collect {
                         _uiState.value = currentState.copy(taskCategories = it)
                     }
                 }
                 is TasksMenuState.Loading -> {
-                    tasksMenuRepository.getTaskCategories().collect {
+                    taskRepository.getTaskCategories().collect {
                         _uiState.value = TasksMenuState.Content(taskCategories = it)
                     }
                 }

@@ -21,7 +21,7 @@ import androidx.room.PrimaryKey
         ),
         ForeignKey(
             entity = TaskCategoryEntity::class,
-            parentColumns = arrayOf("category_id"),
+            parentColumns = arrayOf("task_category_id"),
             childColumns = arrayOf("parent_category_id"),
             onUpdate = ForeignKey.CASCADE,
             onDelete = ForeignKey.CASCADE

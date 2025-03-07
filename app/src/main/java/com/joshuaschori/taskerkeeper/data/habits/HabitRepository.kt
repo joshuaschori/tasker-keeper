@@ -5,6 +5,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class HabitsDetailRepository @Inject constructor(
+class HabitRepository @Inject constructor(
     private val db: TaskerKeeperDatabase,
 ) {}

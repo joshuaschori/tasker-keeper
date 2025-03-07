@@ -26,9 +26,9 @@ interface TaskCategoryDao {
     @Query("SELECT COUNT(list_order) FROM task_categories")
     suspend fun getCategoryCount(): Int
 
-    @Query("UPDATE task_categories SET title = :titleChange WHERE category_id = :categoryId")
+    @Query("UPDATE task_categories SET title = :titleChange WHERE task_category_id = :categoryId")
     suspend fun updateTaskCategoryTitle(categoryId: Int, titleChange: String)
 
     @Insert
-    fun insertTaskCategory(taskCategoryEntity: TaskCategoryEntity): Long
+    suspend fun insertTaskCategory(taskCategoryEntity: TaskCategoryEntity): Long
 }

@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
     tableName = "task_categories"
 )
 data class TaskCategoryEntity(
-    @PrimaryKey(autoGenerate = true) @ColumnInfo(name = "category_id") val categoryId: Int = 0,
+    @PrimaryKey(autoGenerate = true) @ColumnInfo(name = "task_category_id") val taskCategoryId: Int = 0,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "list_order") val listOrder: Int,
 )

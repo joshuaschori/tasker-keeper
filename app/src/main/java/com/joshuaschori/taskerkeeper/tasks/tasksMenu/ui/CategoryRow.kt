@@ -36,7 +36,7 @@ fun CategoryRow(
     LaunchedEffect(Unit) {
         // TODO some kind of bug where sometimes new task doesn't appear until recompose
         // TODO keyboard doesn't pop up, which makes sense
-        if (focusCategoryId == category.categoryId) {
+        if (focusCategoryId == category.taskCategoryId) {
             focusRequester.requestFocus()
             actionHandler(TasksMenuAction.ResetFocusTrigger)
         }
@@ -57,7 +57,7 @@ fun CategoryRow(
         Row {
             IconButton(
                 onClick = {
-                    actionHandler(TasksMenuAction.NavigateToTasksDetail(category.categoryId))
+                    actionHandler(TasksMenuAction.NavigateToTasksDetail(category.taskCategoryId))
                 }
             ) {
                 Icon(
@@ -73,7 +73,7 @@ fun CategoryRow(
                 },
                 onValueChange = {
                     activeTextField.value = it
-                    actionHandler(TasksMenuAction.EditCategoryTitle(category.categoryId, it))
+                    actionHandler(TasksMenuAction.EditCategoryTitle(category.taskCategoryId, it))
                 },
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Done
