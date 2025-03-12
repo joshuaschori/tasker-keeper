@@ -104,7 +104,12 @@ class TasksDetailViewModel @Inject constructor(
             taskRepository.getTasks(parentCategoryId).collect { taskEntityList ->
                 val treeList = convertTaskEntityListToTaskTreeNodeList(taskEntityList)
                 val taskList = convertTaskTreeNodeListToTaskList(treeList)
-                _uiState.value = TasksDetailState.Content(parentCategoryId, taskList)
+                val currentState = _uiState.value
+                if (currentState is TasksDetailState.Content) {
+                    _uiState.value = currentState.copy(taskList = taskList)
+                } else {
+                    _uiState.value = TasksDetailState.Content(parentCategoryId, taskList)
+                }
             }
         }
     }

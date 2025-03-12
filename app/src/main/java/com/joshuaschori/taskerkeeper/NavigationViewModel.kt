@@ -73,9 +73,29 @@ class NavigationViewModel @Inject constructor(
         }
     }
 
-    fun navigateToDiaryMenu() {}
+    fun navigateToDiaryMenu() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is NavigationState.Content) {
+                _uiState.value = currentState.copy(diaryTabState = TabState.Menu)
+                _uiAction.emit(NavigationAction.ShowDiaryTab(TabState.Menu))
+            } else {
+                _uiState.value = NavigationState.Error
+            }
+        }
+    }
 
-    fun navigateToDiaryDetail() {}
+    fun navigateToDiaryDetail(diaryId: Int) {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is NavigationState.Content) {
+                _uiState.value = currentState.copy(diaryTabState = TabState.Detail(diaryId))
+                _uiAction.emit(NavigationAction.ShowDiaryTab(TabState.Detail(diaryId)))
+            } else {
+                _uiState.value = NavigationState.Error
+            }
+        }
+    }
 
     fun navigateToTasksMenu() {
         viewModelScope.launch {
@@ -89,9 +109,7 @@ class NavigationViewModel @Inject constructor(
         }
     }
 
-    fun navigateToTasksDetail(
-        parentCategoryId: Int
-    ) {
+    fun navigateToTasksDetail(parentCategoryId: Int) {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is NavigationState.Content) {

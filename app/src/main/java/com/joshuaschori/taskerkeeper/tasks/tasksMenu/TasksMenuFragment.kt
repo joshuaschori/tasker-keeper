@@ -36,6 +36,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joshuaschori.taskerkeeper.NavigationViewModel
 import com.joshuaschori.taskerkeeper.data.tasks.TaskCategoryEntity
+import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TaskRow
 import com.joshuaschori.taskerkeeper.tasks.tasksMenu.ui.CategoryRow
 import com.joshuaschori.taskerkeeper.tasks.tasksMenu.ui.TasksMenuTopBar
 import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
@@ -137,11 +138,19 @@ class TasksMenuFragment: Fragment() {
                         .imePadding(),
                 ) {
                     items(count = taskCategories.size) {
-                        CategoryRow(
-                            category = taskCategories[it],
-                            focusCategoryId = focusCategoryId,
-                            actionHandler = actionHandler,
-                        )
+                        Surface(
+                            tonalElevation = 10.dp,
+                            shadowElevation = 5.dp,
+                            modifier = Modifier
+                                .padding(top = 1.dp)
+                                .weight(1f)
+                        ) {
+                            CategoryRow(
+                                category = taskCategories[it],
+                                focusCategoryId = focusCategoryId,
+                                actionHandler = actionHandler,
+                            )
+                        }
                     }
                 }
             }

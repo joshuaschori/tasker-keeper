@@ -2,6 +2,7 @@ package com.joshuaschori.taskerkeeper.diary.diaryMenu
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.joshuaschori.taskerkeeper.data.diary.DiaryEntity
 import com.joshuaschori.taskerkeeper.data.diary.DiaryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,13 +23,18 @@ class DiaryMenuViewModel @Inject constructor(
 
     fun listenForDatabaseUpdates() {
         viewModelScope.launch {
-
+            diaryRepository.getDiaryEntries().collect {
+                _uiState.value = DiaryMenuState.Content(
+                    diaryEntityList = it
+                )
+            }
         }
     }
 }
 
 sealed interface DiaryMenuState {
     data class Content(
+        val diaryEntityList: List<DiaryEntity>,
         val clearFocusTrigger: Boolean = false,
     ) : DiaryMenuState
     data object Error : DiaryMenuState
@@ -36,6 +42,8 @@ sealed interface DiaryMenuState {
 }
 
 sealed interface DiaryMenuAction {
+    data object ClearFocus: DiaryMenuAction
+    data object ResetClearFocusTrigger: DiaryMenuAction
 }
 
 typealias DiaryMenuActionHandler = (DiaryMenuAction) -> Unit

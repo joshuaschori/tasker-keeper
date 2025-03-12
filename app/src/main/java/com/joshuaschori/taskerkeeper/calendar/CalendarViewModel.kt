@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class CalendarViewModel: ViewModel() {
-    private val _uiState: MutableStateFlow<CalendarState> = MutableStateFlow(CalendarState.Loading)
+    private val _uiState: MutableStateFlow<CalendarState> = MutableStateFlow(CalendarState.Content())
     val uiState: StateFlow<CalendarState> = _uiState.asStateFlow()
     // TODO not being used unless we're emitting something
     /*private val _uiAction: MutableSharedFlow<CalendarAction> = MutableSharedFlow()
