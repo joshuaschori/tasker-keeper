@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,8 +62,8 @@ fun CategoryRow(
                 }
             ) {
                 Icon(
-                    imageVector = Icons.Filled.NavigateNext,
-                    contentDescription = "Navigate"
+                    imageVector = Icons.Filled.Checklist,
+                    contentDescription = "Tasks List"
                 )
             }
             BasicTextField(

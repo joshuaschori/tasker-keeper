@@ -169,6 +169,17 @@ class TasksDetailViewModel @Inject constructor(
         }
     }
 
+    fun setTaskIdBeingDragged(taskId: Int?) {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is TasksDetailState.Content) {
+                _uiState.value = currentState.copy(taskIdBeingDragged = taskId)
+            } else {
+                _uiState.value = TasksDetailState.Error
+            }
+        }
+    }
+
 }
 
 fun convertTaskEntityListToTaskTreeNodeList(taskEntityList: List<TaskEntity>): List<TaskTreeNode> {
@@ -206,6 +217,7 @@ sealed interface TasksDetailState {
         val clearFocusTrigger: Boolean = false,
         val focusTaskId: Int? = null,
         val isAutoSortCheckedTasks: Boolean = true,
+        val taskIdBeingDragged: Int? = null,
     ) : TasksDetailState
     data object Error : TasksDetailState
     data object Loading: TasksDetailState
@@ -224,6 +236,7 @@ sealed interface TasksDetailAction {
     data object NavigateToTasksMenu: TasksDetailAction
     data object ResetClearFocusTrigger: TasksDetailAction
     data object ResetFocusTrigger: TasksDetailAction
+    data class SetTaskIdBeingDragged(val taskId: Int?): TasksDetailAction
 }
 
 typealias TasksDetailActionHandler = (TasksDetailAction) -> Unit
