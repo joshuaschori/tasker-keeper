@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,8 +26,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
@@ -38,6 +38,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joshuaschori.taskerkeeper.Constants.MAX_LAYERS_OF_SUBTASKS
+import com.joshuaschori.taskerkeeper.DragHandler
 import com.joshuaschori.taskerkeeper.NavigationViewModel
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TaskWithSubtasks
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TasksDetailTopBar
@@ -81,9 +82,16 @@ class TasksDetailFragment: Fragment() {
             is TasksDetailAction.MarkTaskIncomplete -> tasksDetailViewModel.markTaskIncomplete(tasksDetailAction.taskId)
             is TasksDetailAction.MinimizeTask -> tasksDetailViewModel.minimizeTask(tasksDetailAction.taskId)
             is TasksDetailAction.NavigateToTasksMenu -> navigationViewModel.navigateToTasksMenu()
+            is TasksDetailAction.RearrangeTasks -> tasksDetailViewModel.rearrangeTasks(
+                tasksDetailAction.taskId, tasksDetailAction.aboveDestinationTask, tasksDetailAction.aboveDestinationTaskLayer, tasksDetailAction.belowDestinationTask,
+                tasksDetailAction.belowDestinationTaskLayer, tasksDetailAction.requestedLayer
+            )
             is TasksDetailAction.ResetClearFocusTrigger -> tasksDetailViewModel.resetClearFocusTrigger()
             is TasksDetailAction.ResetFocusTrigger -> tasksDetailViewModel.resetFocusTrigger()
-            is TasksDetailAction.SetTaskIdBeingDragged -> tasksDetailViewModel.setTaskIdBeingDragged(tasksDetailAction.taskId)
+            is TasksDetailAction.SetDraggedTaskSize -> tasksDetailViewModel.setDraggedTaskSize(tasksDetailAction.size)
+            is TasksDetailAction.SetLazyListIndexBeingDragged -> tasksDetailViewModel.setLazyListIndexBeingDragged(tasksDetailAction.index)
+            is TasksDetailAction.SetLazyListTargetIndex -> tasksDetailViewModel.setLazyListTargetIndex(tasksDetailAction.index)
+            is TasksDetailAction.UpdateDragHandler -> tasksDetailViewModel.updateDragHandler(tasksDetailAction.dragHandler)
         }
     }
 
@@ -108,7 +116,10 @@ class TasksDetailFragment: Fragment() {
                                 focusTaskId = (state as TasksDetailState.Content).focusTaskId,
                                 isAutoSortCheckedTasks = (state as TasksDetailState.Content)
                                     .isAutoSortCheckedTasks,
-                                taskIdBeingDragged = (state as TasksDetailState.Content).taskIdBeingDragged,
+                                lazyListIndexBeingDragged = (state as TasksDetailState.Content).lazyListIndexBeingDragged,
+                                lazyListTargetIndex = (state as TasksDetailState.Content).lazyListTargetIndex,
+                                draggedTaskSize = (state as TasksDetailState.Content).draggedTaskSize,
+                                dragHandler = (state as TasksDetailState.Content).dragHandler,
                                 actionHandler = { handleAction(it) },
                             )
                             is TasksDetailState.Error -> TasksError()
@@ -127,7 +138,10 @@ class TasksDetailFragment: Fragment() {
         clearFocusTrigger: Boolean,
         focusTaskId: Int?,
         isAutoSortCheckedTasks: Boolean,
-        taskIdBeingDragged: Int?,
+        lazyListIndexBeingDragged: Int?,
+        lazyListTargetIndex: Int?,
+        draggedTaskSize: Int?,
+        dragHandler: DragHandler,
         actionHandler: TasksDetailActionHandler,
     ) {
         val focusManager = LocalFocusManager.current
@@ -149,13 +163,20 @@ class TasksDetailFragment: Fragment() {
                 actionHandler = actionHandler,
             )
             if (taskList.isNotEmpty()) {
+                val lazyListState = rememberLazyListState()
                 val lazyTaskList = recursivelyAddLazyTasks(
                     taskList = taskList,
                     taskLayer = 0,
                     focusTaskId = focusTaskId,
                     isAutoSortCheckedTasks = isAutoSortCheckedTasks,
                     selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
-                    taskIdBeingDragged = taskIdBeingDragged,
+                    lazyListIndexBeingDragged = lazyListIndexBeingDragged,
+                    lazyListTargetIndex = lazyListTargetIndex,
+                    lazyListState = lazyListState,
+                    lazyListStartingIndex = 0,
+                    lazyListLambda = {},
+                    draggedTaskSize = draggedTaskSize,
+                    dragHandler = dragHandler,
                     actionHandler = actionHandler,
                 )
                 LazyColumn(
@@ -163,12 +184,13 @@ class TasksDetailFragment: Fragment() {
                         start = 16.dp, top = 32.dp, end = 16.dp, bottom = 320.dp
                     ),
                     verticalArrangement = Arrangement.spacedBy(1.dp),
+                    state = lazyListState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .imePadding()
                 ) {
                     items(lazyTaskList) {
-                        it.content()
+                        it()
                     }
                 }
             }
@@ -227,11 +249,6 @@ class TasksDetailFragment: Fragment() {
     }
 }
 
-data class LazyTask(
-    val task: Task,
-    val content: @Composable () -> Unit
-)
-
 @Composable
 private fun recursivelyAddLazyTasks(
     taskList: List<Task>,
@@ -239,28 +256,40 @@ private fun recursivelyAddLazyTasks(
     focusTaskId: Int?,
     isAutoSortCheckedTasks: Boolean,
     selectedTasksDetailExtensionMode: TasksDetailExtensionMode,
-    taskIdBeingDragged: Int?,
+    lazyListIndexBeingDragged: Int?,
+    lazyListTargetIndex: Int?,
+    lazyListState: LazyListState,
+    lazyListStartingIndex: Int,
+    lazyListLambda: (Int) -> Unit,
+    draggedTaskSize: Int?,
+    dragHandler: DragHandler,
     actionHandler: TasksDetailActionHandler,
-): List<LazyTask> {
-    val lazyTaskList: MutableList<LazyTask> = mutableListOf()
+): List<@Composable () -> Unit> {
+    val lazyTaskList: MutableList<@Composable () -> Unit> = mutableListOf()
+    var lazyListIndex: Int = lazyListStartingIndex
+    // TODO list of task ids with lazy list index, also task layer?
+    val listOfTaskIds = mutableListOf<Int>()
     for (task in taskList) {
-        lazyTaskList.add(
-            LazyTask(
+        val newLazyListIndex = lazyListIndex
+        lazyTaskList.add {
+            TaskWithSubtasks(
                 task = task,
-                content = {
-                    TaskWithSubtasks(
-                        task = task,
-                        taskLayer = taskLayer,
-                        focusTaskId = focusTaskId,
-                        isAutoSortCheckedTasks = isAutoSortCheckedTasks,
-                        selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
-                        taskIdBeingDragged = taskIdBeingDragged,
-                        actionHandler = actionHandler,
-                    )
-                }
+                taskLayer = taskLayer,
+                focusTaskId = focusTaskId,
+                isAutoSortCheckedTasks = isAutoSortCheckedTasks,
+                selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
+                lazyListIndexBeingDragged = lazyListIndexBeingDragged,
+                lazyListTargetIndex = lazyListTargetIndex,
+                lazyListState = lazyListState,
+                lazyListIndex = newLazyListIndex,
+                draggedTaskSize = draggedTaskSize,
+                dragHandler = dragHandler,
+                actionHandler = actionHandler,
             )
-        )
-        if (task.subtaskList.isNotEmpty() && task.isExpanded && taskIdBeingDragged != task.taskId && taskLayer < MAX_LAYERS_OF_SUBTASKS) {
+        }
+        listOfTaskIds.add(task.taskId)
+        lazyListIndex++
+        if (task.subtaskList.isNotEmpty() && task.isExpanded && lazyListIndex - 1 != lazyListIndexBeingDragged && taskLayer < MAX_LAYERS_OF_SUBTASKS) {
             lazyTaskList.addAll(
                 recursivelyAddLazyTasks(
                     taskList = task.subtaskList,
@@ -268,11 +297,22 @@ private fun recursivelyAddLazyTasks(
                     focusTaskId = focusTaskId,
                     isAutoSortCheckedTasks = isAutoSortCheckedTasks,
                     selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
-                    taskIdBeingDragged = taskIdBeingDragged,
+                    lazyListIndexBeingDragged = lazyListIndexBeingDragged,
+                    lazyListTargetIndex = lazyListTargetIndex,
+                    lazyListState = lazyListState,
+                    lazyListStartingIndex = lazyListIndex,
+                    lazyListLambda =  { lazyListIndex = it },
+                    draggedTaskSize = draggedTaskSize,
+                    dragHandler = dragHandler,
                     actionHandler = actionHandler,
                 )
             )
         }
+    }
+    if (taskLayer == 0) {
+        lazyListIndex = 0
+    } else {
+        lazyListLambda(lazyListIndex)
     }
     return lazyTaskList
 }

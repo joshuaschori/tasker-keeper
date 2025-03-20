@@ -12,14 +12,14 @@ interface TaskDao {
     @Transaction
     suspend fun addTaskAfter(parentCategoryId: Int, taskId: Int): Long {
         val parentId = getParentTaskId(taskId)
-        val taskOrder = getListOrder(taskId)
-        incrementTasks(parentCategoryId, parentId, taskOrder + 1)
+        val listOrder = getListOrder(taskId)
+        incrementTasks(parentCategoryId, parentId, listOrder + 1)
         return insertTask(
             TaskEntity(
                 parentCategoryId = parentCategoryId,
                 parentTaskId = parentId,
                 description = "",
-                listOrder = taskOrder + 1,
+                listOrder = listOrder + 1,
                 isChecked = false,
                 isExpanded = false,
             )
@@ -64,19 +64,19 @@ interface TaskDao {
     @Transaction
     suspend fun markTaskComplete(parentCategoryId: Int, taskId: Int, autoSort: Boolean) {
         val parentId = getParentTaskId(taskId)
-        val taskOrder = getListOrder(taskId)
+        val listOrder = getListOrder(taskId)
         if (autoSort) {
-            val firstCheckedTaskOrder = getFirstCheckedListOrder(parentCategoryId, parentId)
-            if (firstCheckedTaskOrder == null) {
+            val firstCheckedListOrder = getFirstCheckedListOrder(parentCategoryId, parentId)
+            if (firstCheckedListOrder == null) {
                 val taskCount = getTaskCount(parentCategoryId, parentId)
                 updateTaskAsChecked(taskId)
-                moveTask(parentCategoryId, parentId, taskOrder, taskCount)
-                decrementTasks(parentCategoryId, parentId, taskOrder + 1)
+                moveTask(parentCategoryId, parentId, listOrder, taskCount)
+                decrementTasks(parentCategoryId, parentId, listOrder + 1)
             } else {
                 updateTaskAsChecked(taskId)
-                incrementTasks(parentCategoryId, parentId, firstCheckedTaskOrder)
-                moveTask(parentCategoryId, parentId, taskOrder, firstCheckedTaskOrder)
-                decrementTasks(parentCategoryId, parentId, taskOrder + 1)
+                incrementTasks(parentCategoryId, parentId, firstCheckedListOrder)
+                moveTask(parentCategoryId, parentId, listOrder, firstCheckedListOrder)
+                decrementTasks(parentCategoryId, parentId, listOrder + 1)
             }
         } else {
             updateTaskAsChecked(taskId)
@@ -88,11 +88,11 @@ interface TaskDao {
         val parentId = getParentTaskId(taskId)
         val taskOrder = getListOrder(taskId)
         if (autoSort) {
-            val firstCheckedTaskOrder = getFirstCheckedListOrder(parentCategoryId, parentId)
-            if (firstCheckedTaskOrder != null) {
+            val firstCheckedListOrder = getFirstCheckedListOrder(parentCategoryId, parentId)
+            if (firstCheckedListOrder != null) {
                 updateTaskAsUnchecked(taskId)
-                incrementTasks(parentCategoryId, parentId, firstCheckedTaskOrder)
-                moveTask(parentCategoryId, parentId, taskOrder + 1, firstCheckedTaskOrder)
+                incrementTasks(parentCategoryId, parentId, firstCheckedListOrder)
+                moveTask(parentCategoryId, parentId, taskOrder + 1, firstCheckedListOrder)
                 decrementTasks(parentCategoryId, parentId, taskOrder + 2)
             }
         } else {
@@ -103,9 +103,9 @@ interface TaskDao {
     @Transaction
     suspend fun removeTask(parentCategoryId: Int, taskId: Int) {
         val parentId = getParentTaskId(taskId)
-        val taskOrder = getListOrder(taskId)
+        val listOrder = getListOrder(taskId)
         deleteTask(taskId)
-        decrementTasks(parentCategoryId, parentId, taskOrder + 1)
+        decrementTasks(parentCategoryId, parentId, listOrder + 1)
     }
 
     @Query("UPDATE tasks SET list_order = list_order - 1 WHERE parent_category_id is :parentCategoryId AND parent_task_id is :parentTaskId AND list_order >= :listOrder")
@@ -120,8 +120,8 @@ interface TaskDao {
     @Query("SELECT parent_task_id FROM tasks WHERE task_id = :taskId")
     suspend fun getParentTaskId(taskId: Int): Int?
 
-    @Query("SELECT * FROM tasks WHERE parent_category_id is :tasksListId ORDER BY list_order ASC")
-    fun getTasks(tasksListId: Int): Flow<List<TaskEntity>>
+    @Query("SELECT * FROM tasks WHERE parent_category_id is :parentCategoryId ORDER BY list_order ASC")
+    fun getTasks(parentCategoryId: Int): Flow<List<TaskEntity>>
 
     @Query("SELECT COUNT(list_order) FROM tasks WHERE parent_category_id is :parentCategoryId AND parent_task_id is :parentTaskId")
     suspend fun getTaskCount(parentCategoryId: Int, parentTaskId: Int?): Int

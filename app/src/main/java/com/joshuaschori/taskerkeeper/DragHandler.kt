@@ -1,9 +1,10 @@
 package com.joshuaschori.taskerkeeper
 
-import androidx.compose.ui.layout.LayoutCoordinates
-
-class DragHandler {
+data class DragHandler(
+    val lazyListIndexBeingDragged: Int? = null,
+    val dragTargetLazyListIndex: Int? = null,
+) {
     companion object {
-        var idPositionMap: HashMap<Int, LayoutCoordinates> = HashMap()
+        val mapOfLazyListIndexToItemId = mapOf<Int, Int>()
     }
 }

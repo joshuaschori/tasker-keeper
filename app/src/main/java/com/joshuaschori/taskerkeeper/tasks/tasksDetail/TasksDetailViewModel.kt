@@ -2,6 +2,7 @@ package com.joshuaschori.taskerkeeper.tasks.tasksDetail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.joshuaschori.taskerkeeper.DragHandler
 import com.joshuaschori.taskerkeeper.data.tasks.TaskEntity
 import com.joshuaschori.taskerkeeper.data.tasks.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -147,6 +148,105 @@ class TasksDetailViewModel @Inject constructor(
         }
     }
 
+    fun rearrangeTasks(
+        taskId: Int,
+        aboveDestinationTask: Task,
+        aboveDestinationTaskLayer: Int,
+        belowDestinationTask: Task,
+        belowDestinationTaskLayer: Int,
+        requestedLayer: Int,
+    ) {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is TasksDetailState.Content) {
+                // if placing your task at requested layer would break up the bottom task from the upper parent
+                // must put task at below task's layer, making above task this task's parent
+                if (belowDestinationTask.parentTaskId == aboveDestinationTask.taskId) {
+                    taskRepository.rearrangeTasks(
+                        parentCategoryId = currentState.parentCategoryId,
+                        taskId = taskId,
+                        parentTaskId = aboveDestinationTask.taskId,
+                        listOrder = 0,
+                        autoSort = currentState.isAutoSortCheckedTasks
+                    )
+                }
+                // task can either be put at the same layer, or one layer higher, making it the subtask of the above task
+                else if (belowDestinationTask.parentTaskId == aboveDestinationTask.parentTaskId) {
+                    // if requesting higher layer, make this task the first subtask of above task
+                    if (requestedLayer > aboveDestinationTaskLayer) {
+                        taskRepository.rearrangeTasks(
+                            parentCategoryId = currentState.parentCategoryId,
+                            taskId = taskId,
+                            parentTaskId = aboveDestinationTask.taskId,
+                            listOrder = 0,
+                            autoSort = currentState.isAutoSortCheckedTasks
+                        )
+                    }
+                    // else if requesting equal or lower layer, put this task in between above task and below task
+                    else {
+                        taskRepository.rearrangeTasks(
+                            parentCategoryId = currentState.parentCategoryId,
+                            taskId = taskId,
+                            parentTaskId = aboveDestinationTask.taskId,
+                            listOrder = aboveDestinationTask.listOrder + 1,
+                            autoSort = currentState.isAutoSortCheckedTasks
+                        )
+                    }
+                }
+                // if above cases aren't true, then below task is not necessarily related to above task
+                // if bottom task's parent is null, this task can also have null parent (requestedLayer 0)
+                else if (belowDestinationTask.parentTaskId == null && requestedLayer <= 0) {
+                    taskRepository.rearrangeTasks(
+                        parentCategoryId = currentState.parentCategoryId,
+                        taskId = taskId,
+                        parentTaskId = null,
+                        listOrder = belowDestinationTask.listOrder,
+                        autoSort = currentState.isAutoSortCheckedTasks
+                    )
+                }
+                // if above cases aren't true, then below task and above task must branch off at some lower layer
+                // this task's parent could be same as bottom task, or anywhere between that layer and one layer higher than above task
+                else if (requestedLayer <= belowDestinationTaskLayer) {
+                    taskRepository.rearrangeTasks(
+                        parentCategoryId = currentState.parentCategoryId,
+                        taskId = taskId,
+                        parentTaskId = belowDestinationTask.parentTaskId,
+                        listOrder = belowDestinationTask.listOrder,
+                        autoSort = currentState.isAutoSortCheckedTasks
+                    )
+                }
+                else if (requestedLayer > aboveDestinationTaskLayer) {
+                    taskRepository.rearrangeTasks(
+                        parentCategoryId = currentState.parentCategoryId,
+                        taskId = taskId,
+                        parentTaskId = aboveDestinationTask.taskId,
+                        listOrder = 0,
+                        autoSort = currentState.isAutoSortCheckedTasks
+                    )
+                }
+                else if (requestedLayer == aboveDestinationTaskLayer) {
+                    taskRepository.rearrangeTasks(
+                        parentCategoryId = currentState.parentCategoryId,
+                        taskId = taskId,
+                        parentTaskId = aboveDestinationTask.parentTaskId,
+                        listOrder = aboveDestinationTask.listOrder,
+                        autoSort = currentState.isAutoSortCheckedTasks
+                    )
+                }
+                // if all above cases aren't true, then we must determine the parent from the requested task layer
+                // the requested task layer must be on the level of an extended parent somewhere in between the above and below tasks' layers
+                // determine parent of parent of above task until reaching the same layer
+                else {
+                    // TODO must keep information about what layer each task is on
+
+
+                }
+            } else {
+                _uiState.value = TasksDetailState.Error
+            }
+        }
+    }
+
     fun resetClearFocusTrigger() {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -169,11 +269,44 @@ class TasksDetailViewModel @Inject constructor(
         }
     }
 
-    fun setTaskIdBeingDragged(taskId: Int?) {
+    fun setDraggedTaskSize(size: Int?) {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
-                _uiState.value = currentState.copy(taskIdBeingDragged = taskId)
+                _uiState.value = currentState.copy(draggedTaskSize = size)
+            } else {
+                _uiState.value = TasksDetailState.Error
+            }
+        }
+    }
+
+    fun setLazyListIndexBeingDragged(index: Int?) {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is TasksDetailState.Content) {
+                _uiState.value = currentState.copy(lazyListIndexBeingDragged = index)
+            } else {
+                _uiState.value = TasksDetailState.Error
+            }
+        }
+    }
+
+    fun setLazyListTargetIndex(index: Int?) {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is TasksDetailState.Content) {
+                _uiState.value = currentState.copy(lazyListTargetIndex = index)
+            } else {
+                _uiState.value = TasksDetailState.Error
+            }
+        }
+    }
+
+    fun updateDragHandler(dragHandler: DragHandler) {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is TasksDetailState.Content) {
+                _uiState.value = currentState.copy(dragHandler = dragHandler)
             } else {
                 _uiState.value = TasksDetailState.Error
             }
@@ -190,6 +323,7 @@ fun convertTaskEntityListToTaskTreeNodeList(taskEntityList: List<TaskEntity>): L
                 taskId = taskEntity.taskId,
                 parentTaskId = taskEntity.parentTaskId,
                 description = taskEntity.description,
+                listOrder = taskEntity.listOrder,
                 isChecked = taskEntity.isChecked,
                 isExpanded = taskEntity.isExpanded,
                 subtaskList = emptyList()
@@ -217,7 +351,10 @@ sealed interface TasksDetailState {
         val clearFocusTrigger: Boolean = false,
         val focusTaskId: Int? = null,
         val isAutoSortCheckedTasks: Boolean = true,
-        val taskIdBeingDragged: Int? = null,
+        val lazyListIndexBeingDragged: Int? = null,
+        val lazyListTargetIndex: Int? = null,
+        val draggedTaskSize: Int? = null,
+        val dragHandler: DragHandler = DragHandler(),
     ) : TasksDetailState
     data object Error : TasksDetailState
     data object Loading: TasksDetailState
@@ -234,9 +371,20 @@ sealed interface TasksDetailAction {
     data class MarkTaskIncomplete(val taskId: Int): TasksDetailAction
     data class MinimizeTask(val taskId: Int): TasksDetailAction
     data object NavigateToTasksMenu: TasksDetailAction
+    data class RearrangeTasks(
+        val taskId: Int,
+        val aboveDestinationTask: Task,
+        val aboveDestinationTaskLayer: Int,
+        val belowDestinationTask: Task,
+        val belowDestinationTaskLayer: Int,
+        val requestedLayer: Int,
+    ): TasksDetailAction
     data object ResetClearFocusTrigger: TasksDetailAction
     data object ResetFocusTrigger: TasksDetailAction
-    data class SetTaskIdBeingDragged(val taskId: Int?): TasksDetailAction
+    data class SetDraggedTaskSize(val size: Int?): TasksDetailAction
+    data class SetLazyListTargetIndex(val index: Int?): TasksDetailAction
+    data class SetLazyListIndexBeingDragged(val index: Int?): TasksDetailAction
+    data class UpdateDragHandler(val dragHandler: DragHandler): TasksDetailAction
 }
 
 typealias TasksDetailActionHandler = (TasksDetailAction) -> Unit
