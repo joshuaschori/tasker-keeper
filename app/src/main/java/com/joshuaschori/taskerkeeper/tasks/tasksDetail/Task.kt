@@ -7,5 +7,7 @@ data class Task(
     val listOrder: Int,
     val isChecked: Boolean,
     val isExpanded: Boolean,
-    val subtaskList: List<Task>,
+    val subtaskList: List<Task> = listOf(),
+    val taskLayer: Int = 0,
+    val isHidden: Boolean = true,
 )

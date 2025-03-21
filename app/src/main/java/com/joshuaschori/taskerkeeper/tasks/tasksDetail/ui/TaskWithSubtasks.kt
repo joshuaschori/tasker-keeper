@@ -23,7 +23,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.joshuaschori.taskerkeeper.DragHandler
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailAction
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailActionHandler
@@ -42,9 +41,13 @@ fun TaskWithSubtasks(
     lazyListState: LazyListState,
     lazyListIndex: Int,
     draggedTaskSize: Int?,
-    dragHandler: DragHandler,
+    setDraggedTaskSize: (Int?) -> Unit,
+    setLazyListIndexBeingDragged: (Int?) -> Unit,
+    setLazyListTaskIdBeingDragged: (Int?) -> Unit,
+    setLazyListTargetIndex: (Int?) -> Unit,
     actionHandler: TasksDetailActionHandler,
 ) {
+    // TODO need to cleanup a lot of stuff post refactor, possible redundancies
     val density = LocalDensity.current
     val layerStepSize = 32.dp
     var thisLazyListItem: LazyListItemInfo? by remember { mutableStateOf(null) }
@@ -94,28 +97,14 @@ fun TaskWithSubtasks(
                         .pointerInput(true) {
                             detectDragGestures(
                                 onDragStart = { offset ->
-                                    /*actionHandler(
-                                        TasksDetailAction.UpdateDragHandler(
-                                            dragHandler = dragHandler.copy(
-                                                lazyListIndexBeingDragged = task.taskId
-                                            )
-                                        )
-                                    )*/
-                                    actionHandler(
-                                        TasksDetailAction.SetLazyListIndexBeingDragged(
-                                            index = lazyListIndex
-                                        )
-                                    )
+                                    setLazyListIndexBeingDragged(lazyListIndex)
+                                    setLazyListTaskIdBeingDragged(task.taskId)
                                     yDragOffset = offset.y.toInt()
                                     thisLazyListItem =
                                         lazyListState.layoutInfo.visibleItemsInfo.find {
                                             it.index == lazyListIndex
                                         }
-                                    actionHandler(
-                                        TasksDetailAction.SetDraggedTaskSize(
-                                            thisLazyListItem?.size
-                                        )
-                                    )
+                                    setDraggedTaskSize(thisLazyListItem?.size)
                                 },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
@@ -127,19 +116,8 @@ fun TaskWithSubtasks(
                                                 thisLazyListItem!!.offset + yDragOffset + yDrag.toInt() in item.offset..item.offset + item.size
                                             }
                                         if (targetLazyListItem != null) {
-                                            actionHandler(
-                                                TasksDetailAction.SetLazyListTargetIndex(
-                                                    targetLazyListItem.index
-                                                )
-                                            )
+                                            setLazyListTargetIndex(targetLazyListItem.index)
                                         }
-                                        /*actionHandler(
-                                            TasksDetailAction.UpdateDragHandler(
-                                                dragHandler = dragHandler.copy(
-                                                    dragTargetLazyListIndex = targetLazyListItem?.index
-                                                )
-                                            )
-                                        )*/
                                     }
                                 },
                                 onDragEnd = {
@@ -154,31 +132,16 @@ fun TaskWithSubtasks(
                                             requestedLayer = taskLayer + requestedLayerChange,
                                         )
                                     )
-                                    /*actionHandler(
-                                        TasksDetailAction.UpdateDragHandler(
-                                            dragHandler = dragHandler.copy(
-                                                lazyListIndexBeingDragged = null,
-                                                dragTargetLazyListIndex = null)
-                                        )
-                                    )*/
-                                    actionHandler(
-                                        TasksDetailAction.SetLazyListIndexBeingDragged(
-                                            index = null
-                                        )
-                                    )
-                                    actionHandler(TasksDetailAction.SetLazyListTargetIndex(index = null))
+                                    setLazyListIndexBeingDragged(null)
+                                    setLazyListTaskIdBeingDragged(null)
+                                    setLazyListTargetIndex(null)
                                     xDrag = 0f
                                     yDrag = 0f
                                 },
                                 onDragCancel = {
-                                    /*actionHandler(
-                                        TasksDetailAction.UpdateDragHandler(
-                                            dragHandler = dragHandler.copy(
-                                                lazyListIndexBeingDragged = null,
-                                                dragTargetLazyListIndex = null)
-                                        )
-                                    )*/
-                                    actionHandler(TasksDetailAction.SetLazyListTargetIndex(index = null))
+                                    setLazyListIndexBeingDragged(null)
+                                    setLazyListTaskIdBeingDragged(null)
+                                    setLazyListTargetIndex(null)
                                     xDrag = 0f
                                     yDrag = 0f
                                 },

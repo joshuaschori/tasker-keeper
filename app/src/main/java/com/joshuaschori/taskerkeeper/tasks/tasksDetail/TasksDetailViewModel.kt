@@ -2,7 +2,6 @@ package com.joshuaschori.taskerkeeper.tasks.tasksDetail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.joshuaschori.taskerkeeper.DragHandler
 import com.joshuaschori.taskerkeeper.data.tasks.TaskEntity
 import com.joshuaschori.taskerkeeper.data.tasks.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -158,6 +157,8 @@ class TasksDetailViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             val currentState = _uiState.value
+            // TODO allow changing task layer further down, rearranging vertically when necessary???? prioritizing horizontal or vertical??
+            // TODO go back over everything and think about indexes more specifically, indexes of lazyTaskList? think about expanded or not expanded
             if (currentState is TasksDetailState.Content) {
                 // if placing your task at requested layer would break up the bottom task from the upper parent
                 // must put task at below task's layer, making above task this task's parent
@@ -269,50 +270,6 @@ class TasksDetailViewModel @Inject constructor(
         }
     }
 
-    fun setDraggedTaskSize(size: Int?) {
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState is TasksDetailState.Content) {
-                _uiState.value = currentState.copy(draggedTaskSize = size)
-            } else {
-                _uiState.value = TasksDetailState.Error
-            }
-        }
-    }
-
-    fun setLazyListIndexBeingDragged(index: Int?) {
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState is TasksDetailState.Content) {
-                _uiState.value = currentState.copy(lazyListIndexBeingDragged = index)
-            } else {
-                _uiState.value = TasksDetailState.Error
-            }
-        }
-    }
-
-    fun setLazyListTargetIndex(index: Int?) {
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState is TasksDetailState.Content) {
-                _uiState.value = currentState.copy(lazyListTargetIndex = index)
-            } else {
-                _uiState.value = TasksDetailState.Error
-            }
-        }
-    }
-
-    fun updateDragHandler(dragHandler: DragHandler) {
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState is TasksDetailState.Content) {
-                _uiState.value = currentState.copy(dragHandler = dragHandler)
-            } else {
-                _uiState.value = TasksDetailState.Error
-            }
-        }
-    }
-
 }
 
 fun convertTaskEntityListToTaskTreeNodeList(taskEntityList: List<TaskEntity>): List<TaskTreeNode> {
@@ -326,7 +283,6 @@ fun convertTaskEntityListToTaskTreeNodeList(taskEntityList: List<TaskEntity>): L
                 listOrder = taskEntity.listOrder,
                 isChecked = taskEntity.isChecked,
                 isExpanded = taskEntity.isExpanded,
-                subtaskList = emptyList()
             )
         )
         treeBuilder.addNode(taskTreeNode)
@@ -351,10 +307,6 @@ sealed interface TasksDetailState {
         val clearFocusTrigger: Boolean = false,
         val focusTaskId: Int? = null,
         val isAutoSortCheckedTasks: Boolean = true,
-        val lazyListIndexBeingDragged: Int? = null,
-        val lazyListTargetIndex: Int? = null,
-        val draggedTaskSize: Int? = null,
-        val dragHandler: DragHandler = DragHandler(),
     ) : TasksDetailState
     data object Error : TasksDetailState
     data object Loading: TasksDetailState
@@ -381,10 +333,6 @@ sealed interface TasksDetailAction {
     ): TasksDetailAction
     data object ResetClearFocusTrigger: TasksDetailAction
     data object ResetFocusTrigger: TasksDetailAction
-    data class SetDraggedTaskSize(val size: Int?): TasksDetailAction
-    data class SetLazyListTargetIndex(val index: Int?): TasksDetailAction
-    data class SetLazyListIndexBeingDragged(val index: Int?): TasksDetailAction
-    data class UpdateDragHandler(val dragHandler: DragHandler): TasksDetailAction
 }
 
 typealias TasksDetailActionHandler = (TasksDetailAction) -> Unit
