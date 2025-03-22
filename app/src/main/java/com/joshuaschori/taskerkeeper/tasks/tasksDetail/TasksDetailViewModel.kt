@@ -17,9 +17,6 @@ class TasksDetailViewModel @Inject constructor(
 ): ViewModel() {
     private val _uiState: MutableStateFlow<TasksDetailState> = MutableStateFlow(TasksDetailState.Loading)
     val uiState: StateFlow<TasksDetailState> = _uiState.asStateFlow()
-    // TODO not being used unless we're emitting something
-    /*private val _uiAction: MutableSharedFlow<TasksDetailAction> = MutableSharedFlow()
-    val uiAction: SharedFlow<TasksDetailAction> = _uiAction.asSharedFlow()*/
 
     fun addNewTask(selectedTaskId: Int?, parentId: Int?) {
         viewModelScope.launch {

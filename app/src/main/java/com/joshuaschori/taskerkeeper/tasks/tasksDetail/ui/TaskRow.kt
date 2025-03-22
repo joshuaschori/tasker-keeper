@@ -88,7 +88,7 @@ fun TaskRow(
                 interactionSource = interactionSource
             )
         }
-        if (task.subtaskList.isNotEmpty()) {
+        if (task.subtaskList != null) {
             IconButton(
                 onClick = {
                     if (task.isExpanded) {

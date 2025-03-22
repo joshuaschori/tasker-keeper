@@ -3,7 +3,9 @@ package com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListItemInfo
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragIndicator
@@ -36,48 +38,56 @@ fun TaskWithSubtasks(
     selectedTasksDetailExtensionMode: TasksDetailExtensionMode,
     focusTaskId: Int?,
     isAutoSortCheckedTasks: Boolean,
+    lazyListIndex: Int,
     lazyListIndexBeingDragged: Int?,
     lazyListTargetIndex: Int?,
     lazyListState: LazyListState,
-    lazyListIndex: Int,
     draggedTaskSize: Int?,
+    dragDirection: String,
     setDraggedTaskSize: (Int?) -> Unit,
     setLazyListIndexBeingDragged: (Int?) -> Unit,
     setLazyListTaskIdBeingDragged: (Int?) -> Unit,
     setLazyListTargetIndex: (Int?) -> Unit,
+    setDragDirection: (String) -> Unit,
     actionHandler: TasksDetailActionHandler,
 ) {
-    // TODO need to cleanup a lot of stuff post refactor, possible redundancies
+    // TODO overscroll / drag and dropping to index 0 / last index?
+    // TODO minimum and maximum steps
+    // TODO taskLayer < MAX_LAYERS_OF_SUBTASKS????
+    // TODO scrolling while dragging
+
     val density = LocalDensity.current
     val layerStepSize = 32.dp
     var thisLazyListItem: LazyListItemInfo? by remember { mutableStateOf(null) }
     var yDragOffset: Int by remember { mutableIntStateOf(0) }
     var xDrag: Float by remember { mutableFloatStateOf(0f) }
     var yDrag: Float by remember { mutableFloatStateOf(0f) }
-
     val xDragDp = with(density) { xDrag.toDp() }
     val requestedLayerChange: Int = (xDragDp / layerStepSize).roundToInt()
     val snappedDp = requestedLayerChange * layerStepSize.value
     val offsetX = with(density) { snappedDp.dp.toPx() }
 
-    // TODO overscroll
-
     Row(
         modifier = if (lazyListIndexBeingDragged != null && lazyListTargetIndex != null && draggedTaskSize != null) Modifier
             .graphicsLayer {
                 alpha = (if (lazyListIndexBeingDragged == lazyListIndex) 0.5f else 1f)
-                // TODO minimum and maximum steps
                 translationX = if (lazyListIndex == lazyListIndexBeingDragged) offsetX else 0f
                 translationY =
-                    if (lazyListIndex == lazyListIndexBeingDragged && lazyListTargetIndex < lazyListIndexBeingDragged - 1) yDrag - draggedTaskSize else yDrag
+                    if (dragDirection == "down" && lazyListIndex == lazyListIndexBeingDragged && lazyListTargetIndex == lazyListIndexBeingDragged - 1) {
+                        yDrag
+                    } else if (lazyListIndex == lazyListIndexBeingDragged && lazyListTargetIndex < lazyListIndexBeingDragged) {
+                        yDrag - draggedTaskSize
+                    } else {
+                        yDrag
+                    }
             }
             .zIndex(if (lazyListIndexBeingDragged == lazyListIndex) 1f else 0f)
             .padding(
-                top = if (lazyListIndex == lazyListTargetIndex + 1 && lazyListIndex != lazyListIndexBeingDragged && lazyListIndex != lazyListIndexBeingDragged + 1)
-                    with(density) { draggedTaskSize.toDp() / 2 } else 0.dp,
+                top = if (dragDirection == "up" && lazyListIndex == lazyListTargetIndex && lazyListIndex != lazyListIndexBeingDragged && lazyListIndex != lazyListIndexBeingDragged + 1)
+                    with(density) { draggedTaskSize.toDp() } else 0.dp,
                 bottom =
-                if (lazyListIndex == lazyListTargetIndex && lazyListIndexBeingDragged != lazyListIndex && lazyListIndex != lazyListIndexBeingDragged - 1) {
-                    with(density) { draggedTaskSize.toDp() / 2 }
+                if (dragDirection == "down" && lazyListIndex == lazyListTargetIndex && lazyListIndex != lazyListIndexBeingDragged && lazyListIndex != lazyListIndexBeingDragged - 1) {
+                    with(density) { draggedTaskSize.toDp() }
                 } else 0.dp,
             ) else Modifier
     ) {
@@ -109,6 +119,7 @@ fun TaskWithSubtasks(
                                 onDrag = { change, dragAmount ->
                                     change.consume()
                                     xDrag += dragAmount.x
+                                    setDragDirection(if (dragAmount.y < 0) "up" else "down")
                                     yDrag += dragAmount.y
                                     if (thisLazyListItem != null) {
                                         val targetLazyListItem =

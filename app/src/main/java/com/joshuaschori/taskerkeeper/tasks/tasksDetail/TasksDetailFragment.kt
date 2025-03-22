@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -27,7 +25,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -42,7 +39,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.joshuaschori.taskerkeeper.Constants.MAX_LAYERS_OF_SUBTASKS
 import com.joshuaschori.taskerkeeper.NavigationViewModel
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TaskWithSubtasks
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TasksDetailTopBar
@@ -61,18 +57,6 @@ class TasksDetailFragment: Fragment() {
         parentCategoryId = requireArguments().getInt(PARENT_CATEGORY_ID)
         tasksDetailViewModel.listenForDatabaseUpdates(parentCategoryId)
     }
-
-    // TODO not being used unless we're emitting something
-    /*override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                tasksDetailViewModel.uiAction.collect {
-                    handleAction(it)
-                }
-            }
-        }
-    }*/
 
     private fun handleAction(tasksDetailAction: TasksDetailAction) {
         when (tasksDetailAction) {
@@ -155,12 +139,13 @@ class TasksDetailFragment: Fragment() {
                 actionHandler = actionHandler,
             )
             if (taskList.isNotEmpty()) {
-                var lazyListIndexBeingDragged by remember { mutableStateOf<Int?>(null) }
                 var lazyListTaskIdBeingDragged by remember { mutableStateOf<Int?>(null) }
+                var lazyListIndexBeingDragged by remember { mutableStateOf<Int?>(null) }
                 var lazyListTargetIndex by remember { mutableStateOf<Int?>(null) }
                 var draggedTaskSize by remember { mutableStateOf<Int?>(null) }
+                var dragDirection by remember { mutableStateOf("") }
                 val lazyListState = rememberLazyListState()
-                val visibleTaskList = determineVisibleTasksAndTaskLayer(taskList, lazyListTaskIdBeingDragged)
+                val visibleTaskList = determineVisibleTasks(taskList, lazyListTaskIdBeingDragged)
                 val lazyTaskList = unpackTaskAndSubtasks(visibleTaskList)
                 LazyColumn(
                     contentPadding = PaddingValues(
@@ -172,27 +157,26 @@ class TasksDetailFragment: Fragment() {
                         .fillMaxWidth()
                         .imePadding()
                 ) {
-                    // TODO refactor, we don't need index like this
                     itemsIndexed(lazyTaskList) { index, task ->
-                        if (!task.isHidden) {
-                            TaskWithSubtasks(
-                                task = task,
-                                taskLayer = task.taskLayer,
-                                selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
-                                focusTaskId = focusTaskId,
-                                isAutoSortCheckedTasks = isAutoSortCheckedTasks,
-                                lazyListIndexBeingDragged = lazyListIndexBeingDragged,
-                                lazyListTargetIndex = lazyListTargetIndex,
-                                lazyListState = lazyListState,
-                                lazyListIndex = index,
-                                draggedTaskSize = draggedTaskSize,
-                                setDraggedTaskSize = { draggedTaskSize = it },
-                                setLazyListIndexBeingDragged = { lazyListIndexBeingDragged = it },
-                                setLazyListTaskIdBeingDragged = { lazyListTaskIdBeingDragged = it },
-                                setLazyListTargetIndex = { lazyListTargetIndex = it },
-                                actionHandler = actionHandler,
-                            )
-                        }
+                        TaskWithSubtasks(
+                            task = task,
+                            taskLayer = task.taskLayer,
+                            selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
+                            focusTaskId = focusTaskId,
+                            isAutoSortCheckedTasks = isAutoSortCheckedTasks,
+                            lazyListIndex = index,
+                            lazyListIndexBeingDragged = lazyListIndexBeingDragged,
+                            lazyListTargetIndex = lazyListTargetIndex,
+                            lazyListState = lazyListState,
+                            draggedTaskSize = draggedTaskSize,
+                            dragDirection = dragDirection,
+                            setDraggedTaskSize = { draggedTaskSize = it },
+                            setLazyListIndexBeingDragged = { lazyListIndexBeingDragged = it },
+                            setLazyListTaskIdBeingDragged = { lazyListTaskIdBeingDragged = it },
+                            setLazyListTargetIndex = { lazyListTargetIndex = it },
+                            setDragDirection = { dragDirection = it },
+                            actionHandler = actionHandler,
+                        )
                     }
                 }
             }
@@ -251,34 +235,30 @@ class TasksDetailFragment: Fragment() {
     }
 }
 
-fun determineVisibleTasksAndTaskLayer(taskList: List<Task>, lazyListTaskIdBeingDragged: Int?): List<Task> {
+private fun determineVisibleTasks (taskList: List<Task>, lazyListTaskIdBeingDragged: Int?): List<Task> {
     val updatedTasks = mutableListOf<Task>()
-    // TODO taskLayer < MAX_LAYERS_OF_SUBTASKS????
-    // TODO reverse so that Task isHidden default can be false instead of true?
-    fun traverse(task: Task, taskLayer: Int, isAboveHidden: Boolean): Task {
+    fun traverse(task: Task): Task {
         val taskWithSubtasks = task.copy(
-            subtaskList = task.subtaskList.map {
-                traverse(
-                    task = it,
-                    taskLayer = taskLayer + 1,
-                    isAboveHidden = !(!isAboveHidden && task.subtaskList.isNotEmpty() && task.isExpanded && task.taskId != lazyListTaskIdBeingDragged)
-                )
+            subtaskList = if (task.subtaskList != null && task.isExpanded && task.taskId != lazyListTaskIdBeingDragged) {
+                task.subtaskList.map { traverse(task = it) }
+            } else if (task.subtaskList == null) {
+                null
+            } else {
+                listOf()
             },
-            taskLayer = taskLayer,
-            isHidden = isAboveHidden
         )
         return taskWithSubtasks
     }
-    taskList.forEach{ updatedTasks.add(traverse(it, 0, false)) }
+    taskList.forEach{ updatedTasks.add(traverse(it)) }
     return updatedTasks
 }
 
 // returns list of Tasks, with the root Task and its subtasks in order, prepped for lazyList
-fun unpackTaskAndSubtasks(taskList: List<Task>): List<Task> {
+private fun unpackTaskAndSubtasks(taskList: List<Task>): List<Task> {
     val unpackedTaskList = mutableListOf<Task>()
     fun traverse(task: Task) {
         unpackedTaskList.add(task)
-        task.subtaskList.forEach {
+        task.subtaskList?.forEach {
             traverse(it)
         }
     }

@@ -7,7 +7,8 @@ data class Task(
     val listOrder: Int,
     val isChecked: Boolean,
     val isExpanded: Boolean,
-    val subtaskList: List<Task> = listOf(),
+    // null subtaskList represents no child tasks in database
+    // empty subtaskList given in fragment if child tasks are present in database but not being shown
+    val subtaskList: List<Task>? = null,
     val taskLayer: Int = 0,
-    val isHidden: Boolean = true,
 )
