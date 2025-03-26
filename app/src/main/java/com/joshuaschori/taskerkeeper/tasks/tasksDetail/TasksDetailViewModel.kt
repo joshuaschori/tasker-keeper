@@ -18,6 +18,7 @@ class TasksDetailViewModel @Inject constructor(
     private val _uiState: MutableStateFlow<TasksDetailState> = MutableStateFlow(TasksDetailState.Loading)
     val uiState: StateFlow<TasksDetailState> = _uiState.asStateFlow()
 
+    // TODO some of these here and in repository and dao may not be used after simplifying extension modes
     fun addNewTask(selectedTaskId: Int?, parentId: Int?) {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -144,38 +145,44 @@ class TasksDetailViewModel @Inject constructor(
         }
     }
 
-    fun rearrangeTasks(
+    fun moveTaskLayer(
         taskId: Int,
-        aboveDestinationTask: Task,
-        aboveDestinationTaskLayer: Int,
-        belowDestinationTask: Task,
-        belowDestinationTaskLayer: Int,
+        aboveTask: Task?,
+        belowTask: Task?,
         requestedLayer: Int,
     ) {
         viewModelScope.launch {
             val currentState = _uiState.value
+            // TODO have UI reflect this?
+            // TODO put at matching layer, depending on direction up or down
             // TODO allow changing task layer further down, rearranging vertically when necessary???? prioritizing horizontal or vertical??
             // TODO go back over everything and think about indexes more specifically, indexes of lazyTaskList? think about expanded or not expanded
+            // TODO consider making new empty task for parent when necessary?????
+            // TODO consider allowing any requested layer change, and reattaching children etc if necessary to reflect that UI change
             if (currentState is TasksDetailState.Content) {
+
+                /*// if above task is null, this task's parent must be null, and must already be null
+                if (aboveTask != null) {}
+                else if (belowTask == null) {}
                 // if placing your task at requested layer would break up the bottom task from the upper parent
                 // must put task at below task's layer, making above task this task's parent
-                if (belowDestinationTask.parentTaskId == aboveDestinationTask.taskId) {
+                else if (belowTask.parentTaskId == aboveTask.taskId) {
                     taskRepository.rearrangeTasks(
                         parentCategoryId = currentState.parentCategoryId,
                         taskId = taskId,
-                        parentTaskId = aboveDestinationTask.taskId,
+                        parentTaskId = aboveTask.taskId,
                         listOrder = 0,
                         autoSort = currentState.isAutoSortCheckedTasks
                     )
                 }
                 // task can either be put at the same layer, or one layer higher, making it the subtask of the above task
-                else if (belowDestinationTask.parentTaskId == aboveDestinationTask.parentTaskId) {
+                else if (belowTask.parentTaskId == aboveTask.parentTaskId) {
                     // if requesting higher layer, make this task the first subtask of above task
-                    if (requestedLayer > aboveDestinationTaskLayer) {
+                    if (requestedLayer > aboveTask.taskLayer) {
                         taskRepository.rearrangeTasks(
                             parentCategoryId = currentState.parentCategoryId,
                             taskId = taskId,
-                            parentTaskId = aboveDestinationTask.taskId,
+                            parentTaskId = aboveTask.taskId,
                             listOrder = 0,
                             autoSort = currentState.isAutoSortCheckedTasks
                         )
@@ -185,49 +192,49 @@ class TasksDetailViewModel @Inject constructor(
                         taskRepository.rearrangeTasks(
                             parentCategoryId = currentState.parentCategoryId,
                             taskId = taskId,
-                            parentTaskId = aboveDestinationTask.taskId,
-                            listOrder = aboveDestinationTask.listOrder + 1,
+                            parentTaskId = aboveTask.taskId,
+                            listOrder = aboveTask.listOrder + 1,
                             autoSort = currentState.isAutoSortCheckedTasks
                         )
                     }
                 }
                 // if above cases aren't true, then below task is not necessarily related to above task
                 // if bottom task's parent is null, this task can also have null parent (requestedLayer 0)
-                else if (belowDestinationTask.parentTaskId == null && requestedLayer <= 0) {
+                else if (belowTask.parentTaskId == null && requestedLayer <= 0) {
                     taskRepository.rearrangeTasks(
                         parentCategoryId = currentState.parentCategoryId,
                         taskId = taskId,
                         parentTaskId = null,
-                        listOrder = belowDestinationTask.listOrder,
+                        listOrder = belowTask.listOrder,
                         autoSort = currentState.isAutoSortCheckedTasks
                     )
                 }
                 // if above cases aren't true, then below task and above task must branch off at some lower layer
                 // this task's parent could be same as bottom task, or anywhere between that layer and one layer higher than above task
-                else if (requestedLayer <= belowDestinationTaskLayer) {
+                else if (requestedLayer <= belowTask.taskLayer) {
                     taskRepository.rearrangeTasks(
                         parentCategoryId = currentState.parentCategoryId,
                         taskId = taskId,
-                        parentTaskId = belowDestinationTask.parentTaskId,
-                        listOrder = belowDestinationTask.listOrder,
+                        parentTaskId = belowTask.parentTaskId,
+                        listOrder = belowTask.listOrder,
                         autoSort = currentState.isAutoSortCheckedTasks
                     )
                 }
-                else if (requestedLayer > aboveDestinationTaskLayer) {
+                else if (requestedLayer > aboveTask.taskLayer) {
                     taskRepository.rearrangeTasks(
                         parentCategoryId = currentState.parentCategoryId,
                         taskId = taskId,
-                        parentTaskId = aboveDestinationTask.taskId,
+                        parentTaskId = aboveTask.taskId,
                         listOrder = 0,
                         autoSort = currentState.isAutoSortCheckedTasks
                     )
                 }
-                else if (requestedLayer == aboveDestinationTaskLayer) {
+                else if (requestedLayer == aboveTask.taskLayer) {
                     taskRepository.rearrangeTasks(
                         parentCategoryId = currentState.parentCategoryId,
                         taskId = taskId,
-                        parentTaskId = aboveDestinationTask.parentTaskId,
-                        listOrder = aboveDestinationTask.listOrder,
+                        parentTaskId = aboveTask.parentTaskId,
+                        listOrder = aboveTask.listOrder,
                         autoSort = currentState.isAutoSortCheckedTasks
                     )
                 }
@@ -236,8 +243,82 @@ class TasksDetailViewModel @Inject constructor(
                 // determine parent of parent of above task until reaching the same layer
                 else {
                     // TODO must keep information about what layer each task is on
+                }*/
 
+            } else {
+                _uiState.value = TasksDetailState.Error
+            }
+        }
+    }
 
+    fun moveTaskOrder(
+        taskId: Int,
+        parentTaskId: Int?,
+        listOrder: Int,
+        aboveTask: Task?,
+        belowTask: Task?,
+        attachUpOrDown: YDirection,
+    ) {
+        viewModelScope.launch {
+            // TODO another bug: out of bounds crash?
+            val currentState = _uiState.value
+            if (currentState is TasksDetailState.Content) {
+                if (aboveTask == null) {
+                    // TODO bug in this case???
+                    // TODO bug resulting in improper parenting? in UI / lazy list relics maybe? fixed after recomposition
+                    // TODO bugs for both null cases
+                    // TODO bugs being caused by recomposition problems? should just pass taskId to database?
+                    // TODO should variables be moved to state for consistency?
+                    taskRepository.moveTask(
+                        parentCategoryId = currentState.parentCategoryId,
+                        taskId = taskId,
+                        parentTaskId = parentTaskId,
+                        listOrder = listOrder,
+                        destinationParentTaskId = null,
+                        destinationListOrder = 0,
+                        autoSort = currentState.isAutoSortCheckedTasks
+                    )
+                } else if (belowTask == null) {
+                    taskRepository.moveTask(
+                        parentCategoryId = currentState.parentCategoryId,
+                        taskId = taskId,
+                        parentTaskId = parentTaskId,
+                        listOrder = listOrder,
+                        destinationParentTaskId = null,
+                        destinationListOrder = aboveTask.listOrder + 1,
+                        autoSort = currentState.isAutoSortCheckedTasks
+                    )
+                } else if (belowTask.parentTaskId == aboveTask.taskId) {
+                    taskRepository.moveTask(
+                        parentCategoryId = currentState.parentCategoryId,
+                        taskId = taskId,
+                        parentTaskId = parentTaskId,
+                        listOrder = listOrder,
+                        destinationParentTaskId = aboveTask.taskId,
+                        destinationListOrder = 0,
+                        autoSort = currentState.isAutoSortCheckedTasks
+                    )
+                } else {
+                    when (attachUpOrDown) {
+                        YDirection.UP -> taskRepository.moveTask(
+                            parentCategoryId = currentState.parentCategoryId,
+                            taskId = taskId,
+                            parentTaskId = parentTaskId,
+                            listOrder = listOrder,
+                            destinationParentTaskId = belowTask.parentTaskId,
+                            destinationListOrder = belowTask.listOrder,
+                            autoSort = currentState.isAutoSortCheckedTasks
+                        )
+                        YDirection.DOWN -> taskRepository.moveTask(
+                            parentCategoryId = currentState.parentCategoryId,
+                            taskId = taskId,
+                            parentTaskId = parentTaskId,
+                            listOrder = listOrder,
+                            destinationParentTaskId = aboveTask.parentTaskId,
+                            destinationListOrder = aboveTask.listOrder + 1,
+                            autoSort = currentState.isAutoSortCheckedTasks
+                        )
+                    }
                 }
             } else {
                 _uiState.value = TasksDetailState.Error
@@ -319,15 +400,21 @@ sealed interface TasksDetailAction {
     data class MarkTaskComplete(val taskId: Int): TasksDetailAction
     data class MarkTaskIncomplete(val taskId: Int): TasksDetailAction
     data class MinimizeTask(val taskId: Int): TasksDetailAction
-    data object NavigateToTasksMenu: TasksDetailAction
-    data class RearrangeTasks(
+    data class MoveTaskLayer(
         val taskId: Int,
-        val aboveDestinationTask: Task,
-        val aboveDestinationTaskLayer: Int,
-        val belowDestinationTask: Task,
-        val belowDestinationTaskLayer: Int,
+        val aboveTask: Task?,
+        val belowTask: Task?,
         val requestedLayer: Int,
     ): TasksDetailAction
+    data class MoveTaskOrder(
+        val taskId: Int,
+        val parentTaskId: Int?,
+        val listOrder: Int,
+        val aboveTask: Task?,
+        val belowTask: Task?,
+        val attachUpOrDown: YDirection,
+    ): TasksDetailAction
+    data object NavigateToTasksMenu: TasksDetailAction
     data object ResetClearFocusTrigger: TasksDetailAction
     data object ResetFocusTrigger: TasksDetailAction
 }

@@ -69,11 +69,10 @@ class TasksDetailFragment: Fragment() {
             is TasksDetailAction.MarkTaskComplete -> tasksDetailViewModel.markTaskComplete(tasksDetailAction.taskId)
             is TasksDetailAction.MarkTaskIncomplete -> tasksDetailViewModel.markTaskIncomplete(tasksDetailAction.taskId)
             is TasksDetailAction.MinimizeTask -> tasksDetailViewModel.minimizeTask(tasksDetailAction.taskId)
+            is TasksDetailAction.MoveTaskLayer -> tasksDetailViewModel.moveTaskLayer(tasksDetailAction.taskId, tasksDetailAction.aboveTask, tasksDetailAction.belowTask, tasksDetailAction.requestedLayer)
+            is TasksDetailAction.MoveTaskOrder -> tasksDetailViewModel.moveTaskOrder(
+                tasksDetailAction.taskId, tasksDetailAction.parentTaskId, tasksDetailAction.listOrder, tasksDetailAction.aboveTask, tasksDetailAction.belowTask, tasksDetailAction.attachUpOrDown)
             is TasksDetailAction.NavigateToTasksMenu -> navigationViewModel.navigateToTasksMenu()
-            is TasksDetailAction.RearrangeTasks -> tasksDetailViewModel.rearrangeTasks(
-                tasksDetailAction.taskId, tasksDetailAction.aboveDestinationTask, tasksDetailAction.aboveDestinationTaskLayer, tasksDetailAction.belowDestinationTask,
-                tasksDetailAction.belowDestinationTaskLayer, tasksDetailAction.requestedLayer
-            )
             is TasksDetailAction.ResetClearFocusTrigger -> tasksDetailViewModel.resetClearFocusTrigger()
             is TasksDetailAction.ResetFocusTrigger -> tasksDetailViewModel.resetFocusTrigger()
         }
@@ -143,7 +142,8 @@ class TasksDetailFragment: Fragment() {
                 var lazyListIndexBeingDragged by remember { mutableStateOf<Int?>(null) }
                 var lazyListTargetIndex by remember { mutableStateOf<Int?>(null) }
                 var draggedTaskSize by remember { mutableStateOf<Int?>(null) }
-                var dragDirection by remember { mutableStateOf("") }
+                var dragOrientation by remember { mutableStateOf<XYAxis?>(null) }
+                var dragYDirection by remember { mutableStateOf<YDirection?>(null) }
                 val lazyListState = rememberLazyListState()
                 val visibleTaskList = determineVisibleTasks(taskList, lazyListTaskIdBeingDragged)
                 val lazyTaskList = unpackTaskAndSubtasks(visibleTaskList)
@@ -164,17 +164,20 @@ class TasksDetailFragment: Fragment() {
                             selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
                             focusTaskId = focusTaskId,
                             isAutoSortCheckedTasks = isAutoSortCheckedTasks,
+                            lazyTaskList = lazyTaskList,
                             lazyListIndex = index,
                             lazyListIndexBeingDragged = lazyListIndexBeingDragged,
                             lazyListTargetIndex = lazyListTargetIndex,
                             lazyListState = lazyListState,
                             draggedTaskSize = draggedTaskSize,
-                            dragDirection = dragDirection,
+                            dragOrientation = dragOrientation,
+                            dragYDirection = dragYDirection,
                             setDraggedTaskSize = { draggedTaskSize = it },
                             setLazyListIndexBeingDragged = { lazyListIndexBeingDragged = it },
                             setLazyListTaskIdBeingDragged = { lazyListTaskIdBeingDragged = it },
                             setLazyListTargetIndex = { lazyListTargetIndex = it },
-                            setDragDirection = { dragDirection = it },
+                            setDragOrientation = { dragOrientation = it },
+                            setDragYDirection = { dragYDirection = it },
                             actionHandler = actionHandler,
                         )
                     }
@@ -264,4 +267,14 @@ private fun unpackTaskAndSubtasks(taskList: List<Task>): List<Task> {
     }
     taskList.forEach{ traverse(it) }
     return unpackedTaskList
+}
+
+enum class XYAxis {
+    X,
+    Y,
+}
+
+enum class YDirection {
+    UP,
+    DOWN,
 }

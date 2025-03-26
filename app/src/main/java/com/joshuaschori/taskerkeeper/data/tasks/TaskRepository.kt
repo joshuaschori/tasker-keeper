@@ -27,6 +27,7 @@ class TaskRepository @Inject constructor(
         val newTaskId = db.taskDao().addTaskAfter(parentCategoryId, taskId).toInt()
 
         // TODO pass in remote source into repository that can send firebase data, abstractions to hide and secure
+        // TODO firebase here or in dao?
         FirebaseDatabase.getInstance().getReference()
             .child(newTaskId.toString()).setValue("")
 
@@ -69,7 +70,6 @@ class TaskRepository @Inject constructor(
 
     fun getTasks(parentCategoryId: Int) = db.taskDao().getTasks(parentCategoryId)
 
-    // TODO could probably remove some of the parentCategoryId parameters and have database pull it
     suspend fun markTaskComplete(parentCategoryId: Int, taskId: Int, autoSort: Boolean) {
         db.taskDao().markTaskComplete(parentCategoryId, taskId, autoSort)
     }
@@ -82,9 +82,8 @@ class TaskRepository @Inject constructor(
         db.taskDao().updateTaskAsMinimized(taskId)
     }
 
-    suspend fun rearrangeTasks(parentCategoryId: Int, taskId: Int, parentTaskId: Int?, listOrder: Int, autoSort: Boolean) {
-        // TODO if autosort, and moved task is completed, move it to top of completed task under parent if it isn't already in the completed tasks
-
+    suspend fun moveTask(parentCategoryId: Int, taskId: Int, parentTaskId: Int?, listOrder: Int, destinationParentTaskId: Int?, destinationListOrder: Int, autoSort: Boolean) {
+        db.taskDao().moveTask(parentCategoryId, taskId, parentTaskId, listOrder, destinationParentTaskId, destinationListOrder, autoSort)
     }
 
     suspend fun removeTask(parentCategoryId: Int, taskId: Int) {
