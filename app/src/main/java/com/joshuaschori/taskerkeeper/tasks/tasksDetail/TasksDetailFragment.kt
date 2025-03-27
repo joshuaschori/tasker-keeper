@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
@@ -122,7 +121,7 @@ class TasksDetailFragment: Fragment() {
                     Surface {
                         when (state) {
                             is TasksDetailState.Content -> TasksContent(
-                                lazyTaskList = (state as TasksDetailState.Content).lazyTaskList,
+                                taskList = (state as TasksDetailState.Content).taskList,
                                 lazyListState = (state as TasksDetailState.Content).lazyListState,
                                 selectedTasksDetailExtensionMode = (state as TasksDetailState.Content)
                                     .selectedTasksDetailExtensionMode,
@@ -131,9 +130,9 @@ class TasksDetailFragment: Fragment() {
                                 isAutoSortCheckedTasks = (state as TasksDetailState.Content)
                                     .isAutoSortCheckedTasks,
                                 draggedIndex = (state as TasksDetailState.Content).draggedIndex,
-                                dragTargetIndex = (state as TasksDetailState.Content).dragTargetIndex,
                                 draggedTaskSize = (state as TasksDetailState.Content).draggedTaskSize,
                                 dragOrientation = (state as TasksDetailState.Content).dragOrientation,
+                                dragTargetIndex = (state as TasksDetailState.Content).dragTargetIndex,
                                 dragYDirection = (state as TasksDetailState.Content).dragYDirection,
                                 actionHandler = { handleAction(it) },
                             )
@@ -148,16 +147,16 @@ class TasksDetailFragment: Fragment() {
 
     @Composable
     fun TasksContent(
-        lazyTaskList: List<Task>,
+        taskList: List<Task>,
         lazyListState: LazyListState,
         selectedTasksDetailExtensionMode: TasksDetailExtensionMode,
         clearFocusTrigger: Boolean,
         focusTaskId: Int?,
         isAutoSortCheckedTasks: Boolean,
         draggedIndex: Int?,
-        dragTargetIndex: Int?,
         draggedTaskSize: Int?,
         dragOrientation: XYAxis?,
+        dragTargetIndex: Int?,
         dragYDirection: YDirection?,
         actionHandler: TasksDetailActionHandler,
     ) {
@@ -179,7 +178,7 @@ class TasksDetailFragment: Fragment() {
                 selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
                 actionHandler = actionHandler,
             )
-            if (lazyTaskList.isNotEmpty()) {
+            if (taskList.isNotEmpty()) {
                 LazyColumn(
                     contentPadding = PaddingValues(
                         start = 16.dp, top = 32.dp, end = 16.dp, bottom = 320.dp
@@ -190,7 +189,7 @@ class TasksDetailFragment: Fragment() {
                         .fillMaxWidth()
                         .imePadding()
                 ) {
-                    itemsIndexed(lazyTaskList) { index, task ->
+                    itemsIndexed(taskList) { index, task ->
                         TaskWithSubtasks(
                             task = task,
                             taskLayer = task.taskLayer,

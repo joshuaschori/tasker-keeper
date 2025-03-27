@@ -69,19 +69,6 @@ fun TaskExtensions(
                     )
                 }
             }
-            TasksDetailExtensionMode.REARRANGE -> {
-                // TODO rearrange functionality
-                IconButton(
-                    onClick = {
-                        actionHandler(TasksDetailAction.ClearFocus)
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.DragHandle,
-                        contentDescription = "Rearrange",
-                    )
-                }
-            }
             TasksDetailExtensionMode.DELETE -> {
                 IconButton(
                     onClick = {

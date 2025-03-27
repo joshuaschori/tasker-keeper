@@ -118,7 +118,7 @@ fun TaskWithSubtasks(
                     contentDescription = "Rearrange",
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
-                        .pointerInput(task.taskId) {
+                        .pointerInput(task.taskId, task.parentTaskId) {
                             detectDragGestures(
                                 onDragStart = { offset ->
                                     yDragClickOffset = offset.y.toInt()

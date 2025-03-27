@@ -86,10 +86,6 @@ fun TasksDetailTopBar(
                                     imageVector = Icons.Filled.SubdirectoryArrowRight,
                                     contentDescription = TasksDetailExtensionMode.ADD_NEW_SUBTASK.contentDescription,
                                 )
-                                TasksDetailExtensionMode.REARRANGE -> Icon(
-                                    imageVector = Icons.Filled.DragHandle,
-                                    contentDescription = TasksDetailExtensionMode.REARRANGE.contentDescription,
-                                )
                                 TasksDetailExtensionMode.DELETE -> Icon(
                                     imageVector = Icons.Filled.DeleteForever,
                                     contentDescription = TasksDetailExtensionMode.DELETE.contentDescription,
