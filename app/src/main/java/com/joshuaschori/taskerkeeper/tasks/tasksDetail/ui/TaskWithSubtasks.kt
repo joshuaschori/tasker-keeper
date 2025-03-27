@@ -25,8 +25,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.joshuaschori.taskerkeeper.Constants.MAX_LAYERS_OF_SUBTASKS
-import com.joshuaschori.taskerkeeper.tasks.tasksDetail.XYAxis
-import com.joshuaschori.taskerkeeper.tasks.tasksDetail.YDirection
+import com.joshuaschori.taskerkeeper.XYAxis
+import com.joshuaschori.taskerkeeper.YDirection
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailAction
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailActionHandler

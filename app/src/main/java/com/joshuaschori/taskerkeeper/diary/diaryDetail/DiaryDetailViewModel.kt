@@ -3,9 +3,6 @@ package com.joshuaschori.taskerkeeper.diary.diaryDetail
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joshuaschori.taskerkeeper.data.diary.DiaryRepository
-import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailState
-import com.joshuaschori.taskerkeeper.tasks.tasksDetail.convertTaskEntityListToTaskTreeNodeList
-import com.joshuaschori.taskerkeeper.tasks.tasksDetail.convertTaskTreeNodeListToTaskList
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

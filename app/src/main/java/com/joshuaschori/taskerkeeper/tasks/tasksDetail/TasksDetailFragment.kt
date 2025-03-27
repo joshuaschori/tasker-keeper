@@ -37,6 +37,8 @@ import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joshuaschori.taskerkeeper.NavigationViewModel
+import com.joshuaschori.taskerkeeper.XYAxis
+import com.joshuaschori.taskerkeeper.YDirection
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TaskWithSubtasks
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TasksDetailTopBar
 import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
@@ -189,6 +191,7 @@ class TasksDetailFragment: Fragment() {
                         .fillMaxWidth()
                         .imePadding()
                 ) {
+                    // TODO look more into key???
                     itemsIndexed(taskList) { index, task ->
                         TaskWithSubtasks(
                             task = task,

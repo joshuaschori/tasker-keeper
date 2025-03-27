@@ -4,17 +4,14 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.joshuaschori.taskerkeeper.data.tasks.TaskEntity
+import com.joshuaschori.taskerkeeper.XYAxis
+import com.joshuaschori.taskerkeeper.YDirection
 import com.joshuaschori.taskerkeeper.data.tasks.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.abs
@@ -27,7 +24,7 @@ class TasksDetailViewModel @Inject constructor(
     val uiState: StateFlow<TasksDetailState> = _uiState.asStateFlow()
     private val draggedTaskIdStateFlow: MutableStateFlow<Int?> = MutableStateFlow(null)
 
-    // TODO some of these here and in repository and dao may not be used after simplifying extension modes
+    // TODO some of these here and in repository and dao may not be used after simplifying extension modes?
     fun addNewTask(selectedTaskId: Int?, parentId: Int?) {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -111,32 +108,29 @@ class TasksDetailViewModel @Inject constructor(
             combine(taskRepository.getTasks(parentCategoryId), draggedTaskIdStateFlow) { taskEntityList, draggedTaskId ->
                 Pair(taskEntityList, draggedTaskId)
             }.collect { (taskEntityList, draggedTaskId) ->
-                val treeList = convertTaskEntityListToTaskTreeNodeList(taskEntityList)
-                val taskList = convertTaskTreeNodeListToTaskList(treeList)
-                val currentState = _uiState.value
-                if (currentState is TasksDetailState.Content) {
-                    _uiState.value = currentState.copy(
-                        taskList = unpackTaskAndSubtasks(
-                            determineVisibleTasks(
-                                taskList = taskList,
-                                lazyListTaskIdBeingDragged = draggedTaskId
-                            )
-                        ),
-                        lazyListState = LazyListState()
-                    )
-                } else if (currentState is TasksDetailState.Loading) {
-                    _uiState.value = TasksDetailState.Content(
-                        parentCategoryId = parentCategoryId,
-                        taskList = unpackTaskAndSubtasks(
-                            determineVisibleTasks(
-                                taskList = taskList,
-                                lazyListTaskIdBeingDragged = null
-                            )
-                        ),
-                        lazyListState = LazyListState()
-                    )
-                } else {
-                    _uiState.value = TasksDetailState.Error
+                when (val currentState = _uiState.value) {
+                    is TasksDetailState.Content -> {
+                        _uiState.value = currentState.copy(
+                            taskList = TaskListBuilder().prepareTaskList(
+                                taskEntityList = taskEntityList,
+                                draggedTaskId = draggedTaskId
+                            ),
+                            lazyListState = LazyListState()
+                        )
+                    }
+                    is TasksDetailState.Loading -> {
+                        _uiState.value = TasksDetailState.Content(
+                            parentCategoryId = parentCategoryId,
+                            taskList = TaskListBuilder().prepareTaskList(
+                                taskEntityList = taskEntityList,
+                                draggedTaskId = draggedTaskId
+                            ),
+                            lazyListState = LazyListState()
+                        )
+                    }
+                    else -> {
+                        _uiState.value = TasksDetailState.Error
+                    }
                 }
             }
         }
@@ -271,9 +265,7 @@ class TasksDetailViewModel @Inject constructor(
                 // if all above cases aren't true, then we must determine the parent from the requested task layer
                 // the requested task layer must be on the level of an extended parent somewhere in between the above and below tasks' layers
                 // determine parent of parent of above task until reaching the same layer
-                else {
-                    // TODO must keep information about what layer each task is on
-                }*/
+                else {}*/
 
             } else {
                 _uiState.value = TasksDetailState.Error
@@ -293,7 +285,6 @@ class TasksDetailViewModel @Inject constructor(
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
                 if (aboveTask == null) {
-                    // TODO rename attachUpOrDown???
                     taskRepository.moveTask(
                         parentCategoryId = currentState.parentCategoryId,
                         taskId = taskId,
@@ -330,8 +321,8 @@ class TasksDetailViewModel @Inject constructor(
                             taskId = taskId,
                             parentTaskId = parentTaskId,
                             listOrder = listOrder,
-                            destinationParentTaskId = belowTask.parentTaskId,
-                            destinationListOrder = belowTask.listOrder,
+                            destinationParentTaskId = aboveTask.parentTaskId,
+                            destinationListOrder = aboveTask.listOrder + 1,
                             autoSort = currentState.isAutoSortCheckedTasks
                         )
                         YDirection.DOWN -> taskRepository.moveTask(
@@ -339,8 +330,8 @@ class TasksDetailViewModel @Inject constructor(
                             taskId = taskId,
                             parentTaskId = parentTaskId,
                             listOrder = listOrder,
-                            destinationParentTaskId = aboveTask.parentTaskId,
-                            destinationListOrder = aboveTask.listOrder + 1,
+                            destinationParentTaskId = belowTask.parentTaskId,
+                            destinationListOrder = belowTask.listOrder,
                             autoSort = currentState.isAutoSortCheckedTasks
                         )
                     }
@@ -399,7 +390,10 @@ class TasksDetailViewModel @Inject constructor(
                                     YDirection.UP -> lazyTaskList[dragTargetIndex]
                                     YDirection.DOWN -> if (dragTargetIndex + 1 < lazyTaskList.size) lazyTaskList[dragTargetIndex + 1] else null
                                 },
-                                attachUpOrDown = dragYDirection
+                                attachUpOrDown = when (dragYDirection) {
+                                    YDirection.UP -> YDirection.DOWN
+                                    YDirection.DOWN -> YDirection.UP
+                                }
                             )
                         }
                         XYAxis.X -> if (requestedLayerChange != 0) {
@@ -435,7 +429,6 @@ class TasksDetailViewModel @Inject constructor(
             if (currentState is TasksDetailState.Content) {
                 _uiState.value = currentState.copy(
                     draggedIndex = null,
-                    draggedTaskId = null,
                     draggedTaskSize = null,
                     dragOrientation = null,
                     dragTargetIndex = null,
@@ -465,7 +458,6 @@ class TasksDetailViewModel @Inject constructor(
             if (currentState is TasksDetailState.Content) {
                 _uiState.value = currentState.copy(
                     draggedIndex = index,
-                    draggedTaskId = taskId,
                     draggedTaskSize = size,
                 )
                 draggedTaskIdStateFlow.value = taskId
@@ -526,7 +518,6 @@ sealed interface TasksDetailState {
         val focusTaskId: Int? = null,
         val isAutoSortCheckedTasks: Boolean = true,
         val draggedIndex: Int? = null,
-        val draggedTaskId: Int? = null,
         val draggedTaskSize: Int? = null,
         val dragOrientation: XYAxis? = null,
         val dragTargetIndex: Int? = null,
@@ -578,74 +569,3 @@ sealed interface TasksDetailAction {
 }
 
 typealias TasksDetailActionHandler = (TasksDetailAction) -> Unit
-
-fun convertTaskEntityListToTaskTreeNodeList(taskEntityList: List<TaskEntity>): List<TaskTreeNode> {
-    val treeBuilder = TaskTreeBuilder()
-    taskEntityList.forEach { taskEntity ->
-        val taskTreeNode = TaskTreeNode(
-            Task(
-                taskId = taskEntity.taskId,
-                parentTaskId = taskEntity.parentTaskId,
-                description = taskEntity.description,
-                listOrder = taskEntity.listOrder,
-                isChecked = taskEntity.isChecked,
-                isExpanded = taskEntity.isExpanded,
-            )
-        )
-        treeBuilder.addNode(taskTreeNode)
-    }
-    val tree = treeBuilder.buildTree()
-    return tree
-}
-
-fun convertTaskTreeNodeListToTaskList(taskTreeNodeList: List<TaskTreeNode>): List<Task> {
-    val taskList: MutableList<Task> = mutableListOf()
-    for (node in taskTreeNodeList) {
-        taskList.add(node.preOrderTraversal())
-    }
-    return taskList
-}
-
-// TODO make one function for unpacking lazy list?
-private fun determineVisibleTasks (taskList: List<Task>, lazyListTaskIdBeingDragged: Int?): List<Task> {
-    val updatedTasks = mutableListOf<Task>()
-    fun traverse(task: Task): Task {
-        val taskWithSubtasks = task.copy(
-            subtaskList = if (task.subtaskList != null && task.isExpanded && task.taskId != lazyListTaskIdBeingDragged) {
-                task.subtaskList.map { traverse(task = it) }
-            } else if (task.subtaskList == null) {
-                null
-            } else {
-                listOf()
-            },
-        )
-        return taskWithSubtasks
-    }
-    taskList.forEach{ updatedTasks.add(traverse(it)) }
-    return updatedTasks
-}
-
-// returns list of Tasks, with the root Task and its subtasks in order, prepped for lazyList
-private fun unpackTaskAndSubtasks(taskList: List<Task>): List<Task> {
-    val unpackedTaskList = mutableListOf<Task>()
-    fun traverse(task: Task) {
-        unpackedTaskList.add(task)
-        task.subtaskList?.forEach {
-            traverse(it)
-        }
-    }
-    taskList.forEach{ traverse(it) }
-    return unpackedTaskList
-}
-
-enum class XYAxis {
-    X,
-    Y,
-}
-
-enum class YDirection {
-    UP,
-    DOWN,
-}
-
-// TODO move these?
