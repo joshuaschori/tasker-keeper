@@ -111,18 +111,23 @@ interface TaskDao {
     @Transaction
     suspend fun moveTask(parentCategoryId: Int, taskId: Int, parentTaskId: Int?, listOrder: Int, destinationParentTaskId: Int?, destinationListOrder: Int, autoSort: Boolean) {
         if (parentTaskId == destinationParentTaskId) {
-            /*if (destinationListOrder < listOrder) {
+            if (destinationListOrder < listOrder) {
                 incrementTasks(
                     parentCategoryId = parentCategoryId,
                     parentTaskId = parentTaskId,
                     listOrder = destinationListOrder
                 )
-                moveTaskById(
-                    parentCategoryId = parentCategoryId,
-                    parentTaskIdFrom = parentTaskId,
+                updateListOrder(
                     taskId = taskId,
-                    parentTaskIdTo = parentTaskId,
-                    listOrderTo = destinationListOrder
+                    listOrder = -1
+                )
+                updateParent(
+                    taskId = taskId,
+                    parentTaskId = destinationParentTaskId
+                )
+                updateListOrder(
+                    taskId = taskId,
+                    listOrder = destinationListOrder
                 )
                 decrementTasks(
                     parentCategoryId = parentCategoryId,
@@ -136,26 +141,30 @@ interface TaskDao {
                     parentTaskId = parentTaskId,
                     listOrder = destinationListOrder
                 )
-                moveTaskById(
-                    parentCategoryId = parentCategoryId,
-                    parentTaskIdFrom = parentTaskId,
+                updateListOrder(
                     taskId = taskId,
-                    parentTaskIdTo = parentTaskId,
-                    listOrderTo = destinationListOrder
+                    listOrder = -1
+                )
+                updateParent(
+                    taskId = taskId,
+                    parentTaskId = destinationParentTaskId
+                )
+                updateListOrder(
+                    taskId = taskId,
+                    listOrder = destinationListOrder
                 )
                 decrementTasks(
                     parentCategoryId = parentCategoryId,
                     parentTaskId = parentTaskId,
                     listOrder = listOrder
                 )
-            }*/
+            }
         } else {
             incrementTasks(
                 parentCategoryId = parentCategoryId,
                 parentTaskId = destinationParentTaskId,
                 listOrder = destinationListOrder
             )
-            // TODO unique order?
             updateListOrder(
                 taskId = taskId,
                 listOrder = -1

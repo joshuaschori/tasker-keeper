@@ -3,13 +3,14 @@ package com.joshuaschori.taskerkeeper.data.tasks
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "tasks",
     // TODO indices in entities?
     /*indices = [
-        Index(value = ["list_order"], unique = false),
+        Index(value = ["parent_task_id","list_order"], unique = false),
     ],*/
     foreignKeys = [
         ForeignKey(
