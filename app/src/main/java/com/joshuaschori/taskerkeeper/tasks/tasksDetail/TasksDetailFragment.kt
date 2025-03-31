@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
@@ -87,11 +89,14 @@ class TasksDetailFragment: Fragment() {
                 requestedLayer = tasksDetailAction.requestedLayer
             )
             is TasksDetailAction.NavigateToTasksMenu -> navigationViewModel.navigateToTasksMenu()
-            is TasksDetailAction.OnDrag -> tasksDetailViewModel.onDrag(dragAmount = tasksDetailAction.dragAmount)
-            is TasksDetailAction.OnDragEnd -> tasksDetailViewModel.onDragEnd(
-                thisTask = tasksDetailAction.thisTask,
+            is TasksDetailAction.OnDrag -> tasksDetailViewModel.onDrag(
+                task = tasksDetailAction.task,
+                dragAmount = tasksDetailAction.dragAmount,
+                dragOffsetTotal = tasksDetailAction.dragOffsetTotal,
+                lazyListState = tasksDetailAction.lazyListState,
                 requestedLayerChange = tasksDetailAction.requestedLayerChange
             )
+            is TasksDetailAction.OnDragEnd -> tasksDetailViewModel.onDragEnd()
             is TasksDetailAction.ResetClearFocusTrigger -> tasksDetailViewModel.resetClearFocusTrigger()
             is TasksDetailAction.ResetDragHandlers -> tasksDetailViewModel.resetDragHandlers()
             is TasksDetailAction.ResetFocusTrigger -> tasksDetailViewModel.resetFocusTrigger()
@@ -100,9 +105,6 @@ class TasksDetailFragment: Fragment() {
                 index = tasksDetailAction.index,
                 size = tasksDetailAction.size
             )
-            is TasksDetailAction.SetDragMode -> tasksDetailViewModel.setDragMode(dragMode = tasksDetailAction.dragMode)
-            is TasksDetailAction.SetDragTargetIndex -> tasksDetailViewModel.setDragTargetIndex(dragOffsetTotal = tasksDetailAction.dragOffsetTotal)
-            is TasksDetailAction.SetDragYDirection -> tasksDetailViewModel.setDragYDirection(direction = tasksDetailAction.direction)
         }
     }
 
@@ -121,7 +123,6 @@ class TasksDetailFragment: Fragment() {
                         when (state) {
                             is TasksDetailState.Content -> TasksContent(
                                 taskList = (state as TasksDetailState.Content).taskList,
-                                lazyListState = (state as TasksDetailState.Content).lazyListState,
                                 selectedTasksDetailExtensionMode = (state as TasksDetailState.Content)
                                     .selectedTasksDetailExtensionMode,
                                 clearFocusTrigger = (state as TasksDetailState.Content).clearFocusTrigger,
@@ -133,6 +134,7 @@ class TasksDetailFragment: Fragment() {
                                 dragMode = (state as TasksDetailState.Content).dragMode,
                                 dragTargetIndex = (state as TasksDetailState.Content).dragTargetIndex,
                                 dragYDirection = (state as TasksDetailState.Content).dragYDirection,
+                                dragRequestedLayerChange = (state as TasksDetailState.Content).dragRequestedLayerChange,
                                 actionHandler = { handleAction(it) },
                             )
                             is TasksDetailState.Error -> TasksError()
@@ -147,7 +149,6 @@ class TasksDetailFragment: Fragment() {
     @Composable
     fun TasksContent(
         taskList: List<Task>,
-        lazyListState: LazyListState,
         selectedTasksDetailExtensionMode: TasksDetailExtensionMode,
         clearFocusTrigger: Boolean,
         focusTaskId: Int?,
@@ -157,6 +158,7 @@ class TasksDetailFragment: Fragment() {
         dragMode: DragMode?,
         dragTargetIndex: Int?,
         dragYDirection: YDirection?,
+        dragRequestedLayerChange: Int?,
         actionHandler: TasksDetailActionHandler,
     ) {
         val focusManager = LocalFocusManager.current
@@ -178,6 +180,7 @@ class TasksDetailFragment: Fragment() {
                 actionHandler = actionHandler,
             )
             if (taskList.isNotEmpty()) {
+                val lazyListState = rememberLazyListState()
                 LazyColumn(
                     contentPadding = PaddingValues(
                         start = 16.dp, top = 32.dp, end = 16.dp, bottom = 320.dp
@@ -189,19 +192,19 @@ class TasksDetailFragment: Fragment() {
                         .imePadding()
                 ) {
                     // TODO look more into key???
-                    itemsIndexed(taskList) { index, _ ->
+                    items(taskList) { task ->
                         TaskWithSubtasks(
-                            taskList = taskList,
+                            task = task,
                             selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
                             focusTaskId = focusTaskId,
                             isAutoSortCheckedTasks = isAutoSortCheckedTasks,
-                            lazyListIndex = index,
                             lazyListState = lazyListState,
                             draggedIndex = draggedIndex,
                             draggedTaskSize = draggedTaskSize,
                             dragMode = dragMode,
                             dragTargetIndex = dragTargetIndex,
                             dragYDirection = dragYDirection,
+                            dragRequestedLayerChange = dragRequestedLayerChange,
                             actionHandler = actionHandler,
                         )
                     }

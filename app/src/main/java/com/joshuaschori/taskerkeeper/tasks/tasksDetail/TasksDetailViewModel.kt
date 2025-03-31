@@ -116,7 +116,6 @@ class TasksDetailViewModel @Inject constructor(
                                 draggedTaskId = currentState.draggedTaskId,
                                 dragMode = currentState.dragMode
                             ),
-                            lazyListState = LazyListState()
                         )
                     }
                     is TasksDetailState.Loading -> {
@@ -127,7 +126,6 @@ class TasksDetailViewModel @Inject constructor(
                                 draggedTaskId = null,
                                 dragMode = null
                             ),
-                            lazyListState = LazyListState()
                         )
                     }
                     else -> {
@@ -311,15 +309,6 @@ class TasksDetailViewModel @Inject constructor(
                             // task can be placed on layers 0 through taskAboveDestination.taskLayer + 1
                             // if not being placed on same layer as taskAboveDestination or its layer + 1, then must find previous task at requested layer
                             when (requestedLayer) {
-                                0 -> taskRepository.moveTask(
-                                    parentCategoryId = currentState.parentCategoryId,
-                                    taskId = thisTask.taskId,
-                                    parentTaskId = thisTask.parentTaskId,
-                                    listOrder = thisTask.listOrder,
-                                    destinationParentTaskId = null,
-                                    destinationListOrder = currentState.taskList.size,
-                                    autoSort = currentState.isAutoSortCheckedTasks
-                                )
                                 taskAboveDestination.taskLayer -> {
                                     taskRepository.moveTask(
                                         parentCategoryId = currentState.parentCategoryId,
@@ -343,7 +332,7 @@ class TasksDetailViewModel @Inject constructor(
                                     )
                                 }
                                 else -> {
-                                    if (requestedLayer > 0 && requestedLayer < taskAboveDestination.taskLayer) {
+                                    if (requestedLayer >= 0 && requestedLayer < taskAboveDestination.taskLayer) {
                                         val previousTaskAtRequestedLayer = findPreviousTaskAtRequestedLayer(
                                             aboveTask = taskAboveDestination,
                                             taskList = currentState.taskList,
@@ -547,53 +536,40 @@ class TasksDetailViewModel @Inject constructor(
         }
     }
 
-    fun onDrag(dragAmount: Offset) {
+    fun onDrag(task: Task, dragAmount: Offset, dragOffsetTotal: Int, lazyListState: LazyListState, requestedLayerChange: Int) {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
-                val dragMode = currentState.dragMode
-                if (dragMode == null) {
-                    if (abs(dragAmount.y) > abs(dragAmount.x)) {
-                        setDragMode(DragMode.REARRANGE)
-                        if (dragAmount.y > 0) {
-                            setDragYDirection(YDirection.DOWN)
-                        } else {
-                            setDragYDirection(YDirection.UP)
-                        }
-                    } else {
-                        setDragMode(DragMode.CHANGE_LAYER)
-                    }
-                } else if (dragMode == DragMode.REARRANGE) {
-                    if (abs(dragAmount.y) > abs(dragAmount.x)) {
-                        setDragYDirection(if (dragAmount.y < 0) YDirection.UP else YDirection.DOWN)
-                    }
-                }
-            } else {
-                _uiState.value = TasksDetailState.Error
-            }
-        }
-    }
 
-    fun onDragEnd(
-        thisTask: Task,
-        requestedLayerChange: Int,
-    ) {
-        // TODO make extra protection, possible layer change calculated here as well as UI reflection
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState is TasksDetailState.Content) {
-                val dragMode = currentState.dragMode
-                val dragYDirection = currentState.dragYDirection
-                val dragTargetIndex = currentState.dragTargetIndex
+                val dragMode = currentState.dragMode ?: if (abs(dragAmount.y) > abs(dragAmount.x)) {
+                    DragMode.REARRANGE
+                } else {
+                    DragMode.CHANGE_LAYER
+                }
+
+                val onDragModeChangeTriggerDatabase: Boolean = currentState.dragMode != dragMode
+
+                val dragYDirection = if (dragMode == DragMode.REARRANGE) {
+                    if (abs(dragAmount.y) > abs(dragAmount.x)) {
+                        if (dragAmount.y > 0) {
+                            YDirection.DOWN
+                        } else {
+                            YDirection.UP
+                        }
+                    } else { currentState.dragYDirection }
+                } else { null }
+
+                val dragTargetIndex = lazyListState.layoutInfo.visibleItemsInfo.find { item ->
+                    dragOffsetTotal in item.offset..item.offset + item.size
+                }?.index ?: currentState.dragTargetIndex
+
                 val taskList = currentState.taskList
 
-                val targetAboveTask: Task? = if (dragTargetIndex == null || dragMode == null) {
-                    null
-                } else {
+                val targetAboveTask: Task? = if (dragTargetIndex != null) {
                     when (dragMode) {
-                        DragMode.CHANGE_LAYER -> if (thisTask.lazyListIndex > 0) taskList[thisTask.lazyListIndex - 1] else null
-                        DragMode.REARRANGE -> if (thisTask.lazyListIndex == dragTargetIndex) {
-                            if (thisTask.lazyListIndex > 0) taskList[thisTask.lazyListIndex - 1] else null
+                        DragMode.CHANGE_LAYER -> if (task.lazyListIndex > 0) taskList[task.lazyListIndex - 1] else null
+                        DragMode.REARRANGE -> if (task.lazyListIndex == dragTargetIndex) {
+                            if (task.lazyListIndex > 0) taskList[task.lazyListIndex - 1] else null
                         } else {
                             when (dragYDirection) {
                                 YDirection.UP -> if (dragTargetIndex > 0) taskList[dragTargetIndex - 1] else null
@@ -602,15 +578,13 @@ class TasksDetailViewModel @Inject constructor(
                             }
                         }
                     }
-                }
+                } else { null }
 
-                val targetBelowTask: Task? = if (dragTargetIndex == null || dragMode == null) {
-                    null
-                } else {
+                val targetBelowTask: Task? = if (dragTargetIndex != null) {
                     when (dragMode) {
-                        DragMode.CHANGE_LAYER -> if (thisTask.lazyListIndex < taskList.size - 1) taskList[thisTask.lazyListIndex + 1] else null
-                        DragMode.REARRANGE -> if (thisTask.lazyListIndex == dragTargetIndex) {
-                            if (thisTask.lazyListIndex < taskList.size - 1) taskList[thisTask.lazyListIndex + 1] else null
+                        DragMode.CHANGE_LAYER -> if (task.lazyListIndex < taskList.size - 1) taskList[task.lazyListIndex + 1] else null
+                        DragMode.REARRANGE -> if (task.lazyListIndex == dragTargetIndex) {
+                            if (task.lazyListIndex < taskList.size - 1) taskList[task.lazyListIndex + 1] else null
                         } else {
                             when (dragYDirection) {
                                 YDirection.UP -> taskList[dragTargetIndex]
@@ -619,83 +593,82 @@ class TasksDetailViewModel @Inject constructor(
                             }
                         }
                     }
-                }
+                } else { null }
 
-                //TODO check these and everything for new logic of destination being same as thisTask, also reflect in TaskWithSubtasks UI logic ?????
-                // (I think I was already imagining logic as if it was this)
-                // TODO can all this be moved to TaskWithSubtasks or no????? internal variable?
-                // TODO should above and below task be state variables?
-                val allowedMinimumLayer: Int = if (dragTargetIndex == null || dragMode == null || (targetAboveTask == null && targetBelowTask == null)) {
-                    0
-                } else {
+                val allowedMinimumLayer: Int = if (dragTargetIndex != null && !(targetAboveTask == null && targetBelowTask == null)) {
                     when (dragMode) {
-                        DragMode.REARRANGE -> if (targetAboveTask == null || targetBelowTask == null || targetBelowTask.parentTaskId == null) {
-                            0
-                        } else {
-                            targetBelowTask.taskLayer
-                        }
-                        DragMode.CHANGE_LAYER -> if (targetAboveTask == null || targetBelowTask == null || targetBelowTask.parentTaskId == null) {
-                            0
-                        } else {
-                            targetBelowTask.taskLayer - 1
-                        }
+                        DragMode.REARRANGE -> if (targetAboveTask != null && targetBelowTask != null && targetBelowTask.parentTaskId != null) { targetBelowTask.taskLayer } else { 0 }
+                        DragMode.CHANGE_LAYER -> if (targetAboveTask != null && targetBelowTask != null && targetBelowTask.parentTaskId != null) { targetBelowTask.taskLayer - 1 } else { 0 }
                     }
-                }
+                } else { 0 }
 
-                val allowedMaximumLayer: Int = if (dragTargetIndex == null || dragMode == null) {
-                    0
-                } else {
+                val allowedMaximumLayer: Int = if (dragTargetIndex != null && !(targetAboveTask == null && targetBelowTask == null)) {
                     when (dragMode) {
-                        DragMode.REARRANGE -> if (targetAboveTask == null) {
-                            0
-                        } else {
-                            targetAboveTask.taskLayer + 1
-                        }
-                        DragMode.CHANGE_LAYER -> if (targetAboveTask == null) {
-                            0
-                        } else {
-                            targetAboveTask.taskLayer + 1
-                        }
+                        DragMode.REARRANGE -> if (targetAboveTask != null) { targetAboveTask.taskLayer + 1 } else { 0 }
+                        DragMode.CHANGE_LAYER -> if (targetAboveTask != null) { targetAboveTask.taskLayer + 1 } else { 0 }
                     }
-                }
+                } else { 0 }
 
-                val allowedLayerChange: Int = if (thisTask.taskLayer + requestedLayerChange < allowedMinimumLayer) {
-                    allowedMinimumLayer - thisTask.taskLayer
-                } else if (thisTask.taskLayer + requestedLayerChange > allowedMaximumLayer) {
-                    allowedMaximumLayer - thisTask.taskLayer
+                val allowedLayerChange: Int = if (task.taskLayer + requestedLayerChange < allowedMinimumLayer) {
+                    allowedMinimumLayer - task.taskLayer
+                } else if (task.taskLayer + requestedLayerChange > allowedMaximumLayer) {
+                    allowedMaximumLayer - task.taskLayer
                 } else {
                     requestedLayerChange
                 }
 
-                val requestedLayer = thisTask.taskLayer + allowedLayerChange
+                _uiState.value = currentState.copy(
+                    dragMode = dragMode,
+                    dragYDirection = dragYDirection,
+                    dragTargetIndex = dragTargetIndex,
+                    dragTaskAboveDestination = targetAboveTask,
+                    dragTaskBelowDestination = targetBelowTask,
+                    dragRequestedLayerChange = allowedLayerChange
+                )
 
-                // TODO delete println
-                /*println("thisTask: $thisTask")
-                println("targetAboveTask: $targetAboveTask")
-                println("targetBelowTask: $targetBelowTask")
-                println("requestedLayer: $requestedLayer")
-                println(" ")*/
+                if (onDragModeChangeTriggerDatabase) { triggerDatabase.emit(!triggerDatabase.value) }
 
-                if (dragTargetIndex != null && dragMode != null) {
-                    when (dragMode) {
-                        DragMode.REARRANGE -> if (dragYDirection != null && !(dragTargetIndex == thisTask.lazyListIndex && requestedLayer == thisTask.taskLayer)) {
-                            moveTaskOrder(
-                                thisTask = thisTask,
-                                taskAboveDestination = targetAboveTask,
-                                taskBelowDestination = targetBelowTask,
-                                requestedLayer = requestedLayer
-                            )
-                        }
-                        DragMode.CHANGE_LAYER -> if (requestedLayer != thisTask.taskLayer) {
-                            moveTaskLayer(
-                                taskId = thisTask.taskId,
-                                aboveTask = targetAboveTask,
-                                belowTask = targetBelowTask,
-                                requestedLayer = requestedLayer
-                            )
-                        }
+            } else {
+                _uiState.value = TasksDetailState.Error
+            }
+        }
+    }
+
+    fun onDragEnd() {
+        // TODO make extra protection, possible layer change calculated here as well as UI reflection
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is TasksDetailState.Content && currentState.draggedIndex != null
+                && currentState.dragRequestedLayerChange != null && currentState.dragTargetIndex != null
+                && currentState.dragMode != null
+            ) {
+                val thisTask = currentState.taskList[currentState.draggedIndex]
+                val dragMode = currentState.dragMode
+                val dragYDirection = currentState.dragYDirection
+                val dragTargetIndex = currentState.dragTargetIndex
+                val targetAboveTask = currentState.dragTaskAboveDestination
+                val targetBelowTask = currentState.dragTaskBelowDestination
+                val requestedLayer = thisTask.taskLayer + currentState.dragRequestedLayerChange
+
+                when (dragMode) {
+                    DragMode.REARRANGE -> if (dragYDirection != null && !(dragTargetIndex == thisTask.lazyListIndex && requestedLayer == thisTask.taskLayer)) {
+                        moveTaskOrder(
+                            thisTask = thisTask,
+                            taskAboveDestination = targetAboveTask,
+                            taskBelowDestination = targetBelowTask,
+                            requestedLayer = requestedLayer
+                        )
+                    }
+                    DragMode.CHANGE_LAYER -> if (requestedLayer != thisTask.taskLayer) {
+                        moveTaskLayer(
+                            taskId = thisTask.taskId,
+                            aboveTask = targetAboveTask,
+                            belowTask = targetBelowTask,
+                            requestedLayer = requestedLayer
+                        )
                     }
                 }
+
             } else {
                 _uiState.value = TasksDetailState.Error
             }
@@ -724,6 +697,9 @@ class TasksDetailViewModel @Inject constructor(
                     dragMode = null,
                     dragTargetIndex = null,
                     dragYDirection = null,
+                    dragRequestedLayerChange = null,
+                    dragTaskAboveDestination = null,
+                    dragTaskBelowDestination = null,
                 )
                 triggerDatabase.emit(!triggerDatabase.value)
             } else {
@@ -758,53 +734,12 @@ class TasksDetailViewModel @Inject constructor(
         }
     }
 
-    fun setDragMode(dragMode: DragMode) {
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState is TasksDetailState.Content) {
-                _uiState.value = currentState.copy(dragMode = dragMode)
-                triggerDatabase.emit(!triggerDatabase.value)
-            } else {
-                _uiState.value = TasksDetailState.Error
-            }
-        }
-    }
-
-    fun setDragTargetIndex(dragOffsetTotal: Int) {
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState is TasksDetailState.Content) {
-                val lazyListState = currentState.lazyListState
-                val dragTargetIndex = lazyListState.layoutInfo.visibleItemsInfo.find { item ->
-                    dragOffsetTotal in item.offset..item.offset + item.size
-                }
-                if (dragTargetIndex != null) {
-                    _uiState.value = currentState.copy(dragTargetIndex = dragTargetIndex.index)
-                }
-            } else {
-                _uiState.value = TasksDetailState.Error
-            }
-        }
-    }
-
-    fun setDragYDirection(direction: YDirection) {
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState is TasksDetailState.Content) {
-                _uiState.value = currentState.copy(dragYDirection = direction)
-            } else {
-                _uiState.value = TasksDetailState.Error
-            }
-        }
-    }
-
 }
 
 sealed interface TasksDetailState {
     data class Content(
         val parentCategoryId: Int,
         val taskList: List<Task>,
-        val lazyListState: LazyListState,
         val selectedTasksDetailExtensionMode: TasksDetailExtensionMode = TasksDetailExtensionMode.NORMAL,
         val clearFocusTrigger: Boolean = false,
         val focusTaskId: Int? = null,
@@ -815,6 +750,9 @@ sealed interface TasksDetailState {
         val dragMode: DragMode? = null,
         val dragTargetIndex: Int? = null,
         val dragYDirection: YDirection? = null,
+        val dragTaskAboveDestination: Task? = null,
+        val dragTaskBelowDestination: Task? = null,
+        val dragRequestedLayerChange: Int? = null,
     ) : TasksDetailState
     data object Error : TasksDetailState
     data object Loading: TasksDetailState
@@ -843,18 +781,18 @@ sealed interface TasksDetailAction {
         val requestedLayer: Int,
     ): TasksDetailAction
     data object NavigateToTasksMenu: TasksDetailAction
-    data class OnDrag(val dragAmount: Offset): TasksDetailAction
-    data class OnDragEnd(
-        val thisTask: Task,
-        val requestedLayerChange: Int,
+    data class OnDrag(
+        val task: Task,
+        val dragAmount: Offset,
+        val dragOffsetTotal: Int,
+        val lazyListState: LazyListState,
+        val requestedLayerChange: Int
     ): TasksDetailAction
+    data object OnDragEnd: TasksDetailAction
     data object ResetClearFocusTrigger: TasksDetailAction
     data object ResetDragHandlers: TasksDetailAction
     data object ResetFocusTrigger: TasksDetailAction
     data class SetDraggedTask(val taskId: Int, val index: Int, val size: Int): TasksDetailAction
-    data class SetDragMode(val dragMode: DragMode): TasksDetailAction
-    data class SetDragTargetIndex(val dragOffsetTotal: Int): TasksDetailAction
-    data class SetDragYDirection(val direction: YDirection): TasksDetailAction
 }
 
 typealias TasksDetailActionHandler = (TasksDetailAction) -> Unit
