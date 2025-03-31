@@ -183,6 +183,12 @@ interface TaskDao {
                 listOrder = listOrder
             )
         }
+        // if destination parent is not expanded, expand
+        if (destinationParentTaskId != null) {
+            if (!verifyIsExpanded(destinationParentTaskId)) {
+                updateTaskAsExpanded(destinationParentTaskId)
+            }
+        }
         // TODO if autosort, and moved task is completed, move it to top of completed task under parent if it isn't already in the completed tasks
         // TODO if autosort, delay?
     }

@@ -37,7 +37,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.joshuaschori.taskerkeeper.NavigationViewModel
-import com.joshuaschori.taskerkeeper.XYAxis
+import com.joshuaschori.taskerkeeper.DragMode
 import com.joshuaschori.taskerkeeper.YDirection
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TaskWithSubtasks
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TasksDetailTopBar
@@ -78,21 +78,18 @@ class TasksDetailFragment: Fragment() {
                 taskId = tasksDetailAction.taskId,
                 aboveTask = tasksDetailAction.aboveTask,
                 belowTask = tasksDetailAction.belowTask,
-                requestedLayer =  tasksDetailAction.requestedLayer)
+                requestedLayer =  tasksDetailAction.requestedLayer
+            )
             is TasksDetailAction.MoveTaskOrder -> tasksDetailViewModel.moveTaskOrder(
-                taskId = tasksDetailAction.taskId,
-                parentTaskId = tasksDetailAction.parentTaskId,
-                listOrder = tasksDetailAction.listOrder,
-                aboveTask = tasksDetailAction.aboveTask,
-                belowTask = tasksDetailAction.belowTask,
-                attachUpOrDown = tasksDetailAction.attachUpOrDown
+                thisTask = tasksDetailAction.thisTask,
+                taskAboveDestination = tasksDetailAction.taskAboveDestination,
+                taskBelowDestination = tasksDetailAction.taskBelowDestination,
+                requestedLayer = tasksDetailAction.requestedLayer
             )
             is TasksDetailAction.NavigateToTasksMenu -> navigationViewModel.navigateToTasksMenu()
             is TasksDetailAction.OnDrag -> tasksDetailViewModel.onDrag(dragAmount = tasksDetailAction.dragAmount)
             is TasksDetailAction.OnDragEnd -> tasksDetailViewModel.onDragEnd(
-                lazyListIndex = tasksDetailAction.lazyListIndex,
-                task = tasksDetailAction.task,
-                taskLayer = tasksDetailAction.taskLayer,
+                thisTask = tasksDetailAction.thisTask,
                 requestedLayerChange = tasksDetailAction.requestedLayerChange
             )
             is TasksDetailAction.ResetClearFocusTrigger -> tasksDetailViewModel.resetClearFocusTrigger()
@@ -103,7 +100,7 @@ class TasksDetailFragment: Fragment() {
                 index = tasksDetailAction.index,
                 size = tasksDetailAction.size
             )
-            is TasksDetailAction.SetDragOrientation -> tasksDetailViewModel.setDragOrientation(axis = tasksDetailAction.axis)
+            is TasksDetailAction.SetDragMode -> tasksDetailViewModel.setDragMode(dragMode = tasksDetailAction.dragMode)
             is TasksDetailAction.SetDragTargetIndex -> tasksDetailViewModel.setDragTargetIndex(dragOffsetTotal = tasksDetailAction.dragOffsetTotal)
             is TasksDetailAction.SetDragYDirection -> tasksDetailViewModel.setDragYDirection(direction = tasksDetailAction.direction)
         }
@@ -133,7 +130,7 @@ class TasksDetailFragment: Fragment() {
                                     .isAutoSortCheckedTasks,
                                 draggedIndex = (state as TasksDetailState.Content).draggedIndex,
                                 draggedTaskSize = (state as TasksDetailState.Content).draggedTaskSize,
-                                dragOrientation = (state as TasksDetailState.Content).dragOrientation,
+                                dragMode = (state as TasksDetailState.Content).dragMode,
                                 dragTargetIndex = (state as TasksDetailState.Content).dragTargetIndex,
                                 dragYDirection = (state as TasksDetailState.Content).dragYDirection,
                                 actionHandler = { handleAction(it) },
@@ -157,7 +154,7 @@ class TasksDetailFragment: Fragment() {
         isAutoSortCheckedTasks: Boolean,
         draggedIndex: Int?,
         draggedTaskSize: Int?,
-        dragOrientation: XYAxis?,
+        dragMode: DragMode?,
         dragTargetIndex: Int?,
         dragYDirection: YDirection?,
         actionHandler: TasksDetailActionHandler,
@@ -192,10 +189,9 @@ class TasksDetailFragment: Fragment() {
                         .imePadding()
                 ) {
                     // TODO look more into key???
-                    itemsIndexed(taskList) { index, task ->
+                    itemsIndexed(taskList) { index, _ ->
                         TaskWithSubtasks(
-                            task = task,
-                            taskLayer = task.taskLayer,
+                            taskList = taskList,
                             selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
                             focusTaskId = focusTaskId,
                             isAutoSortCheckedTasks = isAutoSortCheckedTasks,
@@ -203,7 +199,7 @@ class TasksDetailFragment: Fragment() {
                             lazyListState = lazyListState,
                             draggedIndex = draggedIndex,
                             draggedTaskSize = draggedTaskSize,
-                            dragOrientation = dragOrientation,
+                            dragMode = dragMode,
                             dragTargetIndex = dragTargetIndex,
                             dragYDirection = dragYDirection,
                             actionHandler = actionHandler,

@@ -83,6 +83,11 @@ class TaskRepository @Inject constructor(
     }
 
     suspend fun moveTask(parentCategoryId: Int, taskId: Int, parentTaskId: Int?, listOrder: Int, destinationParentTaskId: Int?, destinationListOrder: Int, autoSort: Boolean) {
+        if (destinationParentTaskId == taskId) {
+            println("TaskRepository Error, trying to make a task its own parent")
+            return
+        }
+
         db.taskDao().moveTask(parentCategoryId, taskId, parentTaskId, listOrder, destinationParentTaskId, destinationListOrder, autoSort)
     }
 

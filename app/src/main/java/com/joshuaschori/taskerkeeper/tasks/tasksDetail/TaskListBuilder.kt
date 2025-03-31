@@ -1,17 +1,19 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail
 
+import com.joshuaschori.taskerkeeper.DragMode
 import com.joshuaschori.taskerkeeper.data.tasks.TaskEntity
 
 class TaskListBuilder {
 
-    fun prepareTaskList(taskEntityList: List<TaskEntity>, draggedTaskId: Int?): List<Task> {
+    fun prepareTaskList(taskEntityList: List<TaskEntity>, draggedTaskId: Int?, dragMode: DragMode?): List<Task> {
         val taskTreeNodeList = convertTaskEntityListToTaskTreeNodeList(
             taskEntityList = taskEntityList
         )
         val completeTaskList = convertTaskTreeNodeListToTaskList(taskTreeNodeList)
         val visibleTaskList = determineVisibleTasks(
             taskList = completeTaskList,
-            lazyListTaskIdBeingDragged = draggedTaskId
+            draggedTaskId = draggedTaskId,
+            dragMode = dragMode
         )
         return unpackTaskAndSubtasks(visibleTaskList)
     }
@@ -103,11 +105,11 @@ class TaskListBuilder {
         return taskList
     }
 
-    private fun determineVisibleTasks (taskList: List<Task>, lazyListTaskIdBeingDragged: Int?): List<Task> {
+    private fun determineVisibleTasks (taskList: List<Task>, draggedTaskId: Int?, dragMode: DragMode?): List<Task> {
         val updatedTasks = mutableListOf<Task>()
         fun traverse(task: Task): Task {
             val taskWithSubtasks = task.copy(
-                subtaskList = if (task.subtaskList != null && task.isExpanded && task.taskId != lazyListTaskIdBeingDragged) {
+                subtaskList = if (task.subtaskList != null && task.isExpanded && !(task.taskId == draggedTaskId && dragMode == DragMode.REARRANGE)) {
                     task.subtaskList.map { traverse(task = it) }
                 } else if (task.subtaskList == null) {
                     null
@@ -124,8 +126,10 @@ class TaskListBuilder {
     // returns list of Tasks, with the root Task and its subtasks in order, prepped for lazyList
     private fun unpackTaskAndSubtasks(taskList: List<Task>): List<Task> {
         val unpackedTaskList = mutableListOf<Task>()
+        var index: Int = 0
         fun traverse(task: Task) {
-            unpackedTaskList.add(task)
+            unpackedTaskList.add(task.copy(subtaskList = if (task.subtaskList == null) null else emptyList(), lazyListIndex = index))
+            index++
             task.subtaskList?.forEach {
                 traverse(it)
             }

@@ -1,6 +1,6 @@
 package com.joshuaschori.taskerkeeper
 
-enum class XYAxis {
-    X,
-    Y,
+enum class DragMode {
+    CHANGE_LAYER,
+    REARRANGE,
 }

@@ -20,7 +20,6 @@ import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailExtensionMode
 @Composable
 fun TaskExtensions(
     task: Task,
-    taskLayer: Int,
     selectedTasksDetailExtensionMode: TasksDetailExtensionMode,
     isAutoSortCheckedTasks: Boolean,
     actionHandler: TasksDetailActionHandler,
@@ -55,11 +54,11 @@ fun TaskExtensions(
                     },
                     enabled = (
                             !((isAutoSortCheckedTasks && task.isChecked)
-                                    || taskLayer >= MAX_LAYERS_OF_SUBTASKS)
+                                    || task.taskLayer >= MAX_LAYERS_OF_SUBTASKS)
                             ),
                     modifier = Modifier.alpha(
                         if ((isAutoSortCheckedTasks && task.isChecked)
-                            || taskLayer >= MAX_LAYERS_OF_SUBTASKS
+                            || task.taskLayer >= MAX_LAYERS_OF_SUBTASKS
                         ) 0f else 1f
                     )
                 ) {
