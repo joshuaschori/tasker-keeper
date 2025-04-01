@@ -1,9 +1,13 @@
 package com.joshuaschori.taskerkeeper.data.tasks
 
+import androidx.lifecycle.viewModelScope
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.database.FirebaseDatabase
 import com.joshuaschori.taskerkeeper.data.TaskerKeeperDatabase
+import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
+import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailState
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -82,13 +86,140 @@ class TaskRepository @Inject constructor(
         db.taskDao().updateTaskAsMinimized(taskId)
     }
 
-    suspend fun moveTask(parentCategoryId: Int, taskId: Int, parentTaskId: Int?, listOrder: Int, destinationParentTaskId: Int?, destinationListOrder: Int, autoSort: Boolean) {
-        // TODO error handling?
-        if (destinationParentTaskId == taskId) {
-            println("TaskRepository Error, trying to make a task its own parent")
-            return
+    suspend fun moveTaskLayer(
+        parentCategoryId: Int,
+        thisTask: Task,
+        taskList: List<Task>,
+        aboveTask: Task?,
+        belowTask: Task?,
+        requestedLayer: Int,
+        autoSort: Boolean,
+    ) {
+        /* TODO
+            val allowedMinimumLayer: Int = if (dragTargetIndex != null && !(targetAboveTask == null && targetBelowTask == null)) {
+                DragMode.CHANGE_LAYER -> if (targetAboveTask != null && targetBelowTask != null && targetBelowTask.parentTaskId != null) { targetBelowTask.taskLayer - 1 }
+            val allowedMaximumLayer: Int = if (dragTargetIndex != null && !(targetAboveTask == null && targetBelowTask == null)) {
+                DragMode.CHANGE_LAYER -> if (targetAboveTask != null) { targetAboveTask.taskLayer + 1 } */
+
+        // TODO three functions: move this task, change parents of all below tasks, and change list order of all below tasks
+        // TODO can they all use move function? maybe more efficient to make move all function,
+
+        // TODO change below tasks parent and list order function
+
+        if (aboveTask != null) {
+            // TODO should this happen in one transaction???
+            /*moveTaskOrder(
+                thisTask = thisTask,
+                taskAboveDestination = aboveTask,
+                requestedLayer = requestedLayer
+            )*/
+            if (belowTask != null) {
+                when (belowTask.parentTaskId) {
+                    null -> {
+                        // below tasks: no parent or list order change necessary ( if this task was at same layer, the move function will take care of their list order )
+
+                    }
+                    thisTask.taskId -> {
+                        // below tasks: parent and list order change if this task moving to same layer, after finding extended parent if this task moving to higher layer
+
+                    }
+                    thisTask.parentTaskId -> {
+                        // below tasks: parent and list order change if this task becoming it's parent, just list order change if this task moving to higher layer (parent stays the same)
+
+                    }
+                    else -> {
+                        // below tasks: parent and list order change if this task becoming it's parent or moving to same layer, no change if this task moving to higher layer
+
+                    }
+                }
+            }
         }
-        db.taskDao().moveTask(parentCategoryId, taskId, parentTaskId, listOrder, destinationParentTaskId, destinationListOrder, autoSort)
+}
+
+    suspend fun moveTaskOrder(
+        parentCategoryId: Int,
+        thisTask: Task,
+        taskList: List<Task>,
+        taskAboveDestination: Task?,
+        requestedLayer: Int,
+        autoSort: Boolean,
+    ) {
+        fun findPreviousTaskAtRequestedLayer(aboveTask: Task, taskList: List<Task>, requestedLayer: Int): Task? {
+            var previousTaskAtRequestedLayer: Task? = null
+            fun traverse(task: Task) {
+                if (requestedLayer == task.taskLayer) {
+                    previousTaskAtRequestedLayer = task
+                } else {
+                    val parentTask = taskList.find { it.taskId == task.parentTaskId }
+                    if (parentTask == null) {
+                        previousTaskAtRequestedLayer = null
+                    } else {
+                        traverse(parentTask)
+                    }
+                }
+            }
+            traverse(aboveTask)
+            return previousTaskAtRequestedLayer
+        }
+        if (taskAboveDestination == null) {
+            when (requestedLayer) {
+                0 -> db.taskDao().moveTask(
+                    parentCategoryId = parentCategoryId,
+                    taskId = thisTask.taskId,
+                    parentTaskId = thisTask.parentTaskId,
+                    listOrder = thisTask.listOrder,
+                    destinationParentTaskId = null,
+                    destinationListOrder = 0,
+                    autoSort = autoSort
+                )
+            }
+        } else {
+            when (requestedLayer) {
+                taskAboveDestination.taskLayer -> {
+                    db.taskDao().moveTask(
+                        parentCategoryId = parentCategoryId,
+                        taskId = thisTask.taskId,
+                        parentTaskId = thisTask.parentTaskId,
+                        listOrder = thisTask.listOrder,
+                        destinationParentTaskId = taskAboveDestination.parentTaskId,
+                        destinationListOrder = taskAboveDestination.listOrder + 1,
+                        autoSort = autoSort
+                    )
+                }
+
+                taskAboveDestination.taskLayer + 1 -> {
+                    db.taskDao().moveTask(
+                        parentCategoryId = parentCategoryId,
+                        taskId = thisTask.taskId,
+                        parentTaskId = thisTask.parentTaskId,
+                        listOrder = thisTask.listOrder,
+                        destinationParentTaskId = taskAboveDestination.taskId,
+                        destinationListOrder = 0,
+                        autoSort = autoSort
+                    )
+                }
+
+                else -> {
+                    val previousTaskAtRequestedLayer =
+                        findPreviousTaskAtRequestedLayer(
+                            aboveTask = taskAboveDestination,
+                            taskList = taskList,
+                            requestedLayer = requestedLayer
+                        )
+                    if (previousTaskAtRequestedLayer != null) {
+                        db.taskDao().moveTask(
+                            parentCategoryId = parentCategoryId,
+                            taskId = thisTask.taskId,
+                            parentTaskId = thisTask.parentTaskId,
+                            listOrder = thisTask.listOrder,
+                            destinationParentTaskId = previousTaskAtRequestedLayer.parentTaskId,
+                            destinationListOrder = previousTaskAtRequestedLayer.listOrder + 1,
+                            autoSort = autoSort
+                        )
+                    }
+                }
+            }
+        }
     }
 
     suspend fun removeTask(parentCategoryId: Int, taskId: Int) {
