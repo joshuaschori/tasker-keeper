@@ -88,7 +88,6 @@ class TaskRepository @Inject constructor(
             println("TaskRepository Error, trying to make a task its own parent")
             return
         }
-
         db.taskDao().moveTask(parentCategoryId, taskId, parentTaskId, listOrder, destinationParentTaskId, destinationListOrder, autoSort)
     }
 

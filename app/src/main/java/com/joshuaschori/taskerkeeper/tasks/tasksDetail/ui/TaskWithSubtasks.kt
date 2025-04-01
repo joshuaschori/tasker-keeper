@@ -1,6 +1,6 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui
 
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListItemInfo
@@ -20,8 +20,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.joshuaschori.taskerkeeper.Constants.MAX_LAYERS_OF_SUBTASKS
@@ -40,25 +42,21 @@ fun TaskWithSubtasks(
     focusTaskId: Int?,
     isAutoSortCheckedTasks: Boolean,
     lazyListState: LazyListState,
-    draggedIndex: Int?,
+    draggedTask: Task?,
     draggedTaskSize: Int?,
     dragMode: DragMode?,
     dragTargetIndex: Int?,
     dragYDirection: YDirection?,
     dragRequestedLayerChange: Int?,
+    onScroll: (Float) -> Unit,
     actionHandler: TasksDetailActionHandler,
 ) {
     // TODO overscroll / drag and dropping to index 0 / last index?
     // TODO when subtasks above MAX_LAYERS_OF_SUBTASKS, hide on screen or disallow moving task?
     // TODO scrolling while dragging
-
+    val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
     val layerStepSize = 32.dp
-
-    // TODO not sure yet how to handle maximum with moving lists
-    val minimumX = with(density) { ((0 - task.taskLayer) * layerStepSize.value).dp.toPx() }
-    val maximumX = with(density) { ((MAX_LAYERS_OF_SUBTASKS - task.taskLayer) * layerStepSize.value).dp.toPx() }
-
     var thisLazyListItem: LazyListItemInfo? by remember { mutableStateOf(null) }
     var yDragClickOffset: Int by remember { mutableIntStateOf(0) }
     var xDrag: Float by remember { mutableFloatStateOf(0f) }
@@ -70,40 +68,46 @@ fun TaskWithSubtasks(
     val snappedDp = ( dragRequestedLayerChange ?: 0 ) * layerStepSize.value
     val offsetX = with(density) { snappedDp.dp.toPx() }
 
-    // TODO can refactor below, need less variables?
+    // TODO not sure yet how to handle maximum with moving lists
+    val minimumX = with(density) { ((0 - task.taskLayer) * layerStepSize.value).dp.toPx() }
+    val maximumX = with(density) { ((MAX_LAYERS_OF_SUBTASKS - task.taskLayer) * layerStepSize.value).dp.toPx() }
 
     Row(
-        modifier = if (draggedIndex != null && dragTargetIndex != null && draggedTaskSize != null) Modifier
+        modifier = if (draggedTask != null && dragTargetIndex != null && draggedTaskSize != null) Modifier
             .graphicsLayer {
-                alpha = (if (draggedIndex == task.lazyListIndex) 0.5f else 1f)
+                alpha = (if (task == draggedTask) 0.5f else 1f)
                 translationX =
-                    if (dragMode == DragMode.CHANGE_LAYER && task.lazyListIndex == draggedIndex) {
+                    if (task == draggedTask && dragMode == DragMode.CHANGE_LAYER) {
                         if (offsetX < minimumX) { minimumX }
                         else if (offsetX > maximumX) { maximumX }
                         else { offsetX }
-                    } else if (dragMode == DragMode.REARRANGE && task.lazyListIndex == draggedIndex) {
+                    } else if (task == draggedTask && dragMode == DragMode.REARRANGE) {
                         if (offsetX < minimumX) { minimumX }
                         else if (offsetX > maximumX) { maximumX }
                         else { offsetX }
                     } else { 0f }
                 translationY = if (dragMode == DragMode.REARRANGE) {
-                    if (dragYDirection == YDirection.DOWN && task.lazyListIndex == draggedIndex && dragTargetIndex == draggedIndex - 1) {
+                    if (task == draggedTask && dragYDirection == YDirection.DOWN && dragTargetIndex == draggedTask.lazyListIndex - 1) {
                         yDrag
-                    } else if (task.lazyListIndex == draggedIndex && dragTargetIndex < draggedIndex) {
+                    } else if (task == draggedTask && dragTargetIndex < draggedTask.lazyListIndex) {
                         yDrag - draggedTaskSize
                     } else { yDrag }
                 } else { 0f }
             }
-            .zIndex(if (draggedIndex == task.lazyListIndex) 1f else 0f)
+            .zIndex(if (task == draggedTask) 1f else 0f)
             .padding(
-                top = if (dragYDirection == YDirection.UP && task.lazyListIndex == dragTargetIndex && task.lazyListIndex != draggedIndex && task.lazyListIndex != draggedIndex + 1) {
+                top = if (dragYDirection == YDirection.UP && task.lazyListIndex == dragTargetIndex
+                    && task.lazyListIndex != draggedTask.lazyListIndex && task.lazyListIndex != draggedTask.lazyListIndex + 1
+                ) {
                     with(density) { draggedTaskSize.toDp() }
-                } else if (dragMode == DragMode.CHANGE_LAYER && task.lazyListIndex == draggedIndex) {
+                } else if (task == draggedTask && dragMode == DragMode.CHANGE_LAYER) {
                     24.dp
                 } else { 0.dp },
-                bottom = if (dragYDirection == YDirection.DOWN && task.lazyListIndex == dragTargetIndex && task.lazyListIndex != draggedIndex && task.lazyListIndex != draggedIndex - 1) {
+                bottom = if (dragYDirection == YDirection.DOWN && task.lazyListIndex == dragTargetIndex
+                    && task.lazyListIndex != draggedTask.lazyListIndex && task.lazyListIndex != draggedTask.lazyListIndex - 1
+                ) {
                     with(density) { draggedTaskSize.toDp() }
-                } else if (dragMode == DragMode.CHANGE_LAYER && task.lazyListIndex == draggedIndex) {
+                } else if (task == draggedTask && dragMode == DragMode.CHANGE_LAYER) {
                     24.dp
                 } else { 0.dp },
             ) else Modifier
@@ -122,18 +126,17 @@ fun TaskWithSubtasks(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .pointerInput(task.taskId, task.parentTaskId) {
-                            detectDragGestures(
+                            detectDragGesturesAfterLongPress(
                                 onDragStart = { offset ->
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     yDragClickOffset = offset.y.toInt()
                                     thisLazyListItem =
                                         lazyListState.layoutInfo.visibleItemsInfo.find {
                                             it.index == task.lazyListIndex
                                         }
-                                    // TODO onDragStart
                                     actionHandler(
-                                        TasksDetailAction.SetDraggedTask(
-                                            taskId = task.taskId,
-                                            index = task.lazyListIndex,
+                                        TasksDetailAction.OnDragStart(
+                                            task = task,
                                             size = thisLazyListItem!!.size
                                         )
                                     )
@@ -142,6 +145,10 @@ fun TaskWithSubtasks(
                                     change.consume()
                                     xDrag += dragAmount.x
                                     yDrag += dragAmount.y
+
+                                    // TODO scroll??
+                                    // onScroll(dragAmount.y)
+
                                     actionHandler(
                                         TasksDetailAction.OnDrag(
                                             task = task,

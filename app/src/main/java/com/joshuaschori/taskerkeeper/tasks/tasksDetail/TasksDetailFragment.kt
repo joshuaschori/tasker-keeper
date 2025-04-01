@@ -1,6 +1,7 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,9 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -76,18 +75,6 @@ class TasksDetailFragment: Fragment() {
             is TasksDetailAction.MarkTaskComplete -> tasksDetailViewModel.markTaskComplete(taskId = tasksDetailAction.taskId)
             is TasksDetailAction.MarkTaskIncomplete -> tasksDetailViewModel.markTaskIncomplete(taskId = tasksDetailAction.taskId)
             is TasksDetailAction.MinimizeTask -> tasksDetailViewModel.minimizeTask(taskId = tasksDetailAction.taskId)
-            is TasksDetailAction.MoveTaskLayer -> tasksDetailViewModel.moveTaskLayer(
-                taskId = tasksDetailAction.taskId,
-                aboveTask = tasksDetailAction.aboveTask,
-                belowTask = tasksDetailAction.belowTask,
-                requestedLayer =  tasksDetailAction.requestedLayer
-            )
-            is TasksDetailAction.MoveTaskOrder -> tasksDetailViewModel.moveTaskOrder(
-                thisTask = tasksDetailAction.thisTask,
-                taskAboveDestination = tasksDetailAction.taskAboveDestination,
-                taskBelowDestination = tasksDetailAction.taskBelowDestination,
-                requestedLayer = tasksDetailAction.requestedLayer
-            )
             is TasksDetailAction.NavigateToTasksMenu -> navigationViewModel.navigateToTasksMenu()
             is TasksDetailAction.OnDrag -> tasksDetailViewModel.onDrag(
                 task = tasksDetailAction.task,
@@ -97,14 +84,13 @@ class TasksDetailFragment: Fragment() {
                 requestedLayerChange = tasksDetailAction.requestedLayerChange
             )
             is TasksDetailAction.OnDragEnd -> tasksDetailViewModel.onDragEnd()
+            is TasksDetailAction.OnDragStart -> tasksDetailViewModel.onDragStart(
+                task = tasksDetailAction.task,
+                size = tasksDetailAction.size
+            )
             is TasksDetailAction.ResetClearFocusTrigger -> tasksDetailViewModel.resetClearFocusTrigger()
             is TasksDetailAction.ResetDragHandlers -> tasksDetailViewModel.resetDragHandlers()
             is TasksDetailAction.ResetFocusTrigger -> tasksDetailViewModel.resetFocusTrigger()
-            is TasksDetailAction.SetDraggedTask -> tasksDetailViewModel.setDraggedTask(
-                taskId = tasksDetailAction.taskId,
-                index = tasksDetailAction.index,
-                size = tasksDetailAction.size
-            )
         }
     }
 
@@ -129,7 +115,7 @@ class TasksDetailFragment: Fragment() {
                                 focusTaskId = (state as TasksDetailState.Content).focusTaskId,
                                 isAutoSortCheckedTasks = (state as TasksDetailState.Content)
                                     .isAutoSortCheckedTasks,
-                                draggedIndex = (state as TasksDetailState.Content).draggedIndex,
+                                draggedTask = (state as TasksDetailState.Content).draggedTask,
                                 draggedTaskSize = (state as TasksDetailState.Content).draggedTaskSize,
                                 dragMode = (state as TasksDetailState.Content).dragMode,
                                 dragTargetIndex = (state as TasksDetailState.Content).dragTargetIndex,
@@ -137,7 +123,9 @@ class TasksDetailFragment: Fragment() {
                                 dragRequestedLayerChange = (state as TasksDetailState.Content).dragRequestedLayerChange,
                                 actionHandler = { handleAction(it) },
                             )
-                            is TasksDetailState.Error -> TasksError()
+                            is TasksDetailState.Error -> TasksError(
+                                string = (state as TasksDetailState.Error).string,
+                            )
                             is TasksDetailState.Loading -> TasksLoading()
                         }
                     }
@@ -153,7 +141,7 @@ class TasksDetailFragment: Fragment() {
         clearFocusTrigger: Boolean,
         focusTaskId: Int?,
         isAutoSortCheckedTasks: Boolean,
-        draggedIndex: Int?,
+        draggedTask: Task?,
         draggedTaskSize: Int?,
         dragMode: DragMode?,
         dragTargetIndex: Int?,
@@ -181,6 +169,20 @@ class TasksDetailFragment: Fragment() {
             )
             if (taskList.isNotEmpty()) {
                 val lazyListState = rememberLazyListState()
+
+                // TODO scroll
+                /*val scrollChannel: Channel<Float> = Channel(
+                    capacity = 10,
+                    onBufferOverflow = BufferOverflow.DROP_OLDEST,
+                    onUndeliveredElement = { println("scrollChannel onUndeliveredElement") }
+                )
+                LaunchedEffect(lazyListState) {
+                    while (true) {
+                        val value = scrollChannel.receive()
+                        lazyListState.scrollBy(value)
+                    }
+                }*/
+
                 LazyColumn(
                     contentPadding = PaddingValues(
                         start = 16.dp, top = 32.dp, end = 16.dp, bottom = 320.dp
@@ -199,12 +201,13 @@ class TasksDetailFragment: Fragment() {
                             focusTaskId = focusTaskId,
                             isAutoSortCheckedTasks = isAutoSortCheckedTasks,
                             lazyListState = lazyListState,
-                            draggedIndex = draggedIndex,
+                            draggedTask = draggedTask,
                             draggedTaskSize = draggedTaskSize,
                             dragMode = dragMode,
                             dragTargetIndex = dragTargetIndex,
                             dragYDirection = dragYDirection,
                             dragRequestedLayerChange = dragRequestedLayerChange,
+                            onScroll = { /* TODO scrollChannel.trySend(it)*/ },
                             actionHandler = actionHandler,
                         )
                     }
@@ -234,8 +237,9 @@ class TasksDetailFragment: Fragment() {
     }
 
     @Composable
-    fun TasksError() {
-        Text("TasksDetail Fragment Error")
+    fun TasksError(string: String) {
+        Text("TasksDetail Error")
+        Log.e("TasksDetail", string)
     }
 
     @Composable
