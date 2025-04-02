@@ -13,7 +13,10 @@ interface TaskDao {
     // TODO user option to auto sort to bottom or top of completed tasks
 
     @Transaction
-    suspend fun addTaskAfter(parentCategoryId: Int, taskId: Int): Long {
+    suspend fun addTaskAfter(
+        parentCategoryId: Int,
+        taskId: Int
+    ): Long {
         // TODO just pass in parentId and listOrder???
         // TODO autoSort should already be checked if created after checked?
         val parentId = getParentTaskId(taskId)
@@ -32,7 +35,10 @@ interface TaskDao {
     }
 
     @Transaction
-    suspend fun addTaskAfterUnchecked(parentCategoryId: Int, parentTaskId: Int?): Long {
+    suspend fun addTaskAfterUnchecked(
+        parentCategoryId: Int,
+        parentTaskId: Int?
+    ): Long {
         val firstCheckedListOrder = getFirstCheckedListOrder(parentCategoryId, parentTaskId)
         if (firstCheckedListOrder == null) {
             return addTaskAtEnd(parentCategoryId, parentTaskId)
@@ -52,7 +58,10 @@ interface TaskDao {
     }
 
     @Transaction
-    suspend fun addTaskAtEnd(parentCategoryId: Int, parentId: Int?): Long {
+    suspend fun addTaskAtEnd(
+        parentCategoryId: Int,
+        parentId: Int?
+    ): Long {
         // TODO just pass count in
         val taskCount = getTaskCount(parentCategoryId, parentId)
         return insertTask(
@@ -68,7 +77,11 @@ interface TaskDao {
     }
 
     @Transaction
-    suspend fun markTaskComplete(parentCategoryId: Int, taskId: Int, autoSort: Boolean) {
+    suspend fun markTaskComplete(
+        parentCategoryId: Int,
+        taskId: Int,
+        autoSort: Boolean
+    ) {
         // TODO just pass in parentId and listOrder???
         val parentId = getParentTaskId(taskId)
         val listOrder = getListOrder(taskId)
@@ -91,7 +104,11 @@ interface TaskDao {
     }
 
     @Transaction
-    suspend fun markTaskIncomplete(parentCategoryId: Int, taskId: Int, autoSort: Boolean) {
+    suspend fun markTaskIncomplete(
+        parentCategoryId: Int,
+        taskId: Int,
+        autoSort: Boolean
+    ) {
         // TODO just pass in parentId and listOrder???
         val parentId = getParentTaskId(taskId)
         val listOrder = getListOrder(taskId)
@@ -109,41 +126,110 @@ interface TaskDao {
     }
 
     @Transaction
-    suspend fun moveTask(parentCategoryId: Int, taskId: Int, parentTaskId: Int?, listOrder: Int, destinationParentTaskId: Int?, destinationListOrder: Int, autoSort: Boolean) {
-        // TODO error handling?
+    suspend fun moveTaskLayer(
+        parentCategoryId: Int,
+        taskId: Int,
+        currentParentTaskId: Int?,
+        currentListOrder: Int,
+        destinationParentTaskId: Int?,
+        destinationListOrder: Int,
+        belowTaskCurrentParentTaskId: Int?,
+        belowTaskCurrentListOrder: Int,
+        belowTaskDestinationParentTaskId: Int?,
+        belowTaskDestinationListOrder: Int,
+        autoSort: Boolean
+    ) {
         if (destinationParentTaskId == taskId) {
             println("TaskRepository Error, trying to make a task its own parent")
             return
         }
-        if (parentTaskId == destinationParentTaskId) {
-            if (destinationListOrder < listOrder) {
-                incrementTasks(
-                    parentCategoryId = parentCategoryId,
-                    parentTaskId = parentTaskId,
-                    listOrder = destinationListOrder
-                )
-                updateListOrder(
-                    taskId = taskId,
-                    listOrder = -1
-                )
-                updateParent(
-                    taskId = taskId,
-                    parentTaskId = destinationParentTaskId
-                )
-                updateListOrder(
-                    taskId = taskId,
-                    listOrder = destinationListOrder
-                )
-                decrementTasks(
-                    parentCategoryId = parentCategoryId,
-                    parentTaskId = parentTaskId,
-                    listOrder = listOrder + 1
+        val getBelowTasksCount: Int = getTaskCountStartingFromListOrder(
+            parentCategoryId = parentCategoryId,
+            parentTaskId = belowTaskCurrentParentTaskId,
+            startingListOrder = belowTaskCurrentListOrder
+        )
+        moveTaskOrder(
+            parentCategoryId = parentCategoryId,
+            taskId = taskId,
+            currentParentTaskId = currentParentTaskId,
+            currentListOrder = currentListOrder,
+            destinationParentTaskId = destinationParentTaskId,
+            destinationListOrder = destinationListOrder,
+            autoSort = autoSort
+        )
+        // TODO consider if thisTask is minimized? taken care of correctly by auto expanding in TaskListBuilder???
+
+        // if this task and below task start with same parent, or if moveTaskOrder moves this task
+        // to same parent as below task, then moveTaskOrder will change below tasks' list_orders
+        val listOrderDifferential = if (currentParentTaskId == belowTaskCurrentParentTaskId) {
+            -1
+        } else if (destinationParentTaskId == belowTaskCurrentParentTaskId) {
+            1
+        } else { 0 }
+
+        /*val listOrderDestinationDifferential = if (currentParentTaskId == belowTaskCurrentParentTaskId) {
+            -1
+        } else if (destinationParentTaskId == belowTaskCurrentParentTaskId) {
+            1
+        } else { 0 }*/
+
+        var incrementingBelowTaskListOrder: Int = belowTaskCurrentListOrder + listOrderDifferential
+        var incrementingBelowTaskListOrderDestination: Int = belowTaskDestinationListOrder //+ listOrderDifferential
+
+        // TODO if parent is the same, then list orders will conflict while this is processing?
+
+        repeat (getBelowTasksCount) {
+            updateListOrderByListOrder(
+                currentParentTaskId = belowTaskCurrentParentTaskId,
+                currentListOrder = incrementingBelowTaskListOrder,
+                destinationListOrder = -1
+            )
+            if (belowTaskCurrentParentTaskId != belowTaskDestinationParentTaskId) {
+                updateParentByListOrder(
+                    currentParentTaskId = belowTaskCurrentParentTaskId,
+                    currentListOrder = -1,
+                    destinationParentTaskId = belowTaskDestinationParentTaskId
                 )
             }
-            else if (destinationListOrder > listOrder) {
+            updateListOrderByListOrder(
+                currentParentTaskId = belowTaskDestinationParentTaskId,
+                currentListOrder = -1,
+                destinationListOrder = incrementingBelowTaskListOrderDestination
+            )
+            incrementingBelowTaskListOrder++
+            incrementingBelowTaskListOrderDestination++
+        }
+
+        // if destination parent is not expanded, expand
+        if (belowTaskDestinationParentTaskId != null) {
+            if (!verifyIsExpanded(belowTaskDestinationParentTaskId)) {
+                updateTaskAsExpanded(belowTaskDestinationParentTaskId)
+            }
+        }
+
+        // TODO if autosort, and moved task is completed, move it to top of completed task under parent if it isn't already in the completed tasks
+        // TODO if autosort, delay?
+    }
+
+    @Transaction
+    suspend fun moveTaskOrder(
+        parentCategoryId: Int,
+        taskId: Int,
+        currentParentTaskId: Int?,
+        currentListOrder: Int,
+        destinationParentTaskId: Int?,
+        destinationListOrder: Int,
+        autoSort: Boolean
+    ) {
+        if (destinationParentTaskId == taskId) {
+            println("TaskRepository Error, trying to make a task its own parent")
+            return
+        }
+        if (currentParentTaskId == destinationParentTaskId) {
+            if (destinationListOrder < currentListOrder) {
                 incrementTasks(
                     parentCategoryId = parentCategoryId,
-                    parentTaskId = parentTaskId,
+                    parentTaskId = currentParentTaskId,
                     listOrder = destinationListOrder
                 )
                 updateListOrder(
@@ -160,8 +246,32 @@ interface TaskDao {
                 )
                 decrementTasks(
                     parentCategoryId = parentCategoryId,
-                    parentTaskId = parentTaskId,
-                    listOrder = listOrder
+                    parentTaskId = currentParentTaskId,
+                    listOrder = currentListOrder + 1
+                )
+            }
+            else if (destinationListOrder > currentListOrder) {
+                incrementTasks(
+                    parentCategoryId = parentCategoryId,
+                    parentTaskId = currentParentTaskId,
+                    listOrder = destinationListOrder
+                )
+                updateListOrder(
+                    taskId = taskId,
+                    listOrder = -1
+                )
+                updateParent(
+                    taskId = taskId,
+                    parentTaskId = destinationParentTaskId
+                )
+                updateListOrder(
+                    taskId = taskId,
+                    listOrder = destinationListOrder
+                )
+                decrementTasks(
+                    parentCategoryId = parentCategoryId,
+                    parentTaskId = currentParentTaskId,
+                    listOrder = currentListOrder
                 )
             }
         } else {
@@ -184,8 +294,8 @@ interface TaskDao {
             )
             decrementTasks(
                 parentCategoryId = parentCategoryId,
-                parentTaskId = parentTaskId,
-                listOrder = listOrder
+                parentTaskId = currentParentTaskId,
+                listOrder = currentListOrder
             )
         }
         // if destination parent is not expanded, expand
@@ -206,6 +316,7 @@ interface TaskDao {
         decrementTasks(parentCategoryId, parentId, listOrder + 1)
     }
 
+    // TODO figure out how to make this work with indexes, do one by one instead of setting all at once?
     @Query("UPDATE tasks SET list_order = list_order - 1 WHERE parent_category_id is :parentCategoryId AND parent_task_id is :parentTaskId AND list_order >= :listOrder")
     suspend fun decrementTasks(parentCategoryId: Int, parentTaskId: Int?, listOrder: Int)
 
@@ -224,6 +335,9 @@ interface TaskDao {
     @Query("SELECT COUNT(list_order) FROM tasks WHERE parent_category_id is :parentCategoryId AND parent_task_id is :parentTaskId")
     suspend fun getTaskCount(parentCategoryId: Int, parentTaskId: Int?): Int
 
+    @Query("SELECT COUNT(list_order) FROM tasks WHERE parent_category_id is :parentCategoryId AND parent_task_id is :parentTaskId AND list_order >= :startingListOrder")
+    suspend fun getTaskCountStartingFromListOrder(parentCategoryId: Int, parentTaskId: Int?, startingListOrder: Int): Int
+
     @Query("SELECT list_order FROM tasks WHERE task_id = :taskId")
     suspend fun getListOrder(taskId: Int): Int
 
@@ -232,6 +346,21 @@ interface TaskDao {
 
     @Query("UPDATE tasks SET list_order = :listOrderTo WHERE parent_category_id is :parentCategoryId AND parent_task_id is :parentTaskId AND list_order = :listOrderFrom")
     suspend fun moveTaskByListOrder(parentCategoryId: Int, parentTaskId: Int?, listOrderFrom: Int, listOrderTo: Int)
+
+    @Query("UPDATE tasks SET description = :descriptionChange WHERE task_id is :taskId")
+    suspend fun updateDescription(taskId: Int, descriptionChange: String)
+
+    @Query("UPDATE tasks SET list_order = :listOrder WHERE task_id = :taskId")
+    suspend fun updateListOrder(taskId: Int, listOrder: Int)
+
+    @Query("UPDATE tasks SET list_order = :destinationListOrder WHERE parent_task_id = :currentParentTaskId AND list_order = :currentListOrder")
+    suspend fun updateListOrderByListOrder(currentParentTaskId: Int?, currentListOrder: Int, destinationListOrder: Int)
+
+    @Query("UPDATE tasks SET parent_task_id = :parentTaskId WHERE task_id = :taskId")
+    suspend fun updateParent(taskId: Int, parentTaskId: Int?)
+
+    @Query("UPDATE tasks SET parent_task_id = :destinationParentTaskId WHERE parent_task_id = :currentParentTaskId AND list_order = :currentListOrder")
+    suspend fun updateParentByListOrder(currentParentTaskId: Int?, currentListOrder: Int, destinationParentTaskId: Int?)
 
     @Query("UPDATE tasks SET is_checked = 1 WHERE task_id = :taskId")
     suspend fun updateTaskAsChecked(taskId: Int)
@@ -244,15 +373,6 @@ interface TaskDao {
 
     @Query("UPDATE tasks SET is_checked = 0 WHERE task_id = :taskId")
     suspend fun updateTaskAsUnchecked(taskId: Int)
-
-    @Query("UPDATE tasks SET description = :descriptionChange WHERE task_id is :taskId")
-    suspend fun updateDescription(taskId: Int, descriptionChange: String)
-
-    @Query("UPDATE tasks SET list_order = :listOrder WHERE task_id = :taskId")
-    suspend fun updateListOrder(taskId: Int, listOrder: Int)
-
-    @Query("UPDATE tasks SET parent_task_id = :parentTaskId WHERE task_id = :taskId")
-    suspend fun updateParent(taskId: Int, parentTaskId: Int?)
 
     @Query("SELECT is_expanded FROM tasks WHERE task_id = :taskId LIMIT 1")
     suspend fun verifyIsExpanded(taskId: Int): Boolean

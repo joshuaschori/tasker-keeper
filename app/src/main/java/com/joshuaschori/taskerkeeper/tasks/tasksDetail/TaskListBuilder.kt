@@ -109,7 +109,7 @@ class TaskListBuilder {
         val updatedTasks = mutableListOf<Task>()
         fun traverse(task: Task): Task {
             val taskWithSubtasks = task.copy(
-                subtaskList = if (task.subtaskList != null && task.isExpanded && !(task.taskId == draggedTaskId && dragMode == DragMode.REARRANGE)) {
+                subtaskList = if (task.subtaskList != null && (task.isExpanded || (task.taskId == draggedTaskId && dragMode == DragMode.CHANGE_LAYER)) && !(task.taskId == draggedTaskId && dragMode == DragMode.REARRANGE)) {
                     task.subtaskList.map { traverse(task = it) }
                 } else if (task.subtaskList == null) {
                     null
