@@ -17,15 +17,15 @@ fun BottomNav(
     actionHandler: NavigationActionHandler
 ) {
     NavigationBar {
-        BottomNavState.entries.forEachIndexed { index, label ->
+        BottomNavState.entries.forEach { label ->
             NavigationBarItem(
                 icon = {
                     Icon(
                         imageVector = when (label) {
                             BottomNavState.HABITS -> Icons.Filled.Loop
                             BottomNavState.TASKS -> Icons.Filled.Checklist
-                            BottomNavState.DIARY -> Icons.Filled.AutoStories
                             BottomNavState.CALENDAR -> Icons.Filled.CalendarMonth
+                            BottomNavState.DIARY -> Icons.Filled.AutoStories
                         },
                         contentDescription = label.contentDescription
                     )

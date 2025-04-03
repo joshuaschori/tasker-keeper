@@ -13,8 +13,9 @@ class TaskRepository @Inject constructor(
     private val db: TaskerKeeperDatabase,
 ) {
     // taskCategoryDao functions //
-    suspend fun addTaskCategoryAtEnd() {
-        db.taskCategoryDao().addTaskCategoryAtEnd()
+    suspend fun addTaskCategoryAtEnd(): Int {
+        val newTaskCategoryId = db.taskCategoryDao().addTaskCategoryAtEnd().toInt()
+        return newTaskCategoryId
     }
 
     suspend fun editTaskCategoryTitle(categoryId: Int, titleChange: String) {

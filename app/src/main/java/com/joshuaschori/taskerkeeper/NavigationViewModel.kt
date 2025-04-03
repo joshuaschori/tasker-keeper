@@ -3,6 +3,7 @@ package com.joshuaschori.taskerkeeper
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joshuaschori.taskerkeeper.data.diary.DiaryRepository
+import com.joshuaschori.taskerkeeper.data.tasks.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class NavigationViewModel @Inject constructor(
-    private val diaryRepository: DiaryRepository
+    private val diaryRepository: DiaryRepository,
+    private val taskRepository: TaskRepository,
 ): ViewModel() {
     private val _uiState: MutableStateFlow<NavigationState> = MutableStateFlow(NavigationState.Loading)
     val uiState: StateFlow<NavigationState> = _uiState.asStateFlow()
@@ -42,14 +44,27 @@ class NavigationViewModel @Inject constructor(
                 }
                 val diaryTabState = TabState.Detail(diaryId)
 
-                // TODO create general tasks category if none exists yet, populate state with id
+                // create general tasks category if none exists yet, populate state with id
+                val taskCategoryList = taskRepository.getTaskCategories().first()
+                val taskCategoryId: Int
+                if (taskCategoryList.isEmpty()) {
+                    taskCategoryId = taskRepository.addTaskCategoryAtEnd()
+                    taskRepository.editTaskCategoryTitle(taskCategoryId, "Tasks")
+                } else {
+                    taskCategoryId = taskCategoryList[0].taskCategoryId
+                }
+                val taskTabState = TabState.Detail(taskCategoryId)
 
                 // TODO create general habits category if none exists yet, populate state with id
 
 
                 _uiState.value = NavigationState.Content(
-                    diaryTabState = diaryTabState
+                    tasksTabState = taskTabState,
+                    diaryTabState = diaryTabState,
                 )
+
+                navigateToTasksDetail(taskCategoryId)
+
             } else {
                 _uiState.value = NavigationState.Error
             }
