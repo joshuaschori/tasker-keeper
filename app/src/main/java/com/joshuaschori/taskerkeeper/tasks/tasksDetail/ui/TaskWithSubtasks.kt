@@ -128,6 +128,7 @@ fun TaskWithSubtasks(
                         .pointerInput(task.taskId, task.parentTaskId) {
                             detectDragGesturesAfterLongPress(
                                 onDragStart = { offset ->
+                                    actionHandler(TasksDetailAction.ClearFocus)
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     yDragClickOffset = offset.y.toInt()
                                     thisLazyListItem =
