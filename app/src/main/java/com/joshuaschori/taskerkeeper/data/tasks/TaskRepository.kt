@@ -128,6 +128,9 @@ class TaskRepository @Inject constructor(
                 //  parent and list order change if this task becoming it's parent, just list order change if this task moving to higher layer (parent stays the same)
                 // above cases both work with same parameters
 
+                // TODO account for above task being minimized
+                //  if destination list order calculated number of tasks with that parent first, that would work
+
                 val previousTaskAtRequestedLayer =
                     findPreviousTaskAtRequestedLayer(
                         aboveTask = aboveTask,
@@ -141,8 +144,16 @@ class TaskRepository @Inject constructor(
                         requestedLayer = belowTask.taskLayer
                     )
 
-                val destinationParentTaskId = previousTaskAtRequestedLayer?.parentTaskId ?: aboveTask.taskId
-                val destinationListOrder = previousTaskAtRequestedLayer?.listOrder?.plus(1) ?: 0
+                val destinationParentTaskId = when (requestedLayer) {
+                    aboveTask.taskLayer -> aboveTask.parentTaskId
+                    aboveTask.taskLayer + 1 -> aboveTask.taskId
+                    else -> previousTaskAtRequestedLayer?.parentTaskId
+                }
+                val destinationListOrder = when (requestedLayer) {
+                    aboveTask.taskLayer -> aboveTask.listOrder + 1
+                    aboveTask.taskLayer + 1 -> aboveTask.numberOfChildren ?: 0 // aboveTask.numberOfChildren accounting for the possibility of aboveTask being minimized
+                    else -> previousTaskAtRequestedLayer?.listOrder?.plus(1) ?: 0
+                }
                 val belowTaskDestinationParentTaskId = when (belowTask.taskLayer) {
                     requestedLayer -> destinationParentTaskId
                     requestedLayer + 1 -> thisTask.taskId

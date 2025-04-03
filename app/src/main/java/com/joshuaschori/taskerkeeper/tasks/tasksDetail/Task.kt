@@ -14,6 +14,7 @@ data class Task(
     // In the UI, a Task with an empty subtaskList will have the option to expand its subtaskList,
     // which will then populate.
     val subtaskList: List<Task>? = null,
+    val numberOfChildren: Int? = null,
     val taskLayer: Int = 0,
     val lazyListIndex: Int = 0,
 )

@@ -148,16 +148,6 @@ interface TaskDao {
             parentTaskId = belowTaskCurrentParentTaskId,
             startingListOrder = belowTaskCurrentListOrder
         )
-        moveTaskOrder(
-            parentCategoryId = parentCategoryId,
-            taskId = taskId,
-            currentParentTaskId = currentParentTaskId,
-            currentListOrder = currentListOrder,
-            destinationParentTaskId = destinationParentTaskId,
-            destinationListOrder = destinationListOrder,
-            autoSort = autoSort
-        )
-        // TODO consider if thisTask is minimized? taken care of correctly by auto expanding in TaskListBuilder???
 
         // if this task and below task start with same parent, or if moveTaskOrder moves this task
         // to same parent as below task, then moveTaskOrder will change below tasks' list_orders
@@ -167,14 +157,19 @@ interface TaskDao {
             1
         } else { 0 }
 
-        /*val listOrderDestinationDifferential = if (currentParentTaskId == belowTaskCurrentParentTaskId) {
-            -1
-        } else if (destinationParentTaskId == belowTaskCurrentParentTaskId) {
-            1
-        } else { 0 }*/
-
         var incrementingBelowTaskListOrder: Int = belowTaskCurrentListOrder + listOrderDifferential
-        var incrementingBelowTaskListOrderDestination: Int = belowTaskDestinationListOrder //+ listOrderDifferential
+        var incrementingBelowTaskListOrderDestination: Int = belowTaskDestinationListOrder
+
+
+        moveTaskOrder(
+            parentCategoryId = parentCategoryId,
+            taskId = taskId,
+            currentParentTaskId = currentParentTaskId,
+            currentListOrder = currentListOrder,
+            destinationParentTaskId = destinationParentTaskId,
+            destinationListOrder = destinationListOrder,
+            autoSort = autoSort
+        )
 
         // TODO if parent is the same, then list orders will conflict while this is processing?
 
@@ -337,6 +332,9 @@ interface TaskDao {
 
     @Query("SELECT COUNT(list_order) FROM tasks WHERE parent_category_id is :parentCategoryId AND parent_task_id is :parentTaskId AND list_order >= :startingListOrder")
     suspend fun getTaskCountStartingFromListOrder(parentCategoryId: Int, parentTaskId: Int?, startingListOrder: Int): Int
+
+    @Query("SELECT COUNT(list_order) FROM tasks WHERE parent_category_id is :parentCategoryId AND parent_task_id is :parentTaskId")
+    suspend fun getTaskCountWithParentTaskId(parentCategoryId: Int, parentTaskId: Int?): Int
 
     @Query("SELECT list_order FROM tasks WHERE task_id = :taskId")
     suspend fun getListOrder(taskId: Int): Int

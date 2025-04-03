@@ -116,6 +116,7 @@ class TaskListBuilder {
                 } else {
                     listOf()
                 },
+                numberOfChildren = task.subtaskList?.size
             )
             return taskWithSubtasks
         }
