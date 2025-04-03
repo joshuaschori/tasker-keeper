@@ -12,7 +12,7 @@ import javax.inject.Singleton
 class TaskRepository @Inject constructor(
     private val db: TaskerKeeperDatabase,
 ) {
-    // taskCategoryDao functions
+    // taskCategoryDao functions //
     suspend fun addTaskCategoryAtEnd() {
         db.taskCategoryDao().addTaskCategoryAtEnd()
     }
@@ -23,7 +23,7 @@ class TaskRepository @Inject constructor(
 
     fun getTaskCategories() = db.taskCategoryDao().getTaskCategories()
 
-    // taskDao functions
+    // taskDao functions //
     suspend fun addTaskAfter(parentCategoryId: Int, taskId: Int): Int {
         val newTaskId = db.taskDao().addTaskAfter(parentCategoryId, taskId).toInt()
 
@@ -128,9 +128,6 @@ class TaskRepository @Inject constructor(
                 //  parent and list order change if this task becoming it's parent, just list order change if this task moving to higher layer (parent stays the same)
                 // above cases both work with same parameters
 
-                // TODO account for above task being minimized
-                //  if destination list order calculated number of tasks with that parent first, that would work
-
                 val previousTaskAtRequestedLayer =
                     findPreviousTaskAtRequestedLayer(
                         aboveTask = aboveTask,
@@ -205,28 +202,7 @@ class TaskRepository @Inject constructor(
             }
         } else {
 
-            // TODO
-            /*val destinationParentTaskId = when (requestedLayer) {
-                taskAboveDestination.taskLayer -> taskAboveDestination.parentTaskId
-                taskAboveDestination.taskLayer + 1 -> taskAboveDestination.taskId
-                else -> findPreviousTaskAtRequestedLayer(
-                    aboveTask = taskAboveDestination,
-                    taskList = taskList,
-                    requestedLayer = requestedLayer
-                )?.parentTaskId
-            }
-            val destinationListOrder = when (requestedLayer) {
-                taskAboveDestination.taskLayer -> taskAboveDestination.listOrder + 1
-                taskAboveDestination.taskLayer + 1 -> 0
-                else -> findPreviousTaskAtRequestedLayer(
-                    aboveTask = taskAboveDestination,
-                    taskList = taskList,
-                    requestedLayer = requestedLayer
-                )?.listOrder?.plus(1)
-            }*/
-
             when (requestedLayer) {
-                // TODO this would also work in else?
                 taskAboveDestination.taskLayer -> {
                     db.taskDao().moveTaskOrder(
                         parentCategoryId = parentCategoryId,
@@ -239,9 +215,6 @@ class TaskRepository @Inject constructor(
                     )
                 }
 
-                // TODO if above task is minimized, this moves task correctly to listOrder 0, but
-                //  might be nice to move it to end. numberOfSubtasks Int maybe in TaskListBuilder?
-                //  might also be able to help make Task's subtaskList null / emptyList() logic clearer
                 taskAboveDestination.taskLayer + 1 -> {
                     db.taskDao().moveTaskOrder(
                         parentCategoryId = parentCategoryId,
@@ -249,7 +222,7 @@ class TaskRepository @Inject constructor(
                         currentParentTaskId = thisTask.parentTaskId,
                         currentListOrder = thisTask.listOrder,
                         destinationParentTaskId = taskAboveDestination.taskId,
-                        destinationListOrder = 0,
+                        destinationListOrder = if (!taskAboveDestination.isExpanded) taskAboveDestination.numberOfChildren ?: 0 else 0,
                         autoSort = autoSort
                     )
                 }

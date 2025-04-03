@@ -111,12 +111,8 @@ class TaskListBuilder {
             val taskWithSubtasks = task.copy(
                 subtaskList = if (task.subtaskList != null && (task.isExpanded || (task.taskId == draggedTaskId && dragMode == DragMode.CHANGE_LAYER)) && !(task.taskId == draggedTaskId && dragMode == DragMode.REARRANGE)) {
                     task.subtaskList.map { traverse(task = it) }
-                } else if (task.subtaskList == null) {
-                    null
-                } else {
-                    listOf()
-                },
-                numberOfChildren = task.subtaskList?.size
+                } else { null },
+                numberOfChildren = task.subtaskList?.size ?: 0
             )
             return taskWithSubtasks
         }
@@ -129,7 +125,7 @@ class TaskListBuilder {
         val unpackedTaskList = mutableListOf<Task>()
         var index: Int = 0
         fun traverse(task: Task) {
-            unpackedTaskList.add(task.copy(subtaskList = if (task.subtaskList == null) null else emptyList(), lazyListIndex = index))
+            unpackedTaskList.add(task.copy(subtaskList = null, lazyListIndex = index))
             index++
             task.subtaskList?.forEach {
                 traverse(it)

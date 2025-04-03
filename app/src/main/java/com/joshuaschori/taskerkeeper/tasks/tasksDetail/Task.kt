@@ -8,11 +8,9 @@ data class Task(
     val isChecked: Boolean,
     val isExpanded: Boolean,
     // The subtaskList is populated in TaskListBuilder to build proper parent / child relationships,
-    // and then is set to an empty list as the tree is unpacked for Lazy Column. It will be set to
-    // an empty list earlier in the TaskListBuilder if subtasks shouldn't be represented in UI.
-    // A null subtaskList represents no child tasks in database.
-    // In the UI, a Task with an empty subtaskList will have the option to expand its subtaskList,
-    // which will then populate.
+    // and then set to null as the tree is unpacked for Lazy Column.
+    // In the UI, a Task with a non-zero numberOfChildren will have the option to expand its subtaskList,
+    // which will then populate those tasks in the TaskListBuilder.
     val subtaskList: List<Task>? = null,
     val numberOfChildren: Int? = null,
     val taskLayer: Int = 0,
