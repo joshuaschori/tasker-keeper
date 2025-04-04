@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,13 +27,15 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.joshuaschori.taskerkeeper.Constants.MAX_LAYERS_OF_SUBTASKS
+import com.joshuaschori.taskerkeeper.Constants.MAX_LAYER_FOR_SUBTASKS
 import com.joshuaschori.taskerkeeper.DragMode
 import com.joshuaschori.taskerkeeper.YDirection
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailAction
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailActionHandler
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailExtensionMode
+import com.joshuaschori.taskerkeeper.ui.theme.errorLight
+import com.joshuaschori.taskerkeeper.ui.theme.onErrorContainerLight
 import kotlin.math.roundToInt
 
 @Composable
@@ -48,11 +51,11 @@ fun TaskWithSubtasks(
     dragTargetIndex: Int?,
     dragYDirection: YDirection?,
     dragRequestedLayerChange: Int?,
+    dragMaxExceeded: Boolean,
     onScroll: (Float) -> Unit,
     actionHandler: TasksDetailActionHandler,
 ) {
     // TODO overscroll / drag and dropping to index 0 / last index?
-    // TODO when subtasks above MAX_LAYERS_OF_SUBTASKS, hide on screen or disallow moving task?
     // TODO scrolling while dragging
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
@@ -68,9 +71,9 @@ fun TaskWithSubtasks(
     val snappedDp = ( dragRequestedLayerChange ?: 0 ) * layerStepSize.value
     val offsetX = with(density) { snappedDp.dp.toPx() }
 
-    // TODO not sure yet how to handle maximum with moving lists
+    // TODO need to make sure that this is necessary, and also that maximum isn't being allowed disregarding the UI here
     val minimumX = with(density) { ((0 - task.taskLayer) * layerStepSize.value).dp.toPx() }
-    val maximumX = with(density) { ((MAX_LAYERS_OF_SUBTASKS - task.taskLayer) * layerStepSize.value).dp.toPx() }
+    val maximumX = with(density) { ((MAX_LAYER_FOR_SUBTASKS - task.taskLayer) * layerStepSize.value).dp.toPx() }
 
     Row(
         modifier = if (draggedTask != null && dragTargetIndex != null && draggedTaskSize != null) Modifier
@@ -115,6 +118,11 @@ fun TaskWithSubtasks(
         Surface(
             tonalElevation = if (task.taskLayer == 0) { 10.dp } else { 0.dp },
             shadowElevation = 5.dp,
+            color = if (task == draggedTask && dragMaxExceeded) {
+                MaterialTheme.colorScheme.onErrorContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
             modifier = Modifier
                 .padding(start = (layerStepSize.value * task.taskLayer).dp)
                 .weight(1f)

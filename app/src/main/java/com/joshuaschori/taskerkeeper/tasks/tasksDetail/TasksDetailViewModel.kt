@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joshuaschori.taskerkeeper.Constants.DRAG_MODE_SENSITIVITY
+import com.joshuaschori.taskerkeeper.Constants.MAX_LAYER_FOR_SUBTASKS
 import com.joshuaschori.taskerkeeper.DragMode
 import com.joshuaschori.taskerkeeper.YDirection
 import com.joshuaschori.taskerkeeper.data.tasks.TaskRepository
@@ -25,7 +26,6 @@ class TasksDetailViewModel @Inject constructor(
     val uiState: StateFlow<TasksDetailState> = _uiState.asStateFlow()
     private val triggerDatabase: MutableStateFlow<Boolean> = MutableStateFlow(false)
 
-    // TODO some of these here and in repository and dao may not be used after simplifying extension modes?
     fun addNewTask(selectedTaskId: Int?, parentId: Int?) {
         viewModelScope.launch {
             val currentState = _uiState.value
@@ -253,13 +253,17 @@ class TasksDetailViewModel @Inject constructor(
                         requestedLayerChange
                     }
 
+                    // TODO consider changing allowedLayerChange when drag max is exceeded but there is a possible destination layer that does not exceed
+                    val dragMaxExceeded = dragMode == DragMode.REARRANGE && task.highestLayerBelow + allowedLayerChange > MAX_LAYER_FOR_SUBTASKS
+
                     _uiState.value = currentState.copy(
                         dragMode = dragMode,
                         dragYDirection = dragYDirection,
                         dragTargetIndex = dragTargetIndex,
                         dragTaskAbove = targetAboveTask,
                         dragTaskBelow = targetBelowTask,
-                        dragRequestedLayerChange = allowedLayerChange
+                        dragRequestedLayerChange = allowedLayerChange,
+                        dragMaxExceeded = dragMaxExceeded,
                     )
 
                     if (onDragModeChangeTriggerDatabase) { triggerDatabase.emit(!triggerDatabase.value) }
@@ -283,13 +287,17 @@ class TasksDetailViewModel @Inject constructor(
                     val dragTargetIndex = currentState.dragTargetIndex
                     val dragTaskAbove = currentState.dragTaskAbove
                     val dragTaskBelow = currentState.dragTaskBelow
+                    val dragMaxExceeded = currentState.dragMaxExceeded
                     val autoSort = currentState.isAutoSortCheckedTasks
 
                     val requestedLayer = thisTask.taskLayer + currentState.dragRequestedLayerChange
 
                     if (!(dragTaskAbove == null && dragTaskBelow == null)) {
                         when (dragMode) {
-                            DragMode.REARRANGE -> if (dragYDirection != null && !(dragTargetIndex == thisTask.lazyListIndex && requestedLayer == thisTask.taskLayer)) {
+                            DragMode.REARRANGE -> if (
+                                dragYDirection != null && !dragMaxExceeded &&
+                                !(dragTargetIndex == thisTask.lazyListIndex && requestedLayer == thisTask.taskLayer)
+                            ) {
                                 taskRepository.moveTaskOrder(
                                     parentCategoryId = parentCategoryId,
                                     thisTask = thisTask,
@@ -357,6 +365,7 @@ class TasksDetailViewModel @Inject constructor(
                     dragRequestedLayerChange = null,
                     dragTaskAbove = null,
                     dragTaskBelow = null,
+                    dragMaxExceeded = false,
                 )
                 triggerDatabase.emit(!triggerDatabase.value)
             } else {
@@ -394,6 +403,7 @@ sealed interface TasksDetailState {
         val dragTaskAbove: Task? = null,
         val dragTaskBelow: Task? = null,
         val dragRequestedLayerChange: Int? = null,
+        val dragMaxExceeded: Boolean = false,
     ) : TasksDetailState
     data class Error(
         val string: String,

@@ -4,14 +4,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import com.joshuaschori.taskerkeeper.Constants.MAX_LAYERS_OF_SUBTASKS
+import com.joshuaschori.taskerkeeper.Constants.MAX_LAYER_FOR_SUBTASKS
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailAction
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailActionHandler
@@ -54,11 +53,11 @@ fun TaskExtensions(
                     },
                     enabled = (
                             !((isAutoSortCheckedTasks && task.isChecked)
-                                    || task.taskLayer >= MAX_LAYERS_OF_SUBTASKS)
+                                    || task.taskLayer >= MAX_LAYER_FOR_SUBTASKS)
                             ),
                     modifier = Modifier.alpha(
                         if ((isAutoSortCheckedTasks && task.isChecked)
-                            || task.taskLayer >= MAX_LAYERS_OF_SUBTASKS
+                            || task.taskLayer >= MAX_LAYER_FOR_SUBTASKS
                         ) 0f else 1f
                     )
                 ) {

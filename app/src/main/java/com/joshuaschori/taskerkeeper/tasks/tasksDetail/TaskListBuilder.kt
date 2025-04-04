@@ -22,15 +22,29 @@ class TaskListBuilder {
         var children: MutableList<TaskTreeNode> = mutableListOf()
 
         // returns Task with its Subtasks attached in subtaskList
-        fun preOrderTraversal(taskLayer: Int = 0): Task {
+        fun preOrderTraversal(
+            taskLayer: Int = 0,
+            passHighestLayerBelow: (Int) -> Unit = {}
+        ): Task {
+            var highestLayerBelow: Int = taskLayer
             val taskWithSubtasks = data.copy(
                 subtaskList = if (children.isNotEmpty()) {
-                    children.map {
-                        it.preOrderTraversal(taskLayer + 1)
+                    children.map { childNode ->
+                        childNode.preOrderTraversal(
+                            taskLayer = taskLayer + 1,
+                            passHighestLayerBelow = {
+                                if (it > highestLayerBelow) {
+                                    highestLayerBelow = it
+                                    passHighestLayerBelow(it)
+                                }
+                            }
+                        )
                     }
                 } else {
+                    passHighestLayerBelow(taskLayer)
                     null
                 },
+                highestLayerBelow = highestLayerBelow,
                 taskLayer = taskLayer
             )
             return taskWithSubtasks
@@ -109,7 +123,10 @@ class TaskListBuilder {
         val updatedTasks = mutableListOf<Task>()
         fun traverse(task: Task): Task {
             val taskWithSubtasks = task.copy(
-                subtaskList = if (task.subtaskList != null && (task.isExpanded || (task.taskId == draggedTaskId && dragMode == DragMode.CHANGE_LAYER)) && !(task.taskId == draggedTaskId && dragMode == DragMode.REARRANGE)) {
+                subtaskList = if (task.subtaskList != null
+                    && (task.isExpanded || (task.taskId == draggedTaskId && dragMode == DragMode.CHANGE_LAYER))
+                    && !(task.taskId == draggedTaskId && dragMode == DragMode.REARRANGE)
+                ) {
                     task.subtaskList.map { traverse(task = it) }
                 } else { null },
                 numberOfChildren = task.subtaskList?.size ?: 0

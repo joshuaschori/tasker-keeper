@@ -13,6 +13,7 @@ data class Task(
     // which will then populate those tasks in the TaskListBuilder.
     val subtaskList: List<Task>? = null,
     val numberOfChildren: Int? = null,
+    val highestLayerBelow: Int = 0,
     val taskLayer: Int = 0,
     val lazyListIndex: Int = 0,
 )

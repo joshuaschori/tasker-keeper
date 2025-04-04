@@ -121,6 +121,7 @@ class TasksDetailFragment: Fragment() {
                                 dragTargetIndex = (state as TasksDetailState.Content).dragTargetIndex,
                                 dragYDirection = (state as TasksDetailState.Content).dragYDirection,
                                 dragRequestedLayerChange = (state as TasksDetailState.Content).dragRequestedLayerChange,
+                                dragMaxExceeded = (state as TasksDetailState.Content).dragMaxExceeded,
                                 actionHandler = { handleAction(it) },
                             )
                             is TasksDetailState.Error -> TasksError(
@@ -147,6 +148,7 @@ class TasksDetailFragment: Fragment() {
         dragTargetIndex: Int?,
         dragYDirection: YDirection?,
         dragRequestedLayerChange: Int?,
+        dragMaxExceeded: Boolean,
         actionHandler: TasksDetailActionHandler,
     ) {
         val focusManager = LocalFocusManager.current
@@ -207,6 +209,7 @@ class TasksDetailFragment: Fragment() {
                             dragTargetIndex = dragTargetIndex,
                             dragYDirection = dragYDirection,
                             dragRequestedLayerChange = dragRequestedLayerChange,
+                            dragMaxExceeded = dragMaxExceeded,
                             onScroll = { /* TODO scrollChannel.trySend(it)*/ },
                             actionHandler = actionHandler,
                         )
