@@ -1,8 +1,11 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.icons.Icons
@@ -20,6 +23,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -76,16 +80,22 @@ fun TaskWithSubtasks(
             .graphicsLayer {
                 alpha = (if (task == draggedTask) 0.5f else 1f)
                 translationX =
-                    if ( (task == draggedTask && dragMode == DragMode.CHANGE_LAYER) || (task == draggedTask && dragMode == DragMode.REARRANGE) ) {
+                    if ((task == draggedTask && dragMode == DragMode.CHANGE_LAYER) || (task == draggedTask && dragMode == DragMode.REARRANGE)) {
                         offsetX
-                    } else { 0f }
+                    } else {
+                        0f
+                    }
                 translationY = if (dragMode == DragMode.REARRANGE) {
                     if (task == draggedTask && dragYDirection == YDirection.DOWN && dragTargetIndex == draggedTask.lazyListIndex - 1) {
                         yDrag
                     } else if (task == draggedTask && dragTargetIndex < draggedTask.lazyListIndex) {
                         yDrag - draggedTaskSize
-                    } else { yDrag }
-                } else { 0f }
+                    } else {
+                        yDrag
+                    }
+                } else {
+                    0f
+                }
             }
             .zIndex(if (task == draggedTask) 1f else 0f)
             .padding(
@@ -95,14 +105,18 @@ fun TaskWithSubtasks(
                     with(density) { draggedTaskSize.toDp() }
                 } else if (task == draggedTask && dragMode == DragMode.CHANGE_LAYER) {
                     24.dp
-                } else { 0.dp },
+                } else {
+                    0.dp
+                },
                 bottom = if (dragYDirection == YDirection.DOWN && task.lazyListIndex == dragTargetIndex
                     && task.lazyListIndex != draggedTask.lazyListIndex && task.lazyListIndex != draggedTask.lazyListIndex - 1
                 ) {
                     with(density) { draggedTaskSize.toDp() }
                 } else if (task == draggedTask && dragMode == DragMode.CHANGE_LAYER) {
                     24.dp
-                } else { 0.dp },
+                } else {
+                    0.dp
+                },
             ) else Modifier
     ) {
         Surface(
@@ -113,9 +127,17 @@ fun TaskWithSubtasks(
             } else {
                 MaterialTheme.colorScheme.surface
             },
-            modifier = Modifier
-                .padding(start = (layerStepSize.value * task.taskLayer).dp)
-                .weight(1f)
+            modifier = if (task == draggedTask && dragMode == DragMode.CHANGE_LAYER) {
+                Modifier
+                    .padding(start = (layerStepSize.value * task.taskLayer).dp)
+                    .weight(1f)
+                    // TODO
+                    .width(50.dp)
+            } else {
+                Modifier
+                    .padding(start = (layerStepSize.value * task.taskLayer).dp)
+                    .weight(1f)
+            }
         ) {
             Row {
                 Icon(

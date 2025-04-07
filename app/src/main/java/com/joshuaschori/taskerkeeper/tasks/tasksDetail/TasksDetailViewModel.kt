@@ -241,8 +241,8 @@ class TasksDetailViewModel @Inject constructor(
                     val allowedMaximumLayer: Int = if (dragTargetIndex != null && !(targetAboveTask == null && targetBelowTask == null)) {
                         when (dragMode) {
                             DragMode.REARRANGE -> if (targetAboveTask != null) {
-                                if (targetAboveTask.taskLayer + 1 + task.highestLayerBelow > MAX_LAYER_FOR_SUBTASKS) {
-                                    MAX_LAYER_FOR_SUBTASKS - task.highestLayerBelow
+                                if (targetAboveTask.taskLayer + 1 + task.highestLayerBelow - task.taskLayer > MAX_LAYER_FOR_SUBTASKS) {
+                                    MAX_LAYER_FOR_SUBTASKS - task.highestLayerBelow + task.taskLayer
                                 } else {
                                     targetAboveTask.taskLayer + 1
                                 }
@@ -258,8 +258,8 @@ class TasksDetailViewModel @Inject constructor(
                     } else { 0 }
 
                     val allowedLayerChange: Int = if (
-                        (task.taskLayer + requestedLayerChange < allowedMinimumLayer) ||
-                        (allowedMaximumLayer < allowedMinimumLayer)
+                        task.taskLayer + requestedLayerChange < allowedMinimumLayer ||
+                        allowedMaximumLayer < allowedMinimumLayer
                     ) {
                         allowedMinimumLayer - task.taskLayer
                     } else if (task.taskLayer + requestedLayerChange > allowedMaximumLayer) {
@@ -268,7 +268,8 @@ class TasksDetailViewModel @Inject constructor(
                         requestedLayerChange
                     }
 
-                    val dragMaxExceeded = dragMode == DragMode.REARRANGE && task.highestLayerBelow + allowedLayerChange > MAX_LAYER_FOR_SUBTASKS
+                    val dragMaxExceeded = (dragMode == DragMode.REARRANGE && task.highestLayerBelow + allowedLayerChange > MAX_LAYER_FOR_SUBTASKS) ||
+                            (dragMode == DragMode.CHANGE_LAYER && allowedMinimumLayer == task.taskLayer && allowedMaximumLayer == task.taskLayer)
 
                     _uiState.value = currentState.copy(
                         dragMode = dragMode,
