@@ -233,19 +233,34 @@ class TasksDetailViewModel @Inject constructor(
 
                     val allowedMinimumLayer: Int = if (dragTargetIndex != null && !(targetAboveTask == null && targetBelowTask == null)) {
                         when (dragMode) {
-                            DragMode.REARRANGE -> if (targetAboveTask != null && targetBelowTask != null && targetBelowTask.parentTaskId != null) { targetBelowTask.taskLayer } else { 0 }
+                            DragMode.REARRANGE -> if (targetAboveTask != null && targetBelowTask != null && targetBelowTask.parentTaskId != null) {targetBelowTask.taskLayer } else { 0 }
                             DragMode.CHANGE_LAYER -> if (targetAboveTask != null && targetBelowTask != null && targetBelowTask.parentTaskId != null) { targetBelowTask.taskLayer - 1 } else { 0 }
                         }
                     } else { 0 }
 
                     val allowedMaximumLayer: Int = if (dragTargetIndex != null && !(targetAboveTask == null && targetBelowTask == null)) {
                         when (dragMode) {
-                            DragMode.REARRANGE -> if (targetAboveTask != null) { targetAboveTask.taskLayer + 1 } else { 0 }
-                            DragMode.CHANGE_LAYER -> if (targetAboveTask != null) { targetAboveTask.taskLayer + 1 } else { 0 }
+                            DragMode.REARRANGE -> if (targetAboveTask != null) {
+                                if (targetAboveTask.taskLayer + 1 + task.highestLayerBelow > MAX_LAYER_FOR_SUBTASKS) {
+                                    MAX_LAYER_FOR_SUBTASKS - task.highestLayerBelow
+                                } else {
+                                    targetAboveTask.taskLayer + 1
+                                }
+                            } else { 0 }
+                            DragMode.CHANGE_LAYER -> if (targetAboveTask != null) {
+                                if (targetAboveTask.taskLayer + 1 > MAX_LAYER_FOR_SUBTASKS) {
+                                    MAX_LAYER_FOR_SUBTASKS
+                                } else {
+                                    targetAboveTask.taskLayer + 1
+                                }
+                            } else { 0 }
                         }
                     } else { 0 }
 
-                    val allowedLayerChange: Int = if (task.taskLayer + requestedLayerChange < allowedMinimumLayer) {
+                    val allowedLayerChange: Int = if (
+                        (task.taskLayer + requestedLayerChange < allowedMinimumLayer) ||
+                        (allowedMaximumLayer < allowedMinimumLayer)
+                    ) {
                         allowedMinimumLayer - task.taskLayer
                     } else if (task.taskLayer + requestedLayerChange > allowedMaximumLayer) {
                         allowedMaximumLayer - task.taskLayer
@@ -253,7 +268,6 @@ class TasksDetailViewModel @Inject constructor(
                         requestedLayerChange
                     }
 
-                    // TODO consider changing allowedLayerChange when drag max is exceeded but there is a possible destination layer that does not exceed
                     val dragMaxExceeded = dragMode == DragMode.REARRANGE && task.highestLayerBelow + allowedLayerChange > MAX_LAYER_FOR_SUBTASKS
 
                     _uiState.value = currentState.copy(

@@ -71,23 +71,13 @@ fun TaskWithSubtasks(
     val snappedDp = ( dragRequestedLayerChange ?: 0 ) * layerStepSize.value
     val offsetX = with(density) { snappedDp.dp.toPx() }
 
-    // TODO need to make sure that this is necessary, and also that maximum isn't being allowed disregarding the UI here
-    val minimumX = with(density) { ((0 - task.taskLayer) * layerStepSize.value).dp.toPx() }
-    val maximumX = with(density) { ((MAX_LAYER_FOR_SUBTASKS - task.taskLayer) * layerStepSize.value).dp.toPx() }
-
     Row(
         modifier = if (draggedTask != null && dragTargetIndex != null && draggedTaskSize != null) Modifier
             .graphicsLayer {
                 alpha = (if (task == draggedTask) 0.5f else 1f)
                 translationX =
-                    if (task == draggedTask && dragMode == DragMode.CHANGE_LAYER) {
-                        if (offsetX < minimumX) { minimumX }
-                        else if (offsetX > maximumX) { maximumX }
-                        else { offsetX }
-                    } else if (task == draggedTask && dragMode == DragMode.REARRANGE) {
-                        if (offsetX < minimumX) { minimumX }
-                        else if (offsetX > maximumX) { maximumX }
-                        else { offsetX }
+                    if ( (task == draggedTask && dragMode == DragMode.CHANGE_LAYER) || (task == draggedTask && dragMode == DragMode.REARRANGE) ) {
+                        offsetX
                     } else { 0f }
                 translationY = if (dragMode == DragMode.REARRANGE) {
                     if (task == draggedTask && dragYDirection == YDirection.DOWN && dragTargetIndex == draggedTask.lazyListIndex - 1) {
