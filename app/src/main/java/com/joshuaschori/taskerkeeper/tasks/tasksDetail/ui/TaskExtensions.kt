@@ -32,9 +32,7 @@ fun TaskExtensions(
                         actionHandler(TasksDetailAction.AddNewTask(task.taskId, null))
                         actionHandler(TasksDetailAction.ClearFocus)
                     },
-                    enabled = (
-                            !(isAutoSortCheckedTasks && task.isChecked)
-                            ),
+                    enabled = !(isAutoSortCheckedTasks && task.isChecked),
                     modifier = Modifier.alpha(
                         if (isAutoSortCheckedTasks && task.isChecked) 0f else 1f
                     )
