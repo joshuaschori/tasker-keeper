@@ -6,7 +6,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowLeft
+import androidx.compose.material.icons.filled.ArrowRight
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowLeft
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowRight
@@ -15,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -44,17 +49,18 @@ fun DragExtensions(
             modifier = Modifier
                 .graphicsLayer {
                     alpha = 1f
-                    translationY = if (dragMode == DragMode.REARRANGE && draggedLazyListIndex != null && dragTargetIndex != null) {
-                        if (dragYDirection == YDirection.DOWN && dragTargetIndex == draggedLazyListIndex - 1) {
-                            yDrag
-                        } else if (dragTargetIndex < draggedLazyListIndex) {
-                            yDrag - draggedTaskSize
+                    translationY =
+                        if (dragMode == DragMode.REARRANGE && draggedLazyListIndex != null && dragTargetIndex != null) {
+                            if (dragYDirection == YDirection.DOWN && dragTargetIndex == draggedLazyListIndex - 1) {
+                                yDrag
+                            } else if (dragTargetIndex < draggedLazyListIndex) {
+                                yDrag - draggedTaskSize
+                            } else {
+                                yDrag
+                            }
                         } else {
-                            yDrag
+                            0f
                         }
-                    } else {
-                        0f
-                    }
                 }
                 .padding(
                     start = if ((layerStepSize * task.taskLayer).dp + snappedDp.dp > 0.dp) (layerStepSize * task.taskLayer).dp + snappedDp.dp else 0.dp,
@@ -88,22 +94,43 @@ fun DragExtensions(
                         .height(with(density) { draggedTaskSize.toDp() })
                         .padding(top = 12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardDoubleArrowLeft,
-                        contentDescription = ""
-                    )
+                    if (dragMode == DragMode.REARRANGE) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = ""
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.KeyboardDoubleArrowLeft,
+                            contentDescription = ""
+                        )
+                    }
+
                     Icon(
                         imageVector = Icons.Filled.ArrowUpward,
-                        contentDescription = ""
+                        contentDescription = "",
+                        modifier = Modifier
+                            .alpha( if (dragMode == DragMode.CHANGE_LAYER) 0f else 1f )
                     )
+
                     Icon(
                         imageVector = Icons.Filled.ArrowDownward,
-                        contentDescription = ""
+                        contentDescription = "",
+                        modifier = Modifier
+                            .alpha( if (dragMode == DragMode.CHANGE_LAYER) 0f else 1f )
                     )
-                    Icon(
-                        imageVector = Icons.Filled.KeyboardDoubleArrowRight,
-                        contentDescription = ""
-                    )
+
+                    if (dragMode == DragMode.REARRANGE) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowForward,
+                            contentDescription = ""
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.KeyboardDoubleArrowRight,
+                            contentDescription = ""
+                        )
+                    }
                 }
             }
         }
