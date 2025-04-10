@@ -271,6 +271,10 @@ class TasksDetailViewModel @Inject constructor(
                     val dragMaxExceeded = (dragMode == DragMode.REARRANGE && task.highestLayerBelow + allowedLayerChange > MAX_LAYER_FOR_SUBTASKS) ||
                             (dragMode == DragMode.CHANGE_LAYER && allowedMinimumLayer == task.taskLayer && allowedMaximumLayer == task.taskLayer)
 
+                    val dragLeftPossible = task.taskLayer + allowedLayerChange > allowedMinimumLayer
+
+                    val dragRightPossible = task.taskLayer + allowedLayerChange < allowedMaximumLayer
+
                     _uiState.value = currentState.copy(
                         dragMode = dragMode,
                         dragYDirection = dragYDirection,
@@ -279,6 +283,8 @@ class TasksDetailViewModel @Inject constructor(
                         dragTaskBelow = targetBelowTask,
                         dragRequestedLayerChange = allowedLayerChange,
                         dragMaxExceeded = dragMaxExceeded,
+                        dragLeftPossible = dragLeftPossible,
+                        dragRightPossible = dragRightPossible,
                     )
 
                     if (onDragModeChangeTriggerDatabase) { triggerDatabase.emit(!triggerDatabase.value) }
@@ -419,6 +425,8 @@ sealed interface TasksDetailState {
         val dragTaskBelow: Task? = null,
         val dragRequestedLayerChange: Int? = null,
         val dragMaxExceeded: Boolean = false,
+        val dragLeftPossible: Boolean = false,
+        val dragRightPossible: Boolean = false,
     ) : TasksDetailState
     data class Error(
         val string: String,

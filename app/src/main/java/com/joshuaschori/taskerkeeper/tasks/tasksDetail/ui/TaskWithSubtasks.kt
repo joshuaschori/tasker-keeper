@@ -1,6 +1,5 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +61,8 @@ fun TaskWithSubtasks(
     dragYDirection: YDirection?,
     dragRequestedLayerChange: Int?,
     dragMaxExceeded: Boolean,
+    dragLeftPossible: Boolean,
+    dragRightPossible: Boolean,
     onScroll: (Float) -> Unit,
     actionHandler: TasksDetailActionHandler,
 ) {
@@ -98,6 +99,8 @@ fun TaskWithSubtasks(
             task = task,
             layerStepSize = layerStepSize.value,
             snappedDp = snappedDp,
+            dragLeftPossible = dragLeftPossible,
+            dragRightPossible = dragRightPossible,
         )
         Row(
             modifier = if (draggedLazyListIndex != null && draggedTaskSize != null) Modifier
@@ -148,7 +151,7 @@ fun TaskWithSubtasks(
                 } else {
                     0.dp
                 },
-                shadowElevation = 5.dp,
+                shadowElevation = if (isDraggedTask) 0.dp else 5.dp,
                 color = if (isDraggedTask && dragMaxExceeded) {
                     MaterialTheme.colorScheme.onErrorContainer
                 } else {

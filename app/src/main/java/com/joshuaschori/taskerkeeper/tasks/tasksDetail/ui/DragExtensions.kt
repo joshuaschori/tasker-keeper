@@ -41,6 +41,8 @@ fun DragExtensions(
     task: Task,
     layerStepSize: Float,
     snappedDp: Float,
+    dragLeftPossible: Boolean,
+    dragRightPossible: Boolean,
 ) {
     val density = LocalDensity.current
 
@@ -97,14 +99,20 @@ fun DragExtensions(
                     if (dragMode == DragMode.REARRANGE) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = ""
+                            contentDescription = "",
+                            modifier = Modifier
+                                .alpha( if (dragLeftPossible) 1f else 0.25f )
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Filled.KeyboardDoubleArrowLeft,
-                            contentDescription = ""
+                            contentDescription = "",
+                            modifier = Modifier
+                                .alpha( if (dragLeftPossible) 1f else 0.25f )
                         )
                     }
+
+                    // TODO drag up down possible? beginning and end of list
 
                     Icon(
                         imageVector = Icons.Filled.ArrowUpward,
@@ -123,12 +131,16 @@ fun DragExtensions(
                     if (dragMode == DragMode.REARRANGE) {
                         Icon(
                             imageVector = Icons.Filled.ArrowForward,
-                            contentDescription = ""
+                            contentDescription = "",
+                            modifier = Modifier
+                                .alpha( if (dragRightPossible) 1f else 0.25f )
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Filled.KeyboardDoubleArrowRight,
-                            contentDescription = ""
+                            contentDescription = "",
+                            modifier = Modifier
+                                .alpha( if (dragRightPossible) 1f else 0.25f )
                         )
                     }
                 }
