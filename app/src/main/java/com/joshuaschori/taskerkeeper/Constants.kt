@@ -15,5 +15,6 @@ object Constants {
     const val LAZY_COLUMN_BOTTOM_PADDING = 320
     const val LAZY_COLUMN_VERTICAL_ARRANGEMENT_SPACING = 1
     const val FLOATING_ACTION_BUTTON_PADDING = 16
+    const val TASK_ROW_ICON_TOP_PADDING = 12
 
 }

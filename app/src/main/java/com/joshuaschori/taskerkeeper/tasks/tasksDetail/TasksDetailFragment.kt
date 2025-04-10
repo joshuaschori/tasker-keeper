@@ -199,7 +199,7 @@ class TasksDetailFragment: Fragment() {
                     contentPadding = PaddingValues(
                         start = LAZY_COLUMN_START_PADDING.dp,
                         top = LAZY_COLUMN_TOP_PADDING.dp,
-                        end = 0.dp,
+                        end = LAZY_COLUMN_END_PADDING.dp,
                         bottom = LAZY_COLUMN_BOTTOM_PADDING.dp
                     ),
                     verticalArrangement = Arrangement.spacedBy(LAZY_COLUMN_VERTICAL_ARRANGEMENT_SPACING.dp),

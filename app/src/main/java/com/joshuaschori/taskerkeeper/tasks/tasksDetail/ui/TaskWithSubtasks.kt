@@ -1,22 +1,21 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.DragIndicator
-import androidx.compose.material.icons.filled.KeyboardDoubleArrowLeft
-import androidx.compose.material.icons.filled.KeyboardDoubleArrowRight
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,15 +31,18 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_END_PADDING
+import com.joshuaschori.taskerkeeper.Constants.TASK_ROW_ICON_TOP_PADDING
 import com.joshuaschori.taskerkeeper.DragMode
 import com.joshuaschori.taskerkeeper.YDirection
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
@@ -85,164 +87,220 @@ fun TaskWithSubtasks(
     val xDragDp = with(density) { xDrag.toDp() }
     val requestedLayerChange = rememberUpdatedState ( (xDragDp / layerStepSize).roundToInt() )
     val snappedDp = ( dragRequestedLayerChange ?: 0 ) * layerStepSize.value
-    val offsetX = with(density) { snappedDp.dp.toPx() }
 
-    Box(
-        modifier = Modifier.zIndex(if (isDraggedTask) 1f else 0f)
-    ) {
-        DragExtensions(
-            isDraggedTask = isDraggedTask,
-            draggedLazyListIndex = draggedLazyListIndex,
-            dragTargetIndex = dragTargetIndex,
-            draggedTaskSize = draggedTaskSize,
-            dragMode = dragMode,
-            dragYDirection = dragYDirection,
-            yDrag = yDrag,
-            dragMaxExceeded = dragMaxExceeded,
-            task = task,
-            layerStepSize = layerStepSize.value,
-            snappedDp = snappedDp,
-            dragLeftPossible = dragLeftPossible,
-            dragRightPossible = dragRightPossible,
-        )
-        Row(
-            modifier = if (draggedLazyListIndex != null && draggedTaskSize != null) Modifier
-                .graphicsLayer {
-                    /*translationX = if ((isDraggedTask && dragMode == DragMode.CHANGE_LAYER) || (isDraggedTask && dragMode == DragMode.REARRANGE)) {
-                        offsetX
+    // focus when task is first created
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        // TODO some kind of bug where sometimes new task doesn't appear until recompose
+        // TODO keyboard doesn't pop up, which makes sense
+        if (focusTaskId == task.taskId) {
+            focusRequester.requestFocus()
+            actionHandler(TasksDetailAction.ResetFocusTrigger)
+        }
+    }
+
+    // while text field is being interacted with, update UI immediately and not from database
+    val activeTextField = remember { mutableStateOf("") }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    if (!isFocused) {
+        activeTextField.value = task.description
+    }
+
+    Row(
+        modifier = if (draggedLazyListIndex != null && draggedTaskSize != null) Modifier
+            .zIndex(if (isDraggedTask) 1f else 0f)
+            .graphicsLayer {
+                translationY = if (dragMode == DragMode.REARRANGE && dragTargetIndex != null) {
+                    if (isDraggedTask && dragYDirection == YDirection.DOWN && dragTargetIndex == draggedLazyListIndex - 1) {
+                        yDrag
+                    } else if (isDraggedTask && dragTargetIndex < draggedLazyListIndex) {
+                        yDrag - draggedTaskSize
                     } else {
-                        0f
-                    }*/
-                    translationY = if (dragMode == DragMode.REARRANGE && dragTargetIndex != null) {
-                        if (isDraggedTask && dragYDirection == YDirection.DOWN && dragTargetIndex == draggedLazyListIndex - 1) {
-                            yDrag
-                        } else if (isDraggedTask && dragTargetIndex < draggedLazyListIndex) {
-                            yDrag - draggedTaskSize
-                        } else {
-                            yDrag
-                        }
-                    } else {
-                        0f
+                        yDrag
                     }
+                } else {
+                    0f
                 }
-                .padding(
-                    top = if (dragYDirection == YDirection.UP && task.lazyListIndex == dragTargetIndex
-                        && task.lazyListIndex != draggedLazyListIndex && task.lazyListIndex != draggedLazyListIndex + 1
-                    ) {
-                        with(density) { draggedTaskSize.toDp() }
-                    } else if (isDraggedTask && dragMode == DragMode.CHANGE_LAYER) {
-                        24.dp
-                    } else {
-                        0.dp
-                    },
-                    bottom = if (dragYDirection == YDirection.DOWN && task.lazyListIndex == dragTargetIndex
-                        && task.lazyListIndex != draggedLazyListIndex && task.lazyListIndex != draggedLazyListIndex - 1
-                    ) {
-                        with(density) { draggedTaskSize.toDp() }
-                    } else if (isDraggedTask && dragMode == DragMode.CHANGE_LAYER) {
-                        24.dp
-                    } else {
-                        0.dp
-                    },
-                    end = LAZY_COLUMN_END_PADDING.dp
-                )
-            else Modifier
-                .padding(end = LAZY_COLUMN_END_PADDING.dp)
-        ) {
-            Surface(
-                tonalElevation = if (task.taskLayer == 0) {
-                    10.dp
+            }
+            .padding(
+                top = if (dragYDirection == YDirection.UP && task.lazyListIndex == dragTargetIndex
+                    && task.lazyListIndex != draggedLazyListIndex && task.lazyListIndex != draggedLazyListIndex + 1
+                ) {
+                    with(density) { draggedTaskSize.toDp() }
+                } else if (isDraggedTask && dragMode == DragMode.CHANGE_LAYER) {
+                    24.dp
                 } else {
                     0.dp
                 },
-                shadowElevation = 5.dp,
-                color = if (isDraggedTask && dragMaxExceeded) {
-                    MaterialTheme.colorScheme.onErrorContainer
+                bottom = if (dragYDirection == YDirection.DOWN && task.lazyListIndex == dragTargetIndex
+                    && task.lazyListIndex != draggedLazyListIndex && task.lazyListIndex != draggedLazyListIndex - 1
+                ) {
+                    with(density) { draggedTaskSize.toDp() }
+                } else if (isDraggedTask && dragMode == DragMode.CHANGE_LAYER) {
+                    24.dp
                 } else {
-                    MaterialTheme.colorScheme.surface
+                    0.dp
                 },
-                modifier = if (isDraggedTask && draggedTaskSize != null) {
-                    Modifier
-                        .padding(
-                            start = (layerStepSize.value * task.taskLayer).dp + snappedDp.dp
-                        )
-                        .height( with(density) { draggedTaskSize.toDp() } )
-                        .weight(1f)
-                } else {
-                    Modifier
-                        .padding(start = (layerStepSize.value * task.taskLayer).dp)
-                        .weight(1f)
-                }
-            ) {
-                Row {
-                    Icon(
-                        imageVector = Icons.Filled.DragIndicator,
-                        contentDescription = "Rearrange",
-                        modifier = Modifier
-                            .align(Alignment.Top)
-                            .padding(top = 12.dp)
-                            .pointerInput(task.taskId, task.parentTaskId) {
-                                detectDragGesturesAfterLongPress(
-                                    onDragStart = { offset ->
-                                        actionHandler(TasksDetailAction.ClearFocus)
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        yDragClickOffset = offset.y.toInt()
-                                        thisLazyListItem =
-                                            lazyListState.layoutInfo.visibleItemsInfo.find {
-                                                it.index == task.lazyListIndex
-                                            }
-                                        actionHandler(
-                                            TasksDetailAction.OnDragStart(
-                                                task = task,
-                                                size = thisLazyListItem!!.size
-                                            )
-                                        )
-                                    },
-                                    onDrag = { change, dragAmount ->
-                                        change.consume()
-                                        xDrag += dragAmount.x
-                                        yDrag += dragAmount.y
-
-                                        // TODO scroll??
-                                        // onScroll(dragAmount.y)
-
-                                        actionHandler(
-                                            TasksDetailAction.OnDrag(
-                                                task = task,
-                                                dragAmount = dragAmount,
-                                                dragOffsetTotal = thisLazyListItem!!.offset + yDragClickOffset + yDrag.toInt(),
-                                                lazyListState = lazyListState,
-                                                requestedLayerChange = requestedLayerChange.value
-                                            )
-                                        )
-                                    },
-                                    onDragEnd = {
-                                        actionHandler(TasksDetailAction.OnDragEnd)
-                                        actionHandler(TasksDetailAction.ResetDragHandlers)
-                                        xDrag = 0f
-                                        yDrag = 0f
-                                    },
-                                    onDragCancel = {
-                                        actionHandler(TasksDetailAction.ResetDragHandlers)
-                                        xDrag = 0f
-                                        yDrag = 0f
-                                    },
-                                )
-                            },
-                    )
-                    TaskRow(
-                        task = task,
-                        focusTaskId = focusTaskId,
-                        actionHandler = actionHandler,
-                    )
-                }
-            }
-            TaskExtensions(
-                task = task,
-                actionHandler = actionHandler,
-                selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
-                isAutoSortCheckedTasks = isAutoSortCheckedTasks,
             )
+            .fillMaxWidth()
+        else Modifier.fillMaxWidth()
+    ) {
+        Surface(
+            tonalElevation = if (task.taskLayer == 0) {
+                10.dp
+            } else {
+                0.dp
+            },
+            shadowElevation = 5.dp,
+            color = if (isDraggedTask && dragMaxExceeded) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+            modifier = if (isDraggedTask && draggedTaskSize != null) {
+                Modifier
+                    .padding(
+                        start = (layerStepSize.value * task.taskLayer).dp + snappedDp.dp
+                    )
+                    .height(with(density) { draggedTaskSize.toDp() })
+                    .weight(1f)
+            } else {
+                Modifier
+                    .padding(start = (layerStepSize.value * task.taskLayer).dp)
+                    .weight(1f)
+            }
+        ) {
+            Row {
+                Icon(
+                    imageVector = Icons.Filled.DragIndicator,
+                    contentDescription = "Rearrange",
+                    modifier = Modifier
+                        .align(Alignment.Top)
+                        .padding(top = TASK_ROW_ICON_TOP_PADDING.dp)
+                        .pointerInput(task.taskId, task.parentTaskId) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { offset ->
+                                    actionHandler(TasksDetailAction.ClearFocus)
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    yDragClickOffset = offset.y.toInt()
+                                    thisLazyListItem =
+                                        lazyListState.layoutInfo.visibleItemsInfo.find {
+                                            it.index == task.lazyListIndex
+                                        }
+                                    actionHandler(
+                                        TasksDetailAction.OnDragStart(
+                                            task = task,
+                                            size = thisLazyListItem!!.size
+                                        )
+                                    )
+                                },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    xDrag += dragAmount.x
+                                    yDrag += dragAmount.y
+
+                                    // TODO scroll??
+                                    // onScroll(dragAmount.y)
+
+                                    actionHandler(
+                                        TasksDetailAction.OnDrag(
+                                            task = task,
+                                            dragAmount = dragAmount,
+                                            dragOffsetTotal = thisLazyListItem!!.offset + yDragClickOffset + yDrag.toInt(),
+                                            lazyListState = lazyListState,
+                                            requestedLayerChange = requestedLayerChange.value
+                                        )
+                                    )
+                                },
+                                onDragEnd = {
+                                    actionHandler(TasksDetailAction.OnDragEnd)
+                                    actionHandler(TasksDetailAction.ResetDragHandlers)
+                                    xDrag = 0f
+                                    yDrag = 0f
+                                },
+                                onDragCancel = {
+                                    actionHandler(TasksDetailAction.ResetDragHandlers)
+                                    xDrag = 0f
+                                    yDrag = 0f
+                                },
+                            )
+                        },
+                )
+
+                Checkbox(
+                    checked = task.isChecked,
+                    onCheckedChange = {
+                        if (task.isChecked) {
+                            actionHandler(TasksDetailAction.MarkTaskIncomplete(task.taskId))
+                        } else {
+                            actionHandler(TasksDetailAction.MarkTaskComplete(task.taskId))
+                        }
+                        actionHandler(TasksDetailAction.ClearFocus)
+                    },
+                )
+
+                BasicTextField(
+                    value = if (isFocused) {
+                        activeTextField.value
+                    } else {
+                        task.description
+                    },
+                    onValueChange = {
+                        activeTextField.value = it
+                        actionHandler(TasksDetailAction.EditTaskDescription(task.taskId, it))
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Done
+                    ),
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                        .focusRequester(focusRequester)
+                        .weight(1f)
+                        .alpha( if (isDraggedTask) 0.25f else 1f ),
+                    interactionSource = interactionSource,
+                )
+
+                if (task.numberOfChildren != 0 && !isDraggedTask) {
+                    IconButton(
+                        onClick = {
+                            if (task.isExpanded) {
+                                actionHandler(TasksDetailAction.MinimizeTask(task.taskId))
+                            } else {
+                                actionHandler(TasksDetailAction.ExpandTask(task.taskId))
+                            }
+                            actionHandler(TasksDetailAction.ClearFocus)
+                        },
+                    ) {
+                        Icon(
+                            if (task.isExpanded) {
+                                Icons.Filled.ExpandLess
+                            } else {
+                                Icons.Filled.ExpandMore
+                            },
+                            contentDescription = if (task.isExpanded) {
+                                "Minimize Subtasks"
+                            } else {
+                                "Expand Subtasks"
+                            },
+                        )
+                    }
+                }
+
+                DragExtensions(
+                    isDraggedTask = isDraggedTask,
+                    draggedTaskSize = draggedTaskSize,
+                    dragMode = dragMode,
+                    dragLeftPossible = dragLeftPossible,
+                    dragRightPossible = dragRightPossible,
+                )
+            }
         }
+        TaskExtensions(
+            task = task,
+            actionHandler = actionHandler,
+            selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
+            isAutoSortCheckedTasks = isAutoSortCheckedTasks,
+        )
     }
 }
