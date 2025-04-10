@@ -37,6 +37,12 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.joshuaschori.taskerkeeper.Constants.FLOATING_ACTION_BUTTON_PADDING
+import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_BOTTOM_PADDING
+import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_END_PADDING
+import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_START_PADDING
+import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_TOP_PADDING
+import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_VERTICAL_ARRANGEMENT_SPACING
 import com.joshuaschori.taskerkeeper.NavigationViewModel
 import com.joshuaschori.taskerkeeper.DragMode
 import com.joshuaschori.taskerkeeper.YDirection
@@ -191,9 +197,12 @@ class TasksDetailFragment: Fragment() {
 
                 LazyColumn(
                     contentPadding = PaddingValues(
-                        start = 16.dp, top = 32.dp, end = 16.dp, bottom = 320.dp
+                        start = LAZY_COLUMN_START_PADDING.dp,
+                        top = LAZY_COLUMN_TOP_PADDING.dp,
+                        end = 0.dp,
+                        bottom = LAZY_COLUMN_BOTTOM_PADDING.dp
                     ),
-                    verticalArrangement = Arrangement.spacedBy(1.dp),
+                    verticalArrangement = Arrangement.spacedBy(LAZY_COLUMN_VERTICAL_ARRANGEMENT_SPACING.dp),
                     state = lazyListState,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -236,7 +245,7 @@ class TasksDetailFragment: Fragment() {
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(all = 16.dp)
+                    .padding(all = FLOATING_ACTION_BUTTON_PADDING.dp)
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,

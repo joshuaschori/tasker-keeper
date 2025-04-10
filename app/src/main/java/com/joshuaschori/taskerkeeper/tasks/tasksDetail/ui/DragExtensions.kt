@@ -1,10 +1,16 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -18,12 +24,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontVariation.weight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_END_PADDING
 import com.joshuaschori.taskerkeeper.DragMode
 import com.joshuaschori.taskerkeeper.YDirection
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
@@ -48,51 +59,36 @@ fun DragExtensions(
 
     if (isDraggedTask && draggedTaskSize != null) {
         Row(
-            modifier = Modifier
+            modifier = if (draggedLazyListIndex != null) Modifier
+                .zIndex(2f)
                 .graphicsLayer {
-                    alpha = 1f
-                    translationY =
-                        if (dragMode == DragMode.REARRANGE && draggedLazyListIndex != null && dragTargetIndex != null) {
-                            if (dragYDirection == YDirection.DOWN && dragTargetIndex == draggedLazyListIndex - 1) {
-                                yDrag
-                            } else if (dragTargetIndex < draggedLazyListIndex) {
-                                yDrag - draggedTaskSize
-                            } else {
-                                yDrag
-                            }
+                    // TODO alpha = (if (isDraggedTask) 0.25f else 1f)
+                    translationY = if (dragMode == DragMode.REARRANGE && dragTargetIndex != null) {
+                        if (dragYDirection == YDirection.DOWN && dragTargetIndex == draggedLazyListIndex - 1) {
+                            yDrag
+                        } else if (dragTargetIndex < draggedLazyListIndex) {
+                            yDrag - draggedTaskSize
                         } else {
-                            0f
+                            yDrag
                         }
+                    } else {
+                        0f
+                    }
                 }
                 .padding(
-                    start = if ((layerStepSize * task.taskLayer).dp + snappedDp.dp > 0.dp) (layerStepSize * task.taskLayer).dp + snappedDp.dp else 0.dp,
-                    top = if (dragMode == DragMode.CHANGE_LAYER) {
-                        24.dp
-                    } else {
-                        0.dp
-                    },
-                    bottom = if (dragMode == DragMode.CHANGE_LAYER) {
-                        24.dp
-                    } else {
-                        0.dp
-                    },
-                )
+                    top = if (dragMode == DragMode.CHANGE_LAYER) 24.dp else 0.dp,
+                    bottom = if (dragMode == DragMode.CHANGE_LAYER) 24.dp else 0.dp,
+                ) else Modifier
         ) {
+            Spacer(
+                modifier = Modifier.weight(1f)
+            )
             Surface(
                 tonalElevation = 0.dp,
                 shadowElevation = 5.dp,
-                color = if (dragMaxExceeded) {
-                    MaterialTheme.colorScheme.onErrorContainer
-                } else {
-                    MaterialTheme.colorScheme.surface
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.End,
                     modifier = Modifier
-                        .fillMaxWidth()
                         .height(with(density) { draggedTaskSize.toDp() })
                         .padding(top = 12.dp)
                 ) {
@@ -145,6 +141,12 @@ fun DragExtensions(
                     }
                 }
             }
+            Spacer(
+                modifier = Modifier
+                    .height(with(density) { draggedTaskSize.toDp() })
+                    .width(LAZY_COLUMN_END_PADDING.dp)
+                    .background(MaterialTheme.colorScheme.surface)
+            )
         }
     }
 }

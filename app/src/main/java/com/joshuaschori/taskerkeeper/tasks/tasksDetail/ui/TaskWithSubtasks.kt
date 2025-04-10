@@ -1,11 +1,13 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
@@ -38,6 +40,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_END_PADDING
 import com.joshuaschori.taskerkeeper.DragMode
 import com.joshuaschori.taskerkeeper.YDirection
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
@@ -105,13 +108,11 @@ fun TaskWithSubtasks(
         Row(
             modifier = if (draggedLazyListIndex != null && draggedTaskSize != null) Modifier
                 .graphicsLayer {
-                    alpha = (if (isDraggedTask) 0.25f else 1f)
-                    translationX =
-                        if ((isDraggedTask && dragMode == DragMode.CHANGE_LAYER) || (isDraggedTask && dragMode == DragMode.REARRANGE)) {
-                            offsetX
-                        } else {
-                            0f
-                        }
+                    /*translationX = if ((isDraggedTask && dragMode == DragMode.CHANGE_LAYER) || (isDraggedTask && dragMode == DragMode.REARRANGE)) {
+                        offsetX
+                    } else {
+                        0f
+                    }*/
                     translationY = if (dragMode == DragMode.REARRANGE && dragTargetIndex != null) {
                         if (isDraggedTask && dragYDirection == YDirection.DOWN && dragTargetIndex == draggedLazyListIndex - 1) {
                             yDrag
@@ -143,7 +144,10 @@ fun TaskWithSubtasks(
                     } else {
                         0.dp
                     },
-                ) else Modifier
+                    end = LAZY_COLUMN_END_PADDING.dp
+                )
+            else Modifier
+                .padding(end = LAZY_COLUMN_END_PADDING.dp)
         ) {
             Surface(
                 tonalElevation = if (task.taskLayer == 0) {
@@ -151,15 +155,24 @@ fun TaskWithSubtasks(
                 } else {
                     0.dp
                 },
-                shadowElevation = if (isDraggedTask) 0.dp else 5.dp,
+                shadowElevation = 5.dp,
                 color = if (isDraggedTask && dragMaxExceeded) {
                     MaterialTheme.colorScheme.onErrorContainer
                 } else {
                     MaterialTheme.colorScheme.surface
                 },
-                modifier = Modifier
-                    .padding(start = (layerStepSize.value * task.taskLayer).dp)
-                    .weight(1f)
+                modifier = if (isDraggedTask && draggedTaskSize != null) {
+                    Modifier
+                        .padding(
+                            start = (layerStepSize.value * task.taskLayer).dp + snappedDp.dp
+                        )
+                        .height( with(density) { draggedTaskSize.toDp() } )
+                        .weight(1f)
+                } else {
+                    Modifier
+                        .padding(start = (layerStepSize.value * task.taskLayer).dp)
+                        .weight(1f)
+                }
             ) {
                 Row {
                     Icon(
