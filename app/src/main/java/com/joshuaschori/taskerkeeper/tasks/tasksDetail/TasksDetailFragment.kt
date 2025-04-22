@@ -43,6 +43,7 @@ import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_END_PADDING
 import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_START_PADDING
 import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_TOP_PADDING
 import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_VERTICAL_ARRANGEMENT_SPACING
+import com.joshuaschori.taskerkeeper.DragHandler
 import com.joshuaschori.taskerkeeper.NavigationViewModel
 import com.joshuaschori.taskerkeeper.DragMode
 import com.joshuaschori.taskerkeeper.YDirection
@@ -121,15 +122,7 @@ class TasksDetailFragment: Fragment() {
                                 focusTaskId = (state as TasksDetailState.Content).focusTaskId,
                                 isAutoSortCheckedTasks = (state as TasksDetailState.Content)
                                     .isAutoSortCheckedTasks,
-                                draggedTask = (state as TasksDetailState.Content).draggedTask,
-                                draggedTaskSize = (state as TasksDetailState.Content).draggedTaskSize,
-                                dragMode = (state as TasksDetailState.Content).dragMode,
-                                dragTargetIndex = (state as TasksDetailState.Content).dragTargetIndex,
-                                dragYDirection = (state as TasksDetailState.Content).dragYDirection,
-                                dragRequestedLayerChange = (state as TasksDetailState.Content).dragRequestedLayerChange,
-                                dragMaxExceeded = (state as TasksDetailState.Content).dragMaxExceeded,
-                                dragLeftPossible = (state as TasksDetailState.Content).dragLeftPossible,
-                                dragRightPossible = (state as TasksDetailState.Content).dragRightPossible,
+                                dragHandler = (state as TasksDetailState.Content).dragHandler,
                                 actionHandler = { handleAction(it) },
                             )
                             is TasksDetailState.Error -> TasksError(
@@ -150,15 +143,7 @@ class TasksDetailFragment: Fragment() {
         clearFocusTrigger: Boolean,
         focusTaskId: Int?,
         isAutoSortCheckedTasks: Boolean,
-        draggedTask: Task?,
-        draggedTaskSize: Int?,
-        dragMode: DragMode?,
-        dragTargetIndex: Int?,
-        dragYDirection: YDirection?,
-        dragRequestedLayerChange: Int?,
-        dragMaxExceeded: Boolean,
-        dragLeftPossible: Boolean,
-        dragRightPossible: Boolean,
+        dragHandler: DragHandler,
         actionHandler: TasksDetailActionHandler,
     ) {
         val focusManager = LocalFocusManager.current
@@ -216,17 +201,8 @@ class TasksDetailFragment: Fragment() {
                             focusTaskId = focusTaskId,
                             isAutoSortCheckedTasks = isAutoSortCheckedTasks,
                             lazyListState = lazyListState,
-                            draggedLazyListIndex = draggedTask?.lazyListIndex,
-                            isDraggedTask = task == draggedTask,
-                            draggedTaskSize = draggedTaskSize,
-                            dragMode = dragMode,
-                            dragTargetIndex = dragTargetIndex,
-                            dragYDirection = dragYDirection,
-                            dragRequestedLayerChange = dragRequestedLayerChange,
-                            dragMaxExceeded = dragMaxExceeded,
-                            dragLeftPossible = dragLeftPossible,
-                            dragRightPossible = dragRightPossible,
                             onScroll = { /* TODO scrollChannel.trySend(it)*/ },
+                            dragHandler = dragHandler,
                             actionHandler = actionHandler,
                         )
                     }

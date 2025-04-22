@@ -17,31 +17,29 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.joshuaschori.taskerkeeper.Constants.TASK_ROW_ICON_TOP_PADDING
+import com.joshuaschori.taskerkeeper.DragHandler
 import com.joshuaschori.taskerkeeper.DragMode
 
 @Composable
 fun DragExtensions(
     isDraggedTask: Boolean,
-    draggedTaskSize: Int?,
-    dragMode: DragMode?,
-    dragLeftPossible: Boolean,
-    dragRightPossible: Boolean,
+    dragHandler: DragHandler
 ) {
-    if (isDraggedTask && draggedTaskSize != null) {
+    if (isDraggedTask && dragHandler.draggedTaskSize != null) {
         Row(
             modifier = Modifier.padding(top = TASK_ROW_ICON_TOP_PADDING.dp)
         ) {
-            if (dragMode == DragMode.REARRANGE) {
+            if (dragHandler.dragMode == DragMode.REARRANGE) {
                 Icon(
                     imageVector = Icons.Filled.ArrowBack,
                     contentDescription = "",
-                    modifier = Modifier.alpha( if (dragLeftPossible) 1f else 0.25f )
+                    modifier = Modifier.alpha( if (dragHandler.dragLeftPossible) 1f else 0.25f )
                 )
             } else {
                 Icon(
                     imageVector = Icons.Filled.KeyboardDoubleArrowLeft,
                     contentDescription = "",
-                    modifier = Modifier.alpha( if (dragLeftPossible) 1f else 0.25f )
+                    modifier = Modifier.alpha( if (dragHandler.dragLeftPossible) 1f else 0.25f )
                 )
             }
 
@@ -50,26 +48,26 @@ fun DragExtensions(
             Icon(
                 imageVector = Icons.Filled.ArrowUpward,
                 contentDescription = "",
-                modifier = Modifier.alpha( if (dragMode == DragMode.CHANGE_LAYER) 0f else 1f )
+                modifier = Modifier.alpha( if (dragHandler.dragMode == DragMode.CHANGE_LAYER) 0f else 1f )
             )
 
             Icon(
                 imageVector = Icons.Filled.ArrowDownward,
                 contentDescription = "",
-                modifier = Modifier.alpha( if (dragMode == DragMode.CHANGE_LAYER) 0f else 1f )
+                modifier = Modifier.alpha( if (dragHandler.dragMode == DragMode.CHANGE_LAYER) 0f else 1f )
             )
 
-            if (dragMode == DragMode.REARRANGE) {
+            if (dragHandler.dragMode == DragMode.REARRANGE) {
                 Icon(
                     imageVector = Icons.Filled.ArrowForward,
                     contentDescription = "",
-                    modifier = Modifier.alpha( if (dragRightPossible) 1f else 0.25f )
+                    modifier = Modifier.alpha( if (dragHandler.dragRightPossible) 1f else 0.25f )
                 )
             } else {
                 Icon(
                     imageVector = Icons.Filled.KeyboardDoubleArrowRight,
                     contentDescription = "",
-                    modifier = Modifier.alpha( if (dragRightPossible) 1f else 0.25f )
+                    modifier = Modifier.alpha( if (dragHandler.dragRightPossible) 1f else 0.25f )
                 )
             }
         }

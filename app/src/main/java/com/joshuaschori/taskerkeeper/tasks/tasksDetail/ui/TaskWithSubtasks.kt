@@ -43,6 +43,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.joshuaschori.taskerkeeper.Constants.TASK_ROW_ICON_TOP_PADDING
+import com.joshuaschori.taskerkeeper.DragHandler
 import com.joshuaschori.taskerkeeper.DragMode
 import com.joshuaschori.taskerkeeper.YDirection
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
@@ -58,17 +59,8 @@ fun TaskWithSubtasks(
     focusTaskId: Int?,
     isAutoSortCheckedTasks: Boolean,
     lazyListState: LazyListState,
-    draggedLazyListIndex: Int?,
-    isDraggedTask: Boolean,
-    draggedTaskSize: Int?,
-    dragMode: DragMode?,
-    dragTargetIndex: Int?,
-    dragYDirection: YDirection?,
-    dragRequestedLayerChange: Int?,
-    dragMaxExceeded: Boolean,
-    dragLeftPossible: Boolean,
-    dragRightPossible: Boolean,
     onScroll: (Float) -> Unit,
+    dragHandler: DragHandler,
     actionHandler: TasksDetailActionHandler,
 ) {
     // TODO overscroll / drag and dropping to index 0 / last index?
@@ -76,6 +68,7 @@ fun TaskWithSubtasks(
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
     val layerStepSize = 32.dp
+    val isDraggedTask = task == dragHandler.draggedTask
     var thisLazyListItem: LazyListItemInfo? by remember { mutableStateOf(null) }
     var yDragClickOffset: Int by remember { mutableIntStateOf(0) }
 
@@ -86,7 +79,7 @@ fun TaskWithSubtasks(
     // translate xDrag to the appropriate Px for layered steps
     val xDragDp = with(density) { xDrag.toDp() }
     val requestedLayerChange = rememberUpdatedState ( (xDragDp / layerStepSize).roundToInt() )
-    val snappedDp = ( dragRequestedLayerChange ?: 0 ) * layerStepSize.value
+    val snappedDp = ( dragHandler.dragRequestedLayerChange ?: 0 ) * layerStepSize.value
 
     // focus when task is first created
     val focusRequester = remember { FocusRequester() }
@@ -108,14 +101,14 @@ fun TaskWithSubtasks(
     }
 
     Row(
-        modifier = if (draggedLazyListIndex != null && draggedTaskSize != null) Modifier
+        modifier = if (dragHandler.draggedTask != null && dragHandler.draggedTaskSize != null) Modifier
             .zIndex(if (isDraggedTask) 1f else 0f)
             .graphicsLayer {
-                translationY = if (dragMode == DragMode.REARRANGE && dragTargetIndex != null) {
-                    if (isDraggedTask && dragYDirection == YDirection.DOWN && dragTargetIndex == draggedLazyListIndex - 1) {
+                translationY = if (dragHandler.dragMode == DragMode.REARRANGE && dragHandler.dragTargetIndex != null) {
+                    if (isDraggedTask && dragHandler.dragYDirection == YDirection.DOWN && dragHandler.dragTargetIndex == dragHandler.draggedTask.lazyListIndex - 1) {
                         yDrag
-                    } else if (isDraggedTask && dragTargetIndex < draggedLazyListIndex) {
-                        yDrag - draggedTaskSize
+                    } else if (isDraggedTask && dragHandler.dragTargetIndex < dragHandler.draggedTask.lazyListIndex) {
+                        yDrag - dragHandler.draggedTaskSize
                     } else {
                         yDrag
                     }
@@ -124,20 +117,20 @@ fun TaskWithSubtasks(
                 }
             }
             .padding(
-                top = if (dragYDirection == YDirection.UP && task.lazyListIndex == dragTargetIndex
-                    && task.lazyListIndex != draggedLazyListIndex && task.lazyListIndex != draggedLazyListIndex + 1
+                top = if (dragHandler.dragYDirection == YDirection.UP && task.lazyListIndex == dragHandler.dragTargetIndex
+                    && task.lazyListIndex != dragHandler.draggedTask.lazyListIndex && task.lazyListIndex != dragHandler.draggedTask.lazyListIndex + 1
                 ) {
-                    with(density) { draggedTaskSize.toDp() }
-                } else if (isDraggedTask && dragMode == DragMode.CHANGE_LAYER) {
+                    with(density) { dragHandler.draggedTaskSize.toDp() }
+                } else if (isDraggedTask && dragHandler.dragMode == DragMode.CHANGE_LAYER) {
                     24.dp
                 } else {
                     0.dp
                 },
-                bottom = if (dragYDirection == YDirection.DOWN && task.lazyListIndex == dragTargetIndex
-                    && task.lazyListIndex != draggedLazyListIndex && task.lazyListIndex != draggedLazyListIndex - 1
+                bottom = if (dragHandler.dragYDirection == YDirection.DOWN && task.lazyListIndex == dragHandler.dragTargetIndex
+                    && task.lazyListIndex != dragHandler.draggedTask.lazyListIndex && task.lazyListIndex != dragHandler.draggedTask.lazyListIndex - 1
                 ) {
-                    with(density) { draggedTaskSize.toDp() }
-                } else if (isDraggedTask && dragMode == DragMode.CHANGE_LAYER) {
+                    with(density) { dragHandler.draggedTaskSize.toDp() }
+                } else if (isDraggedTask && dragHandler.dragMode == DragMode.CHANGE_LAYER) {
                     24.dp
                 } else {
                     0.dp
@@ -153,19 +146,19 @@ fun TaskWithSubtasks(
                 0.dp
             },
             shadowElevation = 5.dp,
-            color = if (isDraggedTask && dragMaxExceeded) {
+            color = if (isDraggedTask && dragHandler.dragMaxExceeded) {
                 MaterialTheme.colorScheme.error
             } else {
                 MaterialTheme.colorScheme.surface
             },
-            modifier = if (isDraggedTask && draggedTaskSize != null) {
+            modifier = if (isDraggedTask && dragHandler.draggedTaskSize != null) {
                 Modifier
                     .padding(
                         start = (layerStepSize.value * task.taskLayer).dp + snappedDp.dp
                     )
-                    .height(with(density) { draggedTaskSize.toDp() })
+                    .height(with(density) { dragHandler.draggedTaskSize.toDp() })
                     .weight(1f)
-                    .alpha( if (dragMaxExceeded) 0.25f else 1f )
+                    .alpha( if (dragHandler.dragMaxExceeded) 0.25f else 1f )
             } else {
                 Modifier
                     .padding(start = (layerStepSize.value * task.taskLayer).dp)
@@ -257,11 +250,12 @@ fun TaskWithSubtasks(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .focusRequester(focusRequester)
-                        .weight(1f),
+                        .weight(1f)
+                        .alpha( if (isDraggedTask && !dragHandler.dragMaxExceeded) 0.25f else 1f ),
                     interactionSource = interactionSource,
                 )
 
-                if (task.numberOfChildren != 0 && !isDraggedTask) {
+                if (task.numberOfChildren != 0 && task != dragHandler.draggedTask) {
                     IconButton(
                         onClick = {
                             if (task.isExpanded) {
@@ -289,10 +283,7 @@ fun TaskWithSubtasks(
 
                 DragExtensions(
                     isDraggedTask = isDraggedTask,
-                    draggedTaskSize = draggedTaskSize,
-                    dragMode = dragMode,
-                    dragLeftPossible = dragLeftPossible,
-                    dragRightPossible = dragRightPossible,
+                    dragHandler = dragHandler
                 )
             }
         }
