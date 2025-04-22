@@ -45,8 +45,6 @@ import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_TOP_PADDING
 import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_VERTICAL_ARRANGEMENT_SPACING
 import com.joshuaschori.taskerkeeper.DragHandler
 import com.joshuaschori.taskerkeeper.NavigationViewModel
-import com.joshuaschori.taskerkeeper.DragMode
-import com.joshuaschori.taskerkeeper.YDirection
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TaskWithSubtasks
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TasksDetailTopBar
 import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
@@ -88,7 +86,7 @@ class TasksDetailFragment: Fragment() {
                 dragAmount = tasksDetailAction.dragAmount,
                 dragOffsetTotal = tasksDetailAction.dragOffsetTotal,
                 lazyListState = tasksDetailAction.lazyListState,
-                requestedLayerChange = tasksDetailAction.requestedLayerChange
+                requestedTierChange = tasksDetailAction.requestedTierChange
             )
             is TasksDetailAction.OnDragEnd -> tasksDetailViewModel.onDragEnd()
             is TasksDetailAction.OnDragStart -> tasksDetailViewModel.onDragStart(

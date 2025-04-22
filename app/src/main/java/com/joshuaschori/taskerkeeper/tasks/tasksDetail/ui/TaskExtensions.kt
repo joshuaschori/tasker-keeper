@@ -10,7 +10,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import com.joshuaschori.taskerkeeper.Constants.MAX_LAYER_FOR_SUBTASKS
+import com.joshuaschori.taskerkeeper.Constants.MAX_TIER_FOR_SUBTASKS
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailAction
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailActionHandler
@@ -29,7 +29,7 @@ fun TaskExtensions(
             TasksDetailExtensionMode.ADD_NEW_TASK -> {
                 IconButton(
                     onClick = {
-                        actionHandler(TasksDetailAction.AddNewTask(task.taskId, null))
+                        actionHandler(TasksDetailAction.AddNewTask(task.itemId, null))
                         actionHandler(TasksDetailAction.ClearFocus)
                     },
                     enabled = !(isAutoSortCheckedTasks && task.isChecked),
@@ -46,16 +46,16 @@ fun TaskExtensions(
             TasksDetailExtensionMode.ADD_NEW_SUBTASK -> {
                 IconButton(
                     onClick = {
-                        actionHandler(TasksDetailAction.AddNewTask(null, task.taskId))
+                        actionHandler(TasksDetailAction.AddNewTask(null, task.itemId))
                         actionHandler(TasksDetailAction.ClearFocus)
                     },
                     enabled = (
                             !((isAutoSortCheckedTasks && task.isChecked)
-                                    || task.taskLayer >= MAX_LAYER_FOR_SUBTASKS)
+                                    || task.itemTier >= MAX_TIER_FOR_SUBTASKS)
                             ),
                     modifier = Modifier.alpha(
                         if ((isAutoSortCheckedTasks && task.isChecked)
-                            || task.taskLayer >= MAX_LAYER_FOR_SUBTASKS
+                            || task.itemTier >= MAX_TIER_FOR_SUBTASKS
                         ) 0f else 1f
                     )
                 ) {
@@ -68,7 +68,7 @@ fun TaskExtensions(
             TasksDetailExtensionMode.DELETE -> {
                 IconButton(
                     onClick = {
-                        actionHandler(TasksDetailAction.DeleteTask(task.taskId))
+                        actionHandler(TasksDetailAction.DeleteTask(task.itemId))
                         actionHandler(TasksDetailAction.ClearFocus)
                     }
                 ) {

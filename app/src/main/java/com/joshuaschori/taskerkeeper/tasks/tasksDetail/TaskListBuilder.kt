@@ -44,8 +44,8 @@ class TaskListBuilder {
                     passHighestLayerBelow(taskLayer)
                     null
                 },
-                highestLayerBelow = highestLayerBelow,
-                taskLayer = taskLayer
+                highestTierBelow = highestLayerBelow,
+                itemTier = taskLayer
             )
             return taskWithSubtasks
         }
@@ -57,26 +57,26 @@ class TaskListBuilder {
         private val orphans = mutableMapOf<Int, MutableList<TaskTreeNode>>()
 
         private fun attachOrphansRecursively(node: TaskTreeNode) {
-            orphans[node.data.taskId]?.let { directOrphans ->
+            orphans[node.data.itemId]?.let { directOrphans ->
                 directOrphans.forEach { orphan ->
                     node.children.add(orphan)
                     attachOrphansRecursively(orphan)
                 }
-                orphans.remove(node.data.taskId)
+                orphans.remove(node.data.itemId)
             }
         }
 
         fun addNode(node: TaskTreeNode): TaskTreeNode {
-            nodesById[node.data.taskId] = node
-            if (node.data.parentTaskId == null) {
+            nodesById[node.data.itemId] = node
+            if (node.data.parentItemId == null) {
                 attachOrphansRecursively(node)
                 return node
             }
-            nodesById[node.data.parentTaskId]?.let { parent ->
+            nodesById[node.data.parentItemId]?.let { parent ->
                 parent.children.add(node)
                 attachOrphansRecursively(node)
             } ?: run {
-                orphans.getOrPut(node.data.parentTaskId) { mutableListOf() }.add(node)
+                orphans.getOrPut(node.data.parentItemId) { mutableListOf() }.add(node)
             }
             return node
         }
@@ -84,7 +84,7 @@ class TaskListBuilder {
         fun buildTree(): List<TaskTreeNode> {
             val roots = mutableListOf<TaskTreeNode>()
             nodesById.forEach { (key, value) ->
-                if (value.data.parentTaskId == null) {
+                if (value.data.parentItemId == null) {
                     roots.add(value)
                 }
             }
@@ -97,8 +97,8 @@ class TaskListBuilder {
         taskEntityList.forEach { taskEntity ->
             val taskTreeNode = TaskTreeNode(
                 Task(
-                    taskId = taskEntity.taskId,
-                    parentTaskId = taskEntity.parentTaskId,
+                    itemId = taskEntity.taskId,
+                    parentItemId = taskEntity.parentTaskId,
                     description = taskEntity.description,
                     listOrder = taskEntity.listOrder,
                     isChecked = taskEntity.isChecked,
@@ -124,8 +124,8 @@ class TaskListBuilder {
         fun traverse(task: Task): Task {
             val taskWithSubtasks = task.copy(
                 subtaskList = if (task.subtaskList != null
-                    && (task.isExpanded || (task.taskId == draggedTaskId && dragMode == DragMode.CHANGE_LAYER))
-                    && !(task.taskId == draggedTaskId && dragMode == DragMode.REARRANGE)
+                    && (task.isExpanded || (task.itemId == draggedTaskId && dragMode == DragMode.CHANGE_TIER))
+                    && !(task.itemId == draggedTaskId && dragMode == DragMode.REARRANGE)
                 ) {
                     task.subtaskList.map { traverse(task = it) }
                 } else { null },

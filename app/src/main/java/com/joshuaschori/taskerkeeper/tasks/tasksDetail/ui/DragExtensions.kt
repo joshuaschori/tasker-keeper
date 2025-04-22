@@ -1,7 +1,6 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -14,7 +13,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.joshuaschori.taskerkeeper.Constants.TASK_ROW_ICON_TOP_PADDING
 import com.joshuaschori.taskerkeeper.DragHandler
@@ -22,10 +20,10 @@ import com.joshuaschori.taskerkeeper.DragMode
 
 @Composable
 fun DragExtensions(
-    isDraggedTask: Boolean,
+    isDraggedItem: Boolean,
     dragHandler: DragHandler
 ) {
-    if (isDraggedTask && dragHandler.draggedTaskSize != null) {
+    if (isDraggedItem && dragHandler.draggedItemSize != null) {
         Row(
             modifier = Modifier.padding(top = TASK_ROW_ICON_TOP_PADDING.dp)
         ) {
@@ -43,18 +41,18 @@ fun DragExtensions(
                 )
             }
 
-            // TODO drag up down possible? beginning and end of list
+            // TODO visual indication of drag up down possible? at beginning and end of list
 
             Icon(
                 imageVector = Icons.Filled.ArrowUpward,
                 contentDescription = "",
-                modifier = Modifier.alpha( if (dragHandler.dragMode == DragMode.CHANGE_LAYER) 0f else 1f )
+                modifier = Modifier.alpha( if (dragHandler.dragMode == DragMode.CHANGE_TIER) 0f else 1f )
             )
 
             Icon(
                 imageVector = Icons.Filled.ArrowDownward,
                 contentDescription = "",
-                modifier = Modifier.alpha( if (dragHandler.dragMode == DragMode.CHANGE_LAYER) 0f else 1f )
+                modifier = Modifier.alpha( if (dragHandler.dragMode == DragMode.CHANGE_TIER) 0f else 1f )
             )
 
             if (dragHandler.dragMode == DragMode.REARRANGE) {

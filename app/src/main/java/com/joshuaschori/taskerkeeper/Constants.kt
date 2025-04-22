@@ -1,10 +1,8 @@
 package com.joshuaschori.taskerkeeper
 
-import androidx.compose.ui.unit.dp
-
 object Constants {
-    // including layer 0, which are the null parent root tasks
-    const val MAX_LAYER_FOR_SUBTASKS = 5
+    // including tier 0, which are the null parent root items
+    const val MAX_TIER_FOR_SUBTASKS = 5
 
     // higher number is less sensitive to deciding drag mode
     const val DRAG_MODE_SENSITIVITY = 5

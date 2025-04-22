@@ -1,8 +1,10 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail
 
+import com.joshuaschori.taskerkeeper.TieredLazyListDraggableItem
+
 data class Task(
-    val taskId: Int,
-    val parentTaskId: Int?,
+    override val itemId: Int,
+    override val parentItemId: Int?,
     val description: String,
     val listOrder: Int,
     val isChecked: Boolean,
@@ -12,8 +14,8 @@ data class Task(
     // In the UI, a Task with a non-zero numberOfChildren will have the option to expand its subtaskList,
     // which will then populate those tasks in the TaskListBuilder.
     val subtaskList: List<Task>? = null,
-    val numberOfChildren: Int? = null,
-    val highestLayerBelow: Int = 0,
-    val taskLayer: Int = 0,
-    val lazyListIndex: Int = 0,
-)
+    override val numberOfChildren: Int? = null,
+    override val highestTierBelow: Int = 0,
+    override val itemTier: Int = 0,
+    override val lazyListIndex: Int = 0,
+): TieredLazyListDraggableItem

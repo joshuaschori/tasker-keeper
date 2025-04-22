@@ -126,7 +126,7 @@ interface TaskDao {
     }
 
     @Transaction
-    suspend fun moveTaskLayer(
+    suspend fun moveTaskTier(
         parentCategoryId: Int,
         taskId: Int,
         currentParentTaskId: Int?,

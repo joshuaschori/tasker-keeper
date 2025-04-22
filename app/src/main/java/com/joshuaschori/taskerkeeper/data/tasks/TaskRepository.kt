@@ -3,6 +3,7 @@ package com.joshuaschori.taskerkeeper.data.tasks
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.database.FirebaseDatabase
+import com.joshuaschori.taskerkeeper.TieredLazyListDraggableItem
 import com.joshuaschori.taskerkeeper.data.TaskerKeeperDatabase
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
 import javax.inject.Inject
@@ -70,22 +71,22 @@ class TaskRepository @Inject constructor(
         db.taskDao().updateTaskAsExpanded(taskId)
     }
 
-    private fun findPreviousTaskAtRequestedLayer(aboveTask: Task, taskList: List<Task>, requestedLayer: Int): Task? {
-        var previousTaskAtRequestedLayer: Task? = null
+    private fun findPreviousTaskAtRequestedTier(aboveTask: Task, taskList: List<Task>, requestedTier: Int): Task? {
+        var previousTaskAtRequestedTier: Task? = null
         fun traverse(task: Task) {
-            if (requestedLayer == task.taskLayer) {
-                previousTaskAtRequestedLayer = task
+            if (requestedTier == task.itemTier) {
+                previousTaskAtRequestedTier = task
             } else {
-                val parentTask = taskList.find { it.taskId == task.parentTaskId }
+                val parentTask = taskList.find { it.itemId == task.parentItemId }
                 if (parentTask == null) {
-                    previousTaskAtRequestedLayer = null
+                    previousTaskAtRequestedTier = null
                 } else {
                     traverse(parentTask)
                 }
             }
         }
         traverse(aboveTask)
-        return previousTaskAtRequestedLayer
+        return previousTaskAtRequestedTier
     }
 
     fun getTasks(parentCategoryId: Int) = db.taskDao().getTasks(parentCategoryId)
@@ -102,75 +103,75 @@ class TaskRepository @Inject constructor(
         db.taskDao().updateTaskAsMinimized(taskId)
     }
 
-    suspend fun moveTaskLayer(
+    suspend fun moveTaskTier(
         parentCategoryId: Int,
         thisTask: Task,
         taskList: List<Task>,
         aboveTask: Task?,
         belowTask: Task?,
-        requestedLayer: Int,
+        requestedTier: Int,
         autoSort: Boolean,
     ) {
         if (aboveTask != null) {
-            // if belowTask's layer starts and ends below thisTask's layer, belowTask's parent and listOrder don't need to change
-            if (belowTask?.parentTaskId == null || (belowTask.taskLayer < thisTask.taskLayer && requestedLayer > thisTask.taskLayer)) {
+            // if belowTask's tier starts and ends below thisTask's tier, belowTask's parent and listOrder don't need to change
+            if (belowTask?.parentItemId == null || (belowTask.itemTier < thisTask.itemTier && requestedTier > thisTask.itemTier)) {
                 moveTaskOrder(
                     parentCategoryId = parentCategoryId,
                     thisTask = thisTask,
                     taskList = taskList,
                     taskAboveDestination = aboveTask,
-                    requestedLayer = requestedLayer,
+                    requestedTier = requestedTier,
                     autoSort = autoSort
                 )
             } else {
                 // when below task parentTaskId == thisTask.taskId:
-                //  parent and list order change if this task moving to same layer, after finding extended parent if this task moving to higher layer
+                //  parent and list order change if this task moving to same tier, after finding extended parent if this task moving to higher tier
                 // when below task parentTaskId == thisTask.parentTaskId:
-                //  parent and list order change if this task becoming it's parent, just list order change if this task moving to higher layer (parent stays the same)
+                //  parent and list order change if this task becoming it's parent, just list order change if this task moving to higher tier (parent stays the same)
                 // above cases both work with same parameters
 
-                val previousTaskAtRequestedLayer =
-                    findPreviousTaskAtRequestedLayer(
+                val previousTaskAtRequestedTier =
+                    findPreviousTaskAtRequestedTier(
                         aboveTask = aboveTask,
                         taskList = taskList,
-                        requestedLayer = requestedLayer
+                        requestedTier = requestedTier
                     )
-                val previousTaskAtRequestedLayerForBelowTasks =
-                    findPreviousTaskAtRequestedLayer(
+                val previousTaskAtRequestedTierForBelowTasks =
+                    findPreviousTaskAtRequestedTier(
                         aboveTask = aboveTask,
                         taskList = taskList,
-                        requestedLayer = belowTask.taskLayer
+                        requestedTier = belowTask.itemTier
                     )
 
-                val destinationParentTaskId = when (requestedLayer) {
-                    aboveTask.taskLayer -> aboveTask.parentTaskId
-                    aboveTask.taskLayer + 1 -> aboveTask.taskId
-                    else -> previousTaskAtRequestedLayer?.parentTaskId
+                val destinationParentTaskId = when (requestedTier) {
+                    aboveTask.itemTier -> aboveTask.parentItemId
+                    aboveTask.itemTier + 1 -> aboveTask.itemId
+                    else -> previousTaskAtRequestedTier?.parentItemId
                 }
-                val destinationListOrder = when (requestedLayer) {
-                    aboveTask.taskLayer -> aboveTask.listOrder + 1
-                    aboveTask.taskLayer + 1 -> aboveTask.numberOfChildren ?: 0 // aboveTask.numberOfChildren accounting for the possibility of aboveTask being minimized
-                    else -> previousTaskAtRequestedLayer?.listOrder?.plus(1) ?: 0
+                val destinationListOrder = when (requestedTier) {
+                    aboveTask.itemTier -> aboveTask.listOrder + 1
+                    aboveTask.itemTier + 1 -> aboveTask.numberOfChildren ?: 0 // aboveTask.numberOfChildren accounting for the possibility of aboveTask being minimized
+                    else -> previousTaskAtRequestedTier?.listOrder?.plus(1) ?: 0
                 }
-                val belowTaskDestinationParentTaskId = when (belowTask.taskLayer) {
-                    requestedLayer -> destinationParentTaskId
-                    requestedLayer + 1 -> thisTask.taskId
-                    else -> previousTaskAtRequestedLayerForBelowTasks?.parentTaskId ?: aboveTask.taskId
+                val belowTaskDestinationParentTaskId = when (belowTask.itemTier) {
+                    requestedTier -> destinationParentTaskId
+                    requestedTier + 1 -> thisTask.itemId
+                    else -> previousTaskAtRequestedTierForBelowTasks?.parentItemId ?: aboveTask.itemId
                 }
-                val belowTaskDestinationListOrder = when (belowTask.taskLayer) {
-                    requestedLayer -> destinationListOrder + 1
-                    requestedLayer + 1 -> 0
-                    else -> previousTaskAtRequestedLayerForBelowTasks?.listOrder?.plus(1) ?: 0
+                val belowTaskDestinationListOrder = when (belowTask.itemTier) {
+                    requestedTier -> destinationListOrder + 1
+                    requestedTier + 1 -> 0
+                    else -> previousTaskAtRequestedTierForBelowTasks?.listOrder?.plus(1) ?: 0
                 }
 
-                db.taskDao().moveTaskLayer(
+                db.taskDao().moveTaskTier(
                     parentCategoryId = parentCategoryId,
-                    taskId = thisTask.taskId,
-                    currentParentTaskId = thisTask.parentTaskId,
+                    taskId = thisTask.itemId,
+                    currentParentTaskId = thisTask.parentItemId,
                     currentListOrder = thisTask.listOrder,
                     destinationParentTaskId = destinationParentTaskId,
                     destinationListOrder = destinationListOrder,
-                    belowTaskCurrentParentTaskId = belowTask.parentTaskId,
+                    belowTaskCurrentParentTaskId = belowTask.parentItemId,
                     belowTaskCurrentListOrder = belowTask.listOrder,
                     belowTaskDestinationParentTaskId = belowTaskDestinationParentTaskId,
                     belowTaskDestinationListOrder = belowTaskDestinationListOrder,
@@ -186,15 +187,15 @@ class TaskRepository @Inject constructor(
         thisTask: Task,
         taskList: List<Task>,
         taskAboveDestination: Task?,
-        requestedLayer: Int,
+        requestedTier: Int,
         autoSort: Boolean,
     ) {
         if (taskAboveDestination == null) {
-            when (requestedLayer) {
+            when (requestedTier) {
                 0 -> db.taskDao().moveTaskOrder(
                     parentCategoryId = parentCategoryId,
-                    taskId = thisTask.taskId,
-                    currentParentTaskId = thisTask.parentTaskId,
+                    taskId = thisTask.itemId,
+                    currentParentTaskId = thisTask.parentItemId,
                     currentListOrder = thisTask.listOrder,
                     destinationParentTaskId = null,
                     destinationListOrder = 0,
@@ -203,46 +204,46 @@ class TaskRepository @Inject constructor(
             }
         } else {
 
-            when (requestedLayer) {
-                taskAboveDestination.taskLayer -> {
+            when (requestedTier) {
+                taskAboveDestination.itemTier -> {
                     db.taskDao().moveTaskOrder(
                         parentCategoryId = parentCategoryId,
-                        taskId = thisTask.taskId,
-                        currentParentTaskId = thisTask.parentTaskId,
+                        taskId = thisTask.itemId,
+                        currentParentTaskId = thisTask.parentItemId,
                         currentListOrder = thisTask.listOrder,
-                        destinationParentTaskId = taskAboveDestination.parentTaskId,
+                        destinationParentTaskId = taskAboveDestination.parentItemId,
                         destinationListOrder = taskAboveDestination.listOrder + 1,
                         autoSort = autoSort
                     )
                 }
 
-                taskAboveDestination.taskLayer + 1 -> {
+                taskAboveDestination.itemTier + 1 -> {
                     db.taskDao().moveTaskOrder(
                         parentCategoryId = parentCategoryId,
-                        taskId = thisTask.taskId,
-                        currentParentTaskId = thisTask.parentTaskId,
+                        taskId = thisTask.itemId,
+                        currentParentTaskId = thisTask.parentItemId,
                         currentListOrder = thisTask.listOrder,
-                        destinationParentTaskId = taskAboveDestination.taskId,
+                        destinationParentTaskId = taskAboveDestination.itemId,
                         destinationListOrder = if (!taskAboveDestination.isExpanded) taskAboveDestination.numberOfChildren ?: 0 else 0,
                         autoSort = autoSort
                     )
                 }
 
                 else -> {
-                    val previousTaskAtRequestedLayer =
-                        findPreviousTaskAtRequestedLayer(
+                    val previousTaskAtRequestedTier =
+                        findPreviousTaskAtRequestedTier(
                             aboveTask = taskAboveDestination,
                             taskList = taskList,
-                            requestedLayer = requestedLayer
+                            requestedTier = requestedTier
                         )
-                    if (previousTaskAtRequestedLayer != null) {
+                    if (previousTaskAtRequestedTier != null) {
                         db.taskDao().moveTaskOrder(
                             parentCategoryId = parentCategoryId,
-                            taskId = thisTask.taskId,
-                            currentParentTaskId = thisTask.parentTaskId,
+                            taskId = thisTask.itemId,
+                            currentParentTaskId = thisTask.parentItemId,
                             currentListOrder = thisTask.listOrder,
-                            destinationParentTaskId = previousTaskAtRequestedLayer.parentTaskId,
-                            destinationListOrder = previousTaskAtRequestedLayer.listOrder + 1,
+                            destinationParentTaskId = previousTaskAtRequestedTier.parentItemId,
+                            destinationListOrder = previousTaskAtRequestedTier.listOrder + 1,
                             autoSort = autoSort
                         )
                     }
