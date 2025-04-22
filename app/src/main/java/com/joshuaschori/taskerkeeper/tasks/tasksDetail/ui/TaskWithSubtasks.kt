@@ -257,8 +257,7 @@ fun TaskWithSubtasks(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .focusRequester(focusRequester)
-                        .weight(1f)
-                        .alpha( if (isDraggedTask) 0.25f else 1f ),
+                        .weight(1f),
                     interactionSource = interactionSource,
                 )
 
