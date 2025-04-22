@@ -165,6 +165,7 @@ fun TaskWithSubtasks(
                     )
                     .height(with(density) { draggedTaskSize.toDp() })
                     .weight(1f)
+                    .alpha( if (dragMaxExceeded) 0.25f else 1f )
             } else {
                 Modifier
                     .padding(start = (layerStepSize.value * task.taskLayer).dp)
