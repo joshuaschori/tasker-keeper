@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joshuaschori.taskerkeeper.DragHandler
 import com.joshuaschori.taskerkeeper.DragMode
+import com.joshuaschori.taskerkeeper.DragState
 import com.joshuaschori.taskerkeeper.data.tasks.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -111,8 +112,8 @@ class TasksDetailViewModel @Inject constructor(
                         _uiState.value = currentState.copy(
                             taskList = TaskListBuilder().prepareTaskList(
                                 taskEntityList = taskEntityList,
-                                draggedTaskId = currentState.dragHandler.draggedItem?.itemId,
-                                dragMode = currentState.dragHandler.dragMode
+                                draggedTaskId = currentState.draggedItemIdForDatabase,
+                                dragMode = currentState.dragModeForDatabase
                             ),
                         )
                     }
@@ -167,58 +168,41 @@ class TasksDetailViewModel @Inject constructor(
         }
     }
 
-    fun onDrag(task: Task, dragAmount: Offset, dragOffsetTotal: Int, lazyListState: LazyListState, requestedTierChange: Int) {
+    fun onDrag(onDragModeChangeTriggerDatabase: Boolean, dragState: DragState) {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
-
-                val updatedDragHandler = currentState.dragHandler.updateOnDrag(
-                    item = task,
-                    itemList = currentState.taskList,
-                    dragAmount = dragAmount,
-                    dragOffsetTotal = dragOffsetTotal,
-                    lazyListState = lazyListState,
-                    requestedTierChange = requestedTierChange
+                _uiState.value = currentState.copy(
+                    dragModeForDatabase = dragState.dragMode,
+                    draggedItemIdForDatabase = dragState.draggedItem?.itemId
                 )
-
-                val onDragModeChangeTriggerDatabase: Boolean = currentState.dragHandler.dragMode != updatedDragHandler?.dragMode
-
-                if (updatedDragHandler != null) {
-                    _uiState.value = currentState.copy(
-                        dragHandler = updatedDragHandler
-                    )
-                    if (onDragModeChangeTriggerDatabase) { triggerDatabase.emit(!triggerDatabase.value) }
-                }
+                if (onDragModeChangeTriggerDatabase) { triggerDatabase.emit(!triggerDatabase.value) }
             } else {
                 _uiState.value = TasksDetailState.Error("TasksDetailViewModel onDrag")
             }
         }
     }
 
-    fun onDragEnd() {
+    fun onDragEnd(dragState: DragState) {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
-                if (currentState.dragHandler.draggedItem != null &&
-                    currentState.dragHandler.requestedTierChange != null &&
-                    currentState.dragHandler.dragTargetIndex != null &&
-                    currentState.dragHandler.dragMode != null
-                ) {
+                if (dragState.draggedItem != null && dragState.dragMode != null) {
                     val parentCategoryId = currentState.parentCategoryId
-                    val thisTask = currentState.taskList[currentState.dragHandler.draggedItem.lazyListIndex]
-                    val dragTaskAbove = if (currentState.dragHandler.itemAboveTarget?.lazyListIndex != null) {
-                        currentState.taskList[currentState.dragHandler.itemAboveTarget.lazyListIndex]
+                    val thisTask = currentState.taskList[dragState.draggedItem.lazyListIndex]
+                    val dragTaskAbove = if (dragState.itemAboveTarget?.lazyListIndex != null) {
+                        currentState.taskList[dragState.itemAboveTarget.lazyListIndex]
                     } else null
-                    val dragTaskBelow = if (currentState.dragHandler.itemBelowTarget?.lazyListIndex != null) {
-                        currentState.taskList[currentState.dragHandler.itemBelowTarget.lazyListIndex]
+                    val dragTaskBelow = if (dragState.itemBelowTarget?.lazyListIndex != null) {
+                        currentState.taskList[dragState.itemBelowTarget.lazyListIndex]
                     } else null
-                    val requestedTier = thisTask.itemTier + currentState.dragHandler.requestedTierChange
+                    val requestedTier = thisTask.itemTier + dragState.requestedTierChange
 
                     if (!(dragTaskAbove == null && dragTaskBelow == null)) {
-                        when (currentState.dragHandler.dragMode) {
+                        when (dragState.dragMode) {
                             DragMode.REARRANGE -> if (
-                                currentState.dragHandler.dragYDirection != null && !currentState.dragHandler.dragMaxExceeded &&
-                                !(currentState.dragHandler.dragTargetIndex == thisTask.lazyListIndex && requestedTier == thisTask.itemTier)
+                                dragState.dragYDirection != null && !dragState.dragMaxExceeded &&
+                                !(dragState.dragTargetIndex == thisTask.lazyListIndex && requestedTier == thisTask.itemTier)
                             ) {
                                 taskRepository.moveTaskOrder(
                                     parentCategoryId = parentCategoryId,
@@ -243,24 +227,28 @@ class TasksDetailViewModel @Inject constructor(
                         }
                     }
                 }
+                _uiState.value = currentState.copy(
+                    dragModeForDatabase = null,
+                    draggedItemIdForDatabase = null
+                )
+                triggerDatabase.emit(!triggerDatabase.value)
             } else {
                 _uiState.value = TasksDetailState.Error("TasksDetailViewModel onDragEnd")
             }
         }
     }
 
-    fun onDragStart(task: Task, size: Int) {
+    fun onDragCancel() {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
                 _uiState.value = currentState.copy(
-                    dragHandler = currentState.dragHandler.copy(
-                        draggedItem = task,
-                        draggedItemSize = size
-                    )
+                    dragModeForDatabase = null,
+                    draggedItemIdForDatabase = null
                 )
+                triggerDatabase.emit(!triggerDatabase.value)
             } else {
-                _uiState.value = TasksDetailState.Error("TasksDetailViewModel onDragStart")
+                _uiState.value = TasksDetailState.Error("TasksDetailViewModel onDragCancel")
             }
         }
     }
@@ -272,20 +260,6 @@ class TasksDetailViewModel @Inject constructor(
                 _uiState.value = currentState.copy(clearFocusTrigger = false)
             } else {
                 _uiState.value = TasksDetailState.Error("TasksDetailViewModel resetClearFocusTrigger")
-            }
-        }
-    }
-
-    fun resetDragHandlers() {
-        viewModelScope.launch {
-            val currentState = _uiState.value
-            if (currentState is TasksDetailState.Content) {
-                _uiState.value = currentState.copy(
-                    dragHandler = DragHandler()
-                )
-                triggerDatabase.emit(!triggerDatabase.value)
-            } else {
-                _uiState.value = TasksDetailState.Error("TasksDetailViewModel resetDragHandlers")
             }
         }
     }
@@ -311,7 +285,8 @@ sealed interface TasksDetailState {
         val clearFocusTrigger: Boolean = false,
         val focusTaskId: Int? = null,
         val isAutoSortCheckedTasks: Boolean = true,
-        val dragHandler: DragHandler = DragHandler()
+        val draggedItemIdForDatabase: Int? = null,
+        val dragModeForDatabase: DragMode? = null,
     ) : TasksDetailState
     data class Error(
         val string: String,
@@ -330,20 +305,10 @@ sealed interface TasksDetailAction {
     data class MarkTaskIncomplete(val taskId: Int): TasksDetailAction
     data class MinimizeTask(val taskId: Int): TasksDetailAction
     data object NavigateToTasksMenu: TasksDetailAction
-    data class OnDrag(
-        val task: Task,
-        val dragAmount: Offset,
-        val dragOffsetTotal: Int,
-        val lazyListState: LazyListState,
-        val requestedTierChange: Int
-    ): TasksDetailAction
-    data object OnDragEnd: TasksDetailAction
-    data class OnDragStart(
-        val task: Task,
-        val size: Int,
-    ): TasksDetailAction
+    data class OnDrag(val onDragModeChangeTriggerDatabase: Boolean, val dragState: DragState): TasksDetailAction
+    data class OnDragEnd(val dragState: DragState): TasksDetailAction
+    data object OnDragCancel: TasksDetailAction
     data object ResetClearFocusTrigger: TasksDetailAction
-    data object ResetDragHandlers: TasksDetailAction
     data object ResetFocusTrigger: TasksDetailAction
 }
 

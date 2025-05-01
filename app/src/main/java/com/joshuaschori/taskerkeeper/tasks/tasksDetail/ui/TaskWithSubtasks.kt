@@ -1,6 +1,5 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui
 
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Row
@@ -22,12 +21,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,22 +33,27 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.joshuaschori.taskerkeeper.Constants.DRAG_ALPHA
+import com.joshuaschori.taskerkeeper.Constants.ROOT_TIER_TONAL_ELEVATION
+import com.joshuaschori.taskerkeeper.Constants.SURFACE_SHADOW_ELEVATION
 import com.joshuaschori.taskerkeeper.Constants.TASK_ROW_ICON_TOP_PADDING
+import com.joshuaschori.taskerkeeper.Constants.TIER_STEP_SIZE
 import com.joshuaschori.taskerkeeper.DragHandler
+import com.joshuaschori.taskerkeeper.dragIconModifier
+import com.joshuaschori.taskerkeeper.draggableRowModifier
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailAction
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailActionHandler
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailExtensionMode
-import kotlin.math.roundToInt
 
 @Composable
 fun TaskWithSubtasks(
     task: Task,
+    taskList: List<Task>,
     selectedTasksDetailExtensionMode: TasksDetailExtensionMode,
     focusTaskId: Int?,
     isAutoSortCheckedTasks: Boolean,
@@ -59,23 +62,13 @@ fun TaskWithSubtasks(
     dragHandler: DragHandler,
     actionHandler: TasksDetailActionHandler,
 ) {
+    val dragState by dragHandler.dragState.collectAsState()
+
     // TODO overscroll / drag and dropping to index 0 / last index?
     // TODO scrolling while dragging
     val haptic = LocalHapticFeedback.current
     val density = LocalDensity.current
-    val tierStepSize = 32.dp
-    val isDraggedTask = task.lazyListIndex == dragHandler.draggedItem?.lazyListIndex
-    var thisLazyListItem: LazyListItemInfo? by remember { mutableStateOf(null) }
-    var yDragClickOffset: Int by remember { mutableIntStateOf(0) }
-
-    // TODO would changing these to Animatable help at all? hover over .graphicsLayer to see example
-    var xDrag: Float by remember { mutableFloatStateOf(0f) }
-    var yDrag: Float by remember { mutableFloatStateOf(0f) }
-
-    // translate xDrag to the appropriate Px for tiered steps
-    val xDragDp = with(density) { xDrag.toDp() }
-    val requestedTierChange = rememberUpdatedState ( (xDragDp / tierStepSize).roundToInt() )
-    val snappedDp = ( dragHandler.requestedTierChange ?: 0 ) * tierStepSize.value
+    val isDraggedTask = task.lazyListIndex == dragState.draggedItem?.lazyListIndex
 
     // focus when task is first created
     val focusRequester = remember { FocusRequester() }
@@ -96,36 +89,39 @@ fun TaskWithSubtasks(
         activeTextField.value = task.description
     }
 
+    // TODO
+    val draggedItemSize = dragState.draggedItemSize
+    val snappedDp = dragState.requestedTierChange * TIER_STEP_SIZE.dp.value
+
     Row(
-        modifier = dragHandler.dragRowModifier(
-            taskLazyListIndex = task.lazyListIndex,
-            isDraggedItem = isDraggedTask,
-            yDrag = yDrag
+        modifier = draggableRowModifier(
+            itemLazyListIndex = task.lazyListIndex,
+            dragHandler = dragHandler
         ).fillMaxWidth()
     ) {
         Surface(
             tonalElevation = if (task.itemTier == 0) {
-                10.dp
+                ROOT_TIER_TONAL_ELEVATION.dp
             } else {
                 0.dp
             },
-            shadowElevation = 5.dp,
-            color = if (isDraggedTask && dragHandler.dragMaxExceeded) {
+            shadowElevation = SURFACE_SHADOW_ELEVATION.dp,
+            color = if (isDraggedTask && dragState.dragMaxExceeded) {
                 MaterialTheme.colorScheme.error
             } else {
                 MaterialTheme.colorScheme.surface
             },
-            modifier = if (isDraggedTask && dragHandler.draggedItemSize != null) {
+            modifier = if (isDraggedTask) {
                 Modifier
                     .padding(
-                        start = (tierStepSize.value * task.itemTier).dp + snappedDp.dp
+                        start = (TIER_STEP_SIZE * task.itemTier).dp + snappedDp.dp
                     )
-                    .height(with(density) { dragHandler.draggedItemSize.toDp() })
+                    .height(with(density) { draggedItemSize.toDp() })
                     .weight(1f)
-                    .alpha( if (dragHandler.dragMaxExceeded) 0.25f else 1f )
+                    .alpha( if (dragState.dragMaxExceeded) DRAG_ALPHA else 1f )
             } else {
                 Modifier
-                    .padding(start = (tierStepSize.value * task.itemTier).dp)
+                    .padding(start = (TIER_STEP_SIZE * task.itemTier).dp)
                     .weight(1f)
             }
         ) {
@@ -133,57 +129,25 @@ fun TaskWithSubtasks(
                 Icon(
                     imageVector = Icons.Filled.DragIndicator,
                     contentDescription = "Rearrange",
-                    modifier = Modifier
-                        .align(Alignment.Top)
-                        .padding(top = TASK_ROW_ICON_TOP_PADDING.dp)
-                        .pointerInput(task.itemId, task.parentItemId) {
-                            detectDragGesturesAfterLongPress(
-                                onDragStart = { offset ->
-                                    actionHandler(TasksDetailAction.ClearFocus)
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    yDragClickOffset = offset.y.toInt()
-                                    thisLazyListItem =
-                                        lazyListState.layoutInfo.visibleItemsInfo.find {
-                                            it.index == task.lazyListIndex
-                                        }
-                                    actionHandler(
-                                        TasksDetailAction.OnDragStart(
-                                            task = task,
-                                            size = thisLazyListItem!!.size
-                                        )
-                                    )
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    xDrag += dragAmount.x
-                                    yDrag += dragAmount.y
-
-                                    // TODO scroll??
-                                    // onScroll(dragAmount.y)
-
-                                    actionHandler(
-                                        TasksDetailAction.OnDrag(
-                                            task = task,
-                                            dragAmount = dragAmount,
-                                            dragOffsetTotal = thisLazyListItem!!.offset + yDragClickOffset + yDrag.toInt(),
-                                            lazyListState = lazyListState,
-                                            requestedTierChange = requestedTierChange.value
-                                        )
-                                    )
-                                },
-                                onDragEnd = {
-                                    actionHandler(TasksDetailAction.OnDragEnd)
-                                    actionHandler(TasksDetailAction.ResetDragHandlers)
-                                    xDrag = 0f
-                                    yDrag = 0f
-                                },
-                                onDragCancel = {
-                                    actionHandler(TasksDetailAction.ResetDragHandlers)
-                                    xDrag = 0f
-                                    yDrag = 0f
-                                },
-                            )
+                    modifier = dragIconModifier(
+                        item = task,
+                        itemList = taskList,
+                        lazyListState = lazyListState,
+                        dragHandler = dragHandler,
+                        onDragStart = { _, _, ->
+                            actionHandler(TasksDetailAction.ClearFocus)
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         },
+                        onDrag = { onDragDragState, _, _, ->
+                            actionHandler(TasksDetailAction.OnDrag(onDragDragState.onDragModeChangeTriggerDatabase, onDragDragState))
+                        },
+                        onDragEnd = {
+                            actionHandler(TasksDetailAction.OnDragEnd(it))
+                        },
+                        onDragCancel = {
+                            actionHandler(TasksDetailAction.OnDragCancel)
+                        }
+                    ).align(Alignment.Top).padding(top = TASK_ROW_ICON_TOP_PADDING.dp)
                 )
 
                 Checkbox(
@@ -215,11 +179,11 @@ fun TaskWithSubtasks(
                         .align(Alignment.CenterVertically)
                         .focusRequester(focusRequester)
                         .weight(1f)
-                        .alpha( if (isDraggedTask && !dragHandler.dragMaxExceeded) 0.25f else 1f ),
+                        .alpha( if (isDraggedTask && !dragState.dragMaxExceeded) DRAG_ALPHA else 1f ),
                     interactionSource = interactionSource,
                 )
 
-                if (task.numberOfChildren != 0 && task.lazyListIndex != dragHandler.draggedItem?.lazyListIndex) {
+                if (task.numberOfChildren != 0 && task.lazyListIndex != dragState.draggedItem?.lazyListIndex) {
                     IconButton(
                         onClick = {
                             if (task.isExpanded) {

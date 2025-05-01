@@ -26,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
@@ -82,19 +83,12 @@ class TasksDetailFragment: Fragment() {
             is TasksDetailAction.MinimizeTask -> tasksDetailViewModel.minimizeTask(taskId = tasksDetailAction.taskId)
             is TasksDetailAction.NavigateToTasksMenu -> navigationViewModel.navigateToTasksMenu()
             is TasksDetailAction.OnDrag -> tasksDetailViewModel.onDrag(
-                task = tasksDetailAction.task,
-                dragAmount = tasksDetailAction.dragAmount,
-                dragOffsetTotal = tasksDetailAction.dragOffsetTotal,
-                lazyListState = tasksDetailAction.lazyListState,
-                requestedTierChange = tasksDetailAction.requestedTierChange
+                onDragModeChangeTriggerDatabase = tasksDetailAction.onDragModeChangeTriggerDatabase,
+                dragState = tasksDetailAction.dragState
             )
-            is TasksDetailAction.OnDragEnd -> tasksDetailViewModel.onDragEnd()
-            is TasksDetailAction.OnDragStart -> tasksDetailViewModel.onDragStart(
-                task = tasksDetailAction.task,
-                size = tasksDetailAction.size
-            )
+            is TasksDetailAction.OnDragEnd -> tasksDetailViewModel.onDragEnd(dragState = tasksDetailAction.dragState)
+            is TasksDetailAction.OnDragCancel -> tasksDetailViewModel.onDragCancel()
             is TasksDetailAction.ResetClearFocusTrigger -> tasksDetailViewModel.resetClearFocusTrigger()
-            is TasksDetailAction.ResetDragHandlers -> tasksDetailViewModel.resetDragHandlers()
             is TasksDetailAction.ResetFocusTrigger -> tasksDetailViewModel.resetFocusTrigger()
         }
     }
@@ -120,7 +114,6 @@ class TasksDetailFragment: Fragment() {
                                 focusTaskId = (state as TasksDetailState.Content).focusTaskId,
                                 isAutoSortCheckedTasks = (state as TasksDetailState.Content)
                                     .isAutoSortCheckedTasks,
-                                dragHandler = (state as TasksDetailState.Content).dragHandler,
                                 actionHandler = { handleAction(it) },
                             )
                             is TasksDetailState.Error -> TasksError(
@@ -141,7 +134,6 @@ class TasksDetailFragment: Fragment() {
         clearFocusTrigger: Boolean,
         focusTaskId: Int?,
         isAutoSortCheckedTasks: Boolean,
-        dragHandler: DragHandler,
         actionHandler: TasksDetailActionHandler,
     ) {
         val focusManager = LocalFocusManager.current
@@ -164,6 +156,7 @@ class TasksDetailFragment: Fragment() {
             )
             if (taskList.isNotEmpty()) {
                 val lazyListState = rememberLazyListState()
+                val dragHandler = remember { DragHandler() }
 
                 // TODO scroll
                 /*val scrollChannel: Channel<Float> = Channel(
@@ -195,6 +188,7 @@ class TasksDetailFragment: Fragment() {
                     items(taskList) { task ->
                         TaskWithSubtasks(
                             task = task,
+                            taskList = taskList,
                             selectedTasksDetailExtensionMode = selectedTasksDetailExtensionMode,
                             focusTaskId = focusTaskId,
                             isAutoSortCheckedTasks = isAutoSortCheckedTasks,
