@@ -1,6 +1,6 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail
 
-import com.joshuaschori.taskerkeeper.TieredLazyListDraggableItem
+import com.joshuaschori.tiered.dragon.drop.TieredLazyListDraggableItem
 
 data class Task(
     override val itemId: Int,

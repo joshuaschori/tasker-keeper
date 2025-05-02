@@ -38,17 +38,20 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.joshuaschori.taskerkeeper.Constants.DRAG_MODE_SENSITIVITY
 import com.joshuaschori.taskerkeeper.Constants.FLOATING_ACTION_BUTTON_PADDING
 import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_BOTTOM_PADDING
 import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_END_PADDING
 import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_START_PADDING
 import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_TOP_PADDING
 import com.joshuaschori.taskerkeeper.Constants.LAZY_COLUMN_VERTICAL_ARRANGEMENT_SPACING
-import com.joshuaschori.taskerkeeper.DragHandler
+import com.joshuaschori.taskerkeeper.Constants.MAX_TIER_FOR_SUBTASKS
+import com.joshuaschori.taskerkeeper.Constants.TIER_STEP_SIZE
 import com.joshuaschori.taskerkeeper.NavigationViewModel
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TaskWithSubtasks
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.ui.TasksDetailTopBar
 import com.joshuaschori.taskerkeeper.ui.theme.TaskerKeeperTheme
+import com.joshuaschori.tiered.dragon.drop.DragHandler
 import dagger.hilt.android.AndroidEntryPoint
 import kotlin.properties.Delegates
 
@@ -156,7 +159,13 @@ class TasksDetailFragment: Fragment() {
             )
             if (taskList.isNotEmpty()) {
                 val lazyListState = rememberLazyListState()
-                val dragHandler = remember { DragHandler() }
+                val dragHandler = remember {
+                    DragHandler(
+                        dragModeSensitivity = DRAG_MODE_SENSITIVITY,
+                        maxTierForSubItems = MAX_TIER_FOR_SUBTASKS,
+                        tierStepSize = TIER_STEP_SIZE.dp,
+                    )
+                }
 
                 // TODO scroll
                 /*val scrollChannel: Channel<Float> = Channel(

@@ -1,19 +1,21 @@
-package com.joshuaschori.taskerkeeper
+package com.joshuaschori.tiered.dragon.drop
 
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerInputChange
-import com.joshuaschori.taskerkeeper.Constants.DRAG_MODE_SENSITIVITY
-import com.joshuaschori.taskerkeeper.Constants.MAX_TIER_FOR_SUBTASKS
-import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailAction
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 // TODO instructions for class
-class DragHandler {
+class DragHandler(
+    val dragModeSensitivity: Int = 5,
+    val maxTierForSubItems: Int = 5,
+    val tierStepSize: Dp = 32.dp
+) {
     private val _dragState = MutableStateFlow(DragState())
     val dragState: StateFlow<DragState> = _dragState.asStateFlow()
 
@@ -54,9 +56,9 @@ class DragHandler {
         val dragOffsetTotal = (currentDragState.draggedLazyListItem?.offset ?: 0) + currentDragState.yDragClickOffset + currentDragState.yDrag.toInt()
 
         val updatedDragMode = currentDragState.dragMode ?: if (abs(dragAmount.y) > abs(dragAmount.x)) {
-            if (abs(dragAmount.y) > DRAG_MODE_SENSITIVITY) DragMode.REARRANGE else null
+            if (abs(dragAmount.y) > dragModeSensitivity) DragMode.REARRANGE else null
         } else {
-            if (abs(dragAmount.x) > DRAG_MODE_SENSITIVITY) DragMode.CHANGE_TIER else null
+            if (abs(dragAmount.x) > dragModeSensitivity) DragMode.CHANGE_TIER else null
         }
 
         if (updatedDragMode != null) {
@@ -127,8 +129,8 @@ class DragHandler {
                 if ( !(updatedItemAboveTarget == null && updatedItemBelowTarget == null) ) {
                     when (updatedDragMode) {
                         DragMode.REARRANGE -> if (updatedItemAboveTarget != null) {
-                            if (updatedItemAboveTarget.itemTier + 1 + item.highestTierBelow - item.itemTier > MAX_TIER_FOR_SUBTASKS) {
-                                MAX_TIER_FOR_SUBTASKS - item.highestTierBelow + item.itemTier
+                            if (updatedItemAboveTarget.itemTier + 1 + item.highestTierBelow - item.itemTier > maxTierForSubItems) {
+                                maxTierForSubItems - item.highestTierBelow + item.itemTier
                             } else {
                                 updatedItemAboveTarget.itemTier + 1
                             }
@@ -137,8 +139,8 @@ class DragHandler {
                         }
 
                         DragMode.CHANGE_TIER -> if (updatedItemAboveTarget != null) {
-                            if (updatedItemAboveTarget.itemTier + 1 > MAX_TIER_FOR_SUBTASKS) {
-                                MAX_TIER_FOR_SUBTASKS
+                            if (updatedItemAboveTarget.itemTier + 1 > maxTierForSubItems) {
+                                maxTierForSubItems
                             } else {
                                 updatedItemAboveTarget.itemTier + 1
                             }
@@ -163,7 +165,7 @@ class DragHandler {
             }
 
             val updatedDragMaxExceeded =
-                (updatedDragMode == DragMode.REARRANGE && item.highestTierBelow + updatedAllowedTierChange > MAX_TIER_FOR_SUBTASKS) ||
+                (updatedDragMode == DragMode.REARRANGE && item.highestTierBelow + updatedAllowedTierChange > maxTierForSubItems) ||
                         (updatedDragMode == DragMode.CHANGE_TIER && allowedMinimumTier == item.itemTier && allowedMaximumTier == item.itemTier)
 
             val updatedDragLeftPossible = item.itemTier + updatedAllowedTierChange > allowedMinimumTier

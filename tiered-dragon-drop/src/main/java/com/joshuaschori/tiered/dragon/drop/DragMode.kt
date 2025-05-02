@@ -1,4 +1,4 @@
-package com.joshuaschori.taskerkeeper
+package com.joshuaschori.tiered.dragon.drop
 
 enum class DragMode {
     CHANGE_TIER,

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,10 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -41,14 +38,14 @@ import com.joshuaschori.taskerkeeper.Constants.DRAG_ALPHA
 import com.joshuaschori.taskerkeeper.Constants.ROOT_TIER_TONAL_ELEVATION
 import com.joshuaschori.taskerkeeper.Constants.SURFACE_SHADOW_ELEVATION
 import com.joshuaschori.taskerkeeper.Constants.TASK_ROW_ICON_TOP_PADDING
-import com.joshuaschori.taskerkeeper.Constants.TIER_STEP_SIZE
-import com.joshuaschori.taskerkeeper.DragHandler
-import com.joshuaschori.taskerkeeper.dragIconModifier
-import com.joshuaschori.taskerkeeper.draggableRowModifier
+import com.joshuaschori.taskerkeeper.Constants.TIER_CHANGE_PADDING
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailAction
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailActionHandler
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailExtensionMode
+import com.joshuaschori.tiered.dragon.drop.DragHandler
+import com.joshuaschori.tiered.dragon.drop.dragIconModifier
+import com.joshuaschori.tiered.dragon.drop.draggableRowModifier
 
 @Composable
 fun TaskWithSubtasks(
@@ -61,6 +58,7 @@ fun TaskWithSubtasks(
     onScroll: (Float) -> Unit,
     dragHandler: DragHandler,
     actionHandler: TasksDetailActionHandler,
+    modifier: Modifier = Modifier,
 ) {
     val dragState by dragHandler.dragState.collectAsState()
 
@@ -91,11 +89,12 @@ fun TaskWithSubtasks(
 
     // TODO
     val draggedItemSize = dragState.draggedItemSize
-    val snappedDp = dragState.requestedTierChange * TIER_STEP_SIZE.dp.value
+    val snappedDp = dragState.requestedTierChange * dragHandler.tierStepSize.value
 
     Row(
-        modifier = draggableRowModifier(
+        modifier = modifier.draggableRowModifier(
             itemLazyListIndex = task.lazyListIndex,
+            tierChangePadding = TIER_CHANGE_PADDING.dp,
             dragHandler = dragHandler
         ).fillMaxWidth()
     ) {
@@ -114,14 +113,14 @@ fun TaskWithSubtasks(
             modifier = if (isDraggedTask) {
                 Modifier
                     .padding(
-                        start = (TIER_STEP_SIZE * task.itemTier).dp + snappedDp.dp
+                        start = (dragHandler.tierStepSize * task.itemTier) + snappedDp.dp
                     )
                     .height(with(density) { draggedItemSize.toDp() })
                     .weight(1f)
                     .alpha( if (dragState.dragMaxExceeded) DRAG_ALPHA else 1f )
             } else {
                 Modifier
-                    .padding(start = (TIER_STEP_SIZE * task.itemTier).dp)
+                    .padding(start = dragHandler.tierStepSize * task.itemTier)
                     .weight(1f)
             }
         ) {
@@ -129,7 +128,7 @@ fun TaskWithSubtasks(
                 Icon(
                     imageVector = Icons.Filled.DragIndicator,
                     contentDescription = "Rearrange",
-                    modifier = dragIconModifier(
+                    modifier = Modifier.dragIconModifier(
                         item = task,
                         itemList = taskList,
                         lazyListState = lazyListState,

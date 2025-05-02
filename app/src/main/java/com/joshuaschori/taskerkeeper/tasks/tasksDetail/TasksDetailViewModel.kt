@@ -4,10 +4,9 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.joshuaschori.taskerkeeper.DragHandler
-import com.joshuaschori.taskerkeeper.DragMode
-import com.joshuaschori.taskerkeeper.DragState
 import com.joshuaschori.taskerkeeper.data.tasks.TaskRepository
+import com.joshuaschori.tiered.dragon.drop.DragMode
+import com.joshuaschori.tiered.dragon.drop.DragState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -187,19 +186,24 @@ class TasksDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is TasksDetailState.Content) {
-                if (dragState.draggedItem != null && dragState.dragMode != null) {
+                val draggedItem = dragState.draggedItem
+                val itemAboveTarget = dragState.itemAboveTarget
+                val itemBelowTarget = dragState.itemBelowTarget
+                val dragMode = dragState.dragMode
+
+                if (draggedItem != null && dragMode != null) {
                     val parentCategoryId = currentState.parentCategoryId
-                    val thisTask = currentState.taskList[dragState.draggedItem.lazyListIndex]
-                    val dragTaskAbove = if (dragState.itemAboveTarget?.lazyListIndex != null) {
-                        currentState.taskList[dragState.itemAboveTarget.lazyListIndex]
+                    val thisTask = currentState.taskList[draggedItem.lazyListIndex]
+                    val dragTaskAbove = if (itemAboveTarget?.lazyListIndex != null) {
+                        currentState.taskList[itemAboveTarget.lazyListIndex]
                     } else null
-                    val dragTaskBelow = if (dragState.itemBelowTarget?.lazyListIndex != null) {
-                        currentState.taskList[dragState.itemBelowTarget.lazyListIndex]
+                    val dragTaskBelow = if (itemBelowTarget?.lazyListIndex != null) {
+                        currentState.taskList[itemBelowTarget.lazyListIndex]
                     } else null
                     val requestedTier = thisTask.itemTier + dragState.requestedTierChange
 
                     if (!(dragTaskAbove == null && dragTaskBelow == null)) {
-                        when (dragState.dragMode) {
+                        when (dragMode) {
                             DragMode.REARRANGE -> if (
                                 dragState.dragYDirection != null && !dragState.dragMaxExceeded &&
                                 !(dragState.dragTargetIndex == thisTask.lazyListIndex && requestedTier == thisTask.itemTier)

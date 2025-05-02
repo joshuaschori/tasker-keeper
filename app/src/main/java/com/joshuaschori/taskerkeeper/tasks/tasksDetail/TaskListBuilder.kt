@@ -1,7 +1,7 @@
 package com.joshuaschori.taskerkeeper.tasks.tasksDetail
 
-import com.joshuaschori.taskerkeeper.DragMode
 import com.joshuaschori.taskerkeeper.data.tasks.TaskEntity
+import com.joshuaschori.tiered.dragon.drop.DragMode
 
 class TaskListBuilder {
 

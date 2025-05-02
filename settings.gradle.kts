@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "TaskerKeeper"
 include(":app")
+include(":tiered-dragon-drop")

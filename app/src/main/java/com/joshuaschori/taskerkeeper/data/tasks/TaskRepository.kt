@@ -3,7 +3,6 @@ package com.joshuaschori.taskerkeeper.data.tasks
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.database.FirebaseDatabase
-import com.joshuaschori.taskerkeeper.TieredLazyListDraggableItem
 import com.joshuaschori.taskerkeeper.data.TaskerKeeperDatabase
 import com.joshuaschori.taskerkeeper.tasks.tasksDetail.Task
 import javax.inject.Inject

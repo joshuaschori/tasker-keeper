@@ -17,13 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.joshuaschori.taskerkeeper.Constants.TASK_ROW_ICON_TOP_PADDING
-import com.joshuaschori.taskerkeeper.DragHandler
-import com.joshuaschori.taskerkeeper.DragMode
+import com.joshuaschori.tiered.dragon.drop.DragHandler
+import com.joshuaschori.tiered.dragon.drop.DragMode
 
 @Composable
 fun DragExtensions(
     isDraggedItem: Boolean,
-    dragHandler: DragHandler
+    dragHandler: DragHandler,
+    modifier: Modifier = Modifier,
 ) {
     val dragState by dragHandler.dragState.collectAsState()
 

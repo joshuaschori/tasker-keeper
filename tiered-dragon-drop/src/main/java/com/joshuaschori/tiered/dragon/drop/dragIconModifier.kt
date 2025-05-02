@@ -1,24 +1,22 @@
-package com.joshuaschori.taskerkeeper
+package com.joshuaschori.tiered.dragon.drop
 
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.joshuaschori.taskerkeeper.Constants.TIER_STEP_SIZE
-import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailAction
 import kotlin.math.roundToInt
 
 @Composable
-fun dragIconModifier(
+fun Modifier.dragIconModifier(
     item: TieredLazyListDraggableItem,
     itemList: List<TieredLazyListDraggableItem>,
     lazyListState: LazyListState,
@@ -37,9 +35,9 @@ fun dragIconModifier(
 
     // translate xDrag to the appropriate Px for tiered steps
     val xDragDp = with(density) { dragState.xDrag.toDp() }
-    val requestedTierChange = rememberUpdatedState((xDragDp / TIER_STEP_SIZE.dp).roundToInt())
+    val requestedTierChange = rememberUpdatedState((xDragDp / dragHandler.tierStepSize).roundToInt())
 
-    return Modifier
+    return this
         .pointerInput(pointerInputKey1, pointerInputKey2) {
             detectDragGesturesAfterLongPress(
                 onDragStart = { offset ->

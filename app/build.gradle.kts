@@ -94,4 +94,5 @@ dependencies {
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-auth")
     coreLibraryDesugaring(libs.desugar.jdk.libs)
+    implementation(project(":tiered-dragon-drop"))
 }

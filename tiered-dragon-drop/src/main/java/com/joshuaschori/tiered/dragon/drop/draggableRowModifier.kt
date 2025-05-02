@@ -1,4 +1,4 @@
-package com.joshuaschori.taskerkeeper
+package com.joshuaschori.tiered.dragon.drop
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -10,20 +10,19 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.joshuaschori.taskerkeeper.Constants.TIER_CHANGE_PADDING
 
 @Composable
-fun draggableRowModifier(
+fun Modifier.draggableRowModifier(
     itemLazyListIndex: Int,
-    tierChangePadding: Dp = TIER_CHANGE_PADDING.dp,
-    dragHandler: DragHandler
+    dragHandler: DragHandler,
+    tierChangePadding: Dp = 24.dp,
 ): Modifier {
     val density = LocalDensity.current
     val dragState by dragHandler.dragState.collectAsState()
     val draggedItem = dragState.draggedItem
     val isDraggedItem = itemLazyListIndex == draggedItem?.lazyListIndex
 
-    return if (draggedItem != null) Modifier
+    return if (draggedItem != null) this
         .zIndex(if (isDraggedItem) 1f else 0f)
         .graphicsLayer {
             translationY = if (dragState.dragMode == DragMode.REARRANGE) {
@@ -60,5 +59,5 @@ fun draggableRowModifier(
                 0.dp
             },
         )
-    else Modifier
+    else this
 }
