@@ -24,6 +24,12 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        buildConfigField(
+            type = "String",
+            name = "API_KEY",
+            value = "\"${project.findProperty("pirate_weather_api_key").toString()}\""
+        )
     }
 
     buildTypes {
@@ -46,6 +52,7 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -95,4 +102,6 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":tiered-dragon-drop"))
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.scalar)
 }

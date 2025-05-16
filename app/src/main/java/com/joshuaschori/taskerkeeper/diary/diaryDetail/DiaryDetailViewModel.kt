@@ -3,22 +3,42 @@ package com.joshuaschori.taskerkeeper.diary.diaryDetail
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joshuaschori.taskerkeeper.data.diary.DiaryRepository
+import com.joshuaschori.taskerkeeper.network.WeatherApi
+import com.joshuaschori.taskerkeeper.network.WeatherApiService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import javax.inject.Inject
 
 @HiltViewModel
 class DiaryDetailViewModel @Inject constructor(
-    private val diaryRepository: DiaryRepository
+    private val diaryRepository: DiaryRepository,
+    private val weatherApi: WeatherApi
 ): ViewModel() {
     private val _uiState: MutableStateFlow<DiaryDetailState> = MutableStateFlow(DiaryDetailState.Loading)
     val uiState: StateFlow<DiaryDetailState> = _uiState.asStateFlow()
     // TODO not being used unless we're emitting something
     /*private val _uiAction: MutableSharedFlow<DiaryDetailAction> = MutableSharedFlow()
     val uiAction: SharedFlow<DiaryDetailAction> = _uiAction.asSharedFlow()*/
+
+    // TODO test
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = weatherApi.getForecast(
+                latitude = "43.074356",
+                longitude = "-87.900384"
+            )
+            val jsonObject = JSONObject(result)
+            val elevation = jsonObject.getInt("elevation")
+            val currently = jsonObject.getJSONObject("currently")
+            
+            println(result)
+        }
+    }
 
     fun clearFocus() {
         viewModelScope.launch {

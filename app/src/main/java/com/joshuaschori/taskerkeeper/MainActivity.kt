@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.joshuaschori.taskerkeeper.calendar.CalendarFragment
 import com.joshuaschori.taskerkeeper.databinding.ActivityMainBinding
@@ -36,6 +37,8 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
     private val navigationViewModel: NavigationViewModel by viewModels()
+    private lateinit var binding: ActivityMainBinding
+    private lateinit var auth: FirebaseAuth
 
     private fun showDiaryTab(diaryTabState: TabState) {
         when (diaryTabState) {
@@ -77,13 +80,12 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    // Contains all the views
-    private lateinit var binding: ActivityMainBinding
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         val view = binding.root
         setContentView(view)
+        auth = Firebase.auth
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -110,9 +112,22 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+    }
 
-        // TODO firebase placeholder
-        Firebase.auth.signInAnonymously()
+    public override fun onStart() {
+        super.onStart()
+        // Check if user is signed in (non-null) and update UI accordingly.
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            // TODO update view model with user info and reload?
+        } else {
+            auth.signInAnonymously()
+        }
+
+        // TODO from signInAnonymously:
+        //  "In order to allow your app's users to keep their information, ask them to provide some
+        //  other authentication credentials, and link them to the current user with FirebaseUser.
+        //  linkWithCredential(AuthCredential)."
     }
 
     @Composable
