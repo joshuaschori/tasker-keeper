@@ -5,8 +5,8 @@ The tasks tab allows the user to create different lists of tasks. Within each li
 
 https://github.com/user-attachments/assets/47a73e2d-0c0c-42e3-8858-be6d16c70cf3
 
-The unimplemented habit tracker will have habits that will refresh daily, weekly, or monthly.
+The in-progress habit tracker will have habits that will refresh daily, weekly, or monthly.
 
-The unimplemented calendar will show tasks that are set for specific dates, and clicking on them will take you to that date's task list in the tasks tab.
+The in-progress calendar will show tasks that are set for specific dates, and clicking on them will take you to that date's task list in the tasks tab.
 
-The unimplemented diary will automatically create a daily entry that archives the habits and tasks completed on that date, as well as any notes typed up in the diary tab for that day.
+The in-progress diary will automatically create a daily entry that archives the habits and tasks completed on that date, as well as any notes typed up in the diary tab for that day.
