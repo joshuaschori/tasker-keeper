@@ -68,7 +68,9 @@ class DiaryMenuFragment: Fragment() {
 
     private fun handleAction(diaryMenuAction: DiaryMenuAction) {
         when (diaryMenuAction) {
-            else -> {}
+            DiaryMenuAction.ClearFocus -> TODO()
+            is DiaryMenuAction.NavigateToDiaryDetail -> navigationViewModel.navigateToDiaryDetail(diaryId = diaryMenuAction.diaryId)
+            DiaryMenuAction.ResetClearFocusTrigger -> TODO()
         }
     }
 
@@ -124,7 +126,12 @@ class DiaryMenuFragment: Fragment() {
             )
             Column {
                 for (diary in diaryEntityList) {
-                    Text(diary.diaryDate)
+                    Text(
+                        text = diary.diaryDate,
+                        modifier = Modifier.clickable {
+                            actionHandler(DiaryMenuAction.NavigateToDiaryDetail(diary.diaryId))
+                        }
+                    )
                 }
             }
         }

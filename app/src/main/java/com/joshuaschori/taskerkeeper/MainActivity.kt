@@ -71,8 +71,6 @@ class MainActivity : FragmentActivity() {
     private fun handleNavigationAction(navigationAction: NavigationAction) {
         when (navigationAction) {
             is NavigationAction.ChangeBottomNavState -> this.navigationViewModel.changeBottomNavState(navigationAction.bottomNavState)
-            is NavigationAction.NavigateToTasksDetail -> this.navigationViewModel.navigateToTasksDetail(navigationAction.categoryId)
-            is NavigationAction.NavigateToTasksMenu -> this.navigationViewModel.navigateToTasksMenu()
             is NavigationAction.ShowCalendarTab -> showFragment(CalendarFragment.newInstance())
             is NavigationAction.ShowDiaryTab -> showDiaryTab(navigationAction.diaryTabState)
             is NavigationAction.ShowHabitsTab -> showHabitsTab(navigationAction.habitsTabState)

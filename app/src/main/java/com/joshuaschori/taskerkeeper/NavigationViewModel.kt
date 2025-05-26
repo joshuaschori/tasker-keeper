@@ -151,8 +151,6 @@ sealed interface NavigationState {
 
 sealed interface NavigationAction {
     data class ChangeBottomNavState(val bottomNavState: BottomNavState): NavigationAction
-    data class NavigateToTasksDetail(val categoryId: Int): NavigationAction
-    data object NavigateToTasksMenu: NavigationAction
     data object ShowCalendarTab: NavigationAction
     data class ShowDiaryTab(val diaryTabState: TabState): NavigationAction
     data class ShowHabitsTab(val habitsTabState: TabState): NavigationAction

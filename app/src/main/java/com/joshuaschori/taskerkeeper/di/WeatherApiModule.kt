@@ -1,5 +1,8 @@
-package com.joshuaschori.taskerkeeper.network
+package com.joshuaschori.taskerkeeper.di
 
+import com.joshuaschori.taskerkeeper.network.WeatherApi
+import com.joshuaschori.taskerkeeper.network.WeatherApiImplementation
+import com.joshuaschori.taskerkeeper.network.WeatherApiService
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -17,7 +20,7 @@ interface WeatherApiModule {
     companion object {
         @Provides
         @Singleton
-        fun provideWeatherApi(): WeatherApiService {
+        fun provideWeatherApiService(): WeatherApiService {
             return Retrofit.Builder()
                 .baseUrl(BASE_URL)
                 .build()

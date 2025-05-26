@@ -1,15 +1,19 @@
 package com.joshuaschori.taskerkeeper.diary.diaryDetail
 
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,6 +54,7 @@ class DiaryDetailFragment: Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         diaryId = requireArguments().getInt(DIARY_ID)
+        diaryDetailViewModel.getForecast()
         diaryDetailViewModel.listenForDatabaseUpdates(diaryId)
     }
 
@@ -57,7 +62,7 @@ class DiaryDetailFragment: Fragment() {
     /*override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {n
                 diaryDetailViewModel.uiAction.collect {
                     handleAction(it)
                 }
@@ -73,6 +78,33 @@ class DiaryDetailFragment: Fragment() {
             is DiaryDetailAction.ResetClearFocusTrigger -> diaryDetailViewModel.resetClearFocusTrigger()
         }
     }
+
+    // TODO
+  /*  @RequiresApi(Build.VERSION_CODES.N)
+    fun requestPermissions() {
+        val locationPermissionRequest = registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            when {
+                permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
+                    // Only approximate location access granted.
+                }
+                else -> {
+                    // No location access granted.
+                }
+            }
+        }
+
+        // Before you perform the actual permission request, check whether your app
+        // already has the permissions, and whether your app needs to show a permission
+        // rationale dialog. For more details, see Request permissions:
+        // https://developer.android.com/training/permissions/requesting#request-permission
+        locationPermissionRequest.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }*/
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -136,24 +168,31 @@ class DiaryDetailFragment: Fragment() {
                 activeTextField.value = diaryText
             }
 
-            BasicTextField(
-                value = if (isFocused) {
-                    activeTextField.value
-                } else {
-                    diaryText
-                },
-                onValueChange = {
-                    activeTextField.value = it
-                    actionHandler(DiaryDetailAction.EditDiaryText(diaryId, it))
-                },
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Default
-                ),
-                interactionSource = interactionSource,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = 16.dp, top = 32.dp, end = 16.dp, bottom = 320.dp)
-            )
+            Row {
+                BasicTextField(
+                    value = if (isFocused) {
+                        activeTextField.value
+                    } else {
+                        diaryText
+                    },
+                    onValueChange = {
+                        activeTextField.value = it
+                        actionHandler(DiaryDetailAction.EditDiaryText(diaryId, it))
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Default
+                    ),
+                    interactionSource = interactionSource,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 16.dp, top = 32.dp, end = 16.dp, bottom = 320.dp)
+                        .weight(1f)
+                )
+                // TODO
+                /*when () {
+
+                }*/
+            }
         }
     }
 
@@ -172,6 +211,21 @@ class DiaryDetailFragment: Fragment() {
         ) {
             CircularProgressIndicator()
         }
+    }
+
+    @Composable
+    fun ForecastApiContent() {
+
+    }
+
+    @Composable
+    fun ForecastApiError() {
+        Text("ForecastApiError in DiaryDetailFragment")
+    }
+
+    @Composable
+    fun ForecastApiLoading() {
+        CircularProgressIndicator()
     }
 
     companion object {

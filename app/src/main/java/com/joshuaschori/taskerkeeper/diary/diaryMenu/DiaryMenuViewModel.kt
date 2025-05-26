@@ -43,6 +43,7 @@ sealed interface DiaryMenuState {
 
 sealed interface DiaryMenuAction {
     data object ClearFocus: DiaryMenuAction
+    data class NavigateToDiaryDetail(val diaryId: Int): DiaryMenuAction
     data object ResetClearFocusTrigger: DiaryMenuAction
 }
 

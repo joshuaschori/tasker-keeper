@@ -1,10 +1,13 @@
 package com.joshuaschori.taskerkeeper.diary.diaryDetail
 
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joshuaschori.taskerkeeper.data.diary.DiaryRepository
 import com.joshuaschori.taskerkeeper.network.WeatherApi
 import com.joshuaschori.taskerkeeper.network.WeatherApiService
+import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TaskListBuilder
+import com.joshuaschori.taskerkeeper.tasks.tasksDetail.TasksDetailState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,12 +15,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.io.IOException
 import javax.inject.Inject
 
 @HiltViewModel
 class DiaryDetailViewModel @Inject constructor(
-    private val diaryRepository: DiaryRepository,
-    private val weatherApi: WeatherApi
+    private val diaryRepository: DiaryRepository
 ): ViewModel() {
     private val _uiState: MutableStateFlow<DiaryDetailState> = MutableStateFlow(DiaryDetailState.Loading)
     val uiState: StateFlow<DiaryDetailState> = _uiState.asStateFlow()
@@ -25,28 +28,13 @@ class DiaryDetailViewModel @Inject constructor(
     /*private val _uiAction: MutableSharedFlow<DiaryDetailAction> = MutableSharedFlow()
     val uiAction: SharedFlow<DiaryDetailAction> = _uiAction.asSharedFlow()*/
 
-    // TODO test
-    init {
-        viewModelScope.launch(Dispatchers.IO) {
-            val result = weatherApi.getForecast(
-                latitude = "43.074356",
-                longitude = "-87.900384"
-            )
-            val jsonObject = JSONObject(result)
-            val elevation = jsonObject.getInt("elevation")
-            val currently = jsonObject.getJSONObject("currently")
-            
-            println(result)
-        }
-    }
-
     fun clearFocus() {
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is DiaryDetailState.Content) {
                 _uiState.value = currentState.copy(clearFocusTrigger = true)
             } else {
-                _uiState.value = DiaryDetailState.Error
+                _uiState.value = DiaryDetailState.Error("DiaryDetailViewModel clearFocus")
             }
         }
     }
@@ -57,7 +45,23 @@ class DiaryDetailViewModel @Inject constructor(
             if (currentState is DiaryDetailState.Content) {
                 diaryRepository.editDiaryText(diaryId, textChange)
             } else {
-                _uiState.value = DiaryDetailState.Error
+                _uiState.value = DiaryDetailState.Error("DiaryDetailViewModel editDiaryText")
+            }
+        }
+    }
+
+    fun getForecast() {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is DiaryDetailState.Content || currentState is DiaryDetailState.Loading) {
+                try {
+                    diaryRepository.getForecast()
+                }
+                catch (e: IOException) {
+                    // TODO
+                }
+            } else {
+                _uiState.value = DiaryDetailState.Error("DiaryDetailViewModel getForecast")
             }
         }
     }
@@ -65,11 +69,26 @@ class DiaryDetailViewModel @Inject constructor(
     fun listenForDatabaseUpdates(diaryId: Int) {
         viewModelScope.launch {
             diaryRepository.getDiaryEntryById(diaryId).collect {
-                _uiState.value = DiaryDetailState.Content(
-                    diaryId = diaryId,
-                    diaryDate = it.diaryDate,
-                    diaryText = it.diaryText,
-                )
+                when (val currentState = _uiState.value) {
+                    is DiaryDetailState.Content -> {
+                        _uiState.value = currentState.copy(
+                            diaryDate = it.diaryDate,
+                            diaryText = it.diaryText,
+                        )
+                    }
+                    is DiaryDetailState.Loading -> {
+                        _uiState.value = DiaryDetailState.Content(
+                            diaryId = diaryId,
+                            diaryDate = it.diaryDate,
+                            diaryText = it.diaryText,
+                            // TODO grab / store in database?
+                            forecast = null
+                        )
+                    }
+                    else -> {
+                        _uiState.value = DiaryDetailState.Error("DiaryDetailViewModel listenForDatabaseUpdates")
+                    }
+                }
             }
         }
     }
@@ -80,7 +99,7 @@ class DiaryDetailViewModel @Inject constructor(
             if (currentState is DiaryDetailState.Content) {
                 _uiState.value = currentState.copy(clearFocusTrigger = false)
             } else {
-                _uiState.value = DiaryDetailState.Error
+                _uiState.value = DiaryDetailState.Error("DiaryDetailViewModel resetClearFocusTrigger")
             }
         }
     }
@@ -91,9 +110,12 @@ sealed interface DiaryDetailState {
         val diaryId: Int,
         val diaryDate: String,
         val diaryText: String,
+        val forecast: String?,
         val clearFocusTrigger: Boolean = false,
     ) : DiaryDetailState
-    data object Error : DiaryDetailState
+    data class Error(
+        val string: String
+    ) : DiaryDetailState
     data object Loading : DiaryDetailState
 }
 

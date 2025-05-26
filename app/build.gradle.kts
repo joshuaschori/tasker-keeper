@@ -1,37 +1,20 @@
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.androidx.room)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt)
-    alias(libs.plugins.googleServices)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.ksp)
 }
 
 android {
-    namespace = "com.joshuaschori.taskerkeeper"
-    compileSdk = 35
-
-    defaultConfig {
-        applicationId = "com.joshuaschori.taskerkeeper"
-        minSdk = 24
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary = true
-        }
-
-        buildConfigField(
-            type = "String",
-            name = "API_KEY",
-            value = "\"${project.findProperty("pirate_weather_api_key").toString()}\""
-        )
+    buildFeatures {
+        buildConfig = true
+        compose = true
+        viewBinding = true
     }
-
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -42,21 +25,34 @@ android {
         }
     }
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true
+    }
+    compileSdk = 35
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.1"
+    }
+    defaultConfig {
+        applicationId = "com.joshuaschori.taskerkeeper"
+        buildConfigField(
+            type = "String",
+            name = "API_KEY",
+            value = "\"${project.findProperty("pirate_weather_api_key").toString()}\""
+        )
+        minSdk = 24
+        targetSdk = 35
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+        versionCode = 1
+        versionName = "1.0"
     }
     kotlinOptions {
         jvmTarget = "17"
     }
-    buildFeatures {
-        compose = true
-        viewBinding = true
-        buildConfig = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
-    }
+    namespace = "com.joshuaschori.taskerkeeper"
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -68,40 +64,41 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.material.icons.extended)
-    implementation(libs.material3)
-    implementation(libs.androidx.fragment)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.lifecycle.runtime.compose.android)
-    implementation(libs.androidx.appcompat)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation(libs.androidx.fragment.ktx)
-    implementation(libs.androidx.activity.ktx)
-    implementation(libs.androidx.room)
-    ksp(libs.androidx.room.compiler)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.android.compiler)
-    implementation(platform("com.google.firebase:firebase-bom:33.8.0"))
+    debugImplementation(libs.androidx.ui.tooling)
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-auth")
-    coreLibraryDesugaring(libs.desugar.jdk.libs)
-    implementation(project(":tiered-dragon-drop"))
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.activity.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.fragment)
+    implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose.android)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.room)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.datastore)
+    implementation(libs.hilt.android)
+    implementation(libs.material3)
     implementation(libs.retrofit)
     implementation(libs.retrofit.scalar)
+    implementation(platform("com.google.firebase:firebase-bom:33.8.0"))
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(project(":tiered-dragon-drop"))
+    ksp(libs.androidx.room.compiler)
+    ksp(libs.hilt.android.compiler)
+    testImplementation(libs.junit)
 }
